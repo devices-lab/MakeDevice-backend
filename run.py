@@ -1,5 +1,5 @@
 from gerbonara.rs274x import GerberFile
-from extract import extract_socket_locations
+from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_gerber_layers
 
 assigned_nets = {
@@ -16,6 +16,10 @@ gerber_sockets = merge_gerber_layers(module_details, socket_layer_name)
 
 # Get the locations of the sockets
 socket_locations = extract_socket_locations(gerber_sockets, assigned_nets)
+
+# Get the keep out zones 
+keep_out_zones = extract_keep_out_zones(gerber_sockets)
+print(keep_out_zones)
 
 # Create a new Gerber files with all the routing
 
