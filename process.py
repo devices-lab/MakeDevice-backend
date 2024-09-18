@@ -53,7 +53,6 @@ def merge_gerber_layers(module_details, layer_name, gerber_dir_path='./gerbers',
     if merged_gerber:
         output_file_path = output_dir / f'merged_{layer_name}.gbr'
         merged_gerber.save(output_file_path)
-        print(f"Merged '{layer_name}.gbr' files saved to: {output_file_path}")
         return merged_gerber
     else:
         print(f"No '{layer_name}.gbr' files were processed.")
@@ -112,7 +111,6 @@ def merge_gerber_stacks(module_details, gerber_dir_path='./gerbers', output_dir_
     if merged_stack:
         
         merged_stack.save_to_directory(output_dir)
-        print(f"Merged Gerber files saved to: {output_dir}")
     else:
         print("No files were processed.")
         
