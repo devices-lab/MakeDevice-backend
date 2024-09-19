@@ -21,10 +21,10 @@ def create_grid(dimensions, keep_out_zones, resolution=0.1):
     grid_height = math.ceil(height / resolution)
 
     # Ensure grid dimensions are even numbers
-    if grid_width % 2 != 0:
-        grid_width += 1
-    if grid_height % 2 != 0:
-        grid_height += 1
+    # if grid_width % 2 != 0:
+    #     grid_width += 1
+    # if grid_height % 2 != 0:
+    #     grid_height += 1
 
     # Initialize grid to all zeros (free)
     grid = np.zeros((grid_height, grid_width), dtype=int)
@@ -106,7 +106,7 @@ def reconstruct_path(came_from, current):
     return path[::-1]
 
 
-def route_sockets(grid, socket_locations):
+def route_sockets(grid, socket_locations, resolution=0.1):
     """
     Routes sockets based on the A* algorithm for each net type and returns the paths.
 
@@ -130,9 +130,13 @@ def route_sockets(grid, socket_locations):
         for i in range(len(locations) - 1):
             start = locations[i]
             end = locations[i + 1]
+            # Print start and end
+            print("ℹ️ Coordinates: ", start, end)
             # Convert real-world coordinates to grid indices
             start_index = (center_y + int(start[1]), center_x + int(start[0]))
             end_index = (center_y + int(end[1]), center_x + int(end[0]))
+            print("ℹ️ Route indexes: ", start_index, end_index)
+
             # Perform A* search
             path = a_star_search(grid, start_index, end_index)
             if path:
