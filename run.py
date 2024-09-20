@@ -2,7 +2,7 @@ from gerbonara.rs274x import GerberFile
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_gerber_layers
 from route import create_grid, route_sockets
-from debug import show_plot
+from debug import show_grid, show_grid_and_routes, generate_test_grid, print_full_array
 
 assigned_nets = {
     "JD_PWR": 0.11,
@@ -14,24 +14,44 @@ socket_layer_name = "Jacdac_Bus"
 module_details = "data.json"
 PCB_dimensions = (100, 100)
 
-# Merge the Jacdac Bus layers
+debug_socket_locations = {
+    "JD_PWR": [(0, 0), (1, 0)],
+    "JD_GND": [(-2, -2), (0, 2)]
+}
+
+# Four points in the order (top_left, top_right, bottom_right, bottom_left)
+debug_zone = [((0, -1), (1, -1), (1, 0), (0, 0))]
+
+
+
+# # Merge the Jacdac Bus layers
 gerber_sockets = merge_gerber_layers(module_details, socket_layer_name)
 print("✅ Merged", socket_layer_name, "layers")
 
-# Get the locations of the sockets
+# # Get the locations of the sockets
 socket_locations = extract_socket_locations(gerber_sockets, assigned_nets)
 print("✅ Socket locations identified")
+
 # Get the keep out zones 
 keep_out_zones = extract_keep_out_zones(gerber_sockets)
 print("✅ Keep out zones identified")
+
 # Create a grid
 grid = create_grid(PCB_dimensions, keep_out_zones)
 print("✅ Grid created")
 
+# Generate a test grid 
+# test_grid = generate_test_grid((20,20))
+# print("✅ Generated a test grid")
+
+
 # Pass the grid along with the socket locations to the router
 routes = route_sockets(grid, socket_locations)
-print("✅ Routing completed")
+print("✅ Test routing completed")
+print(routes)
 
 # Display on the graph
 print("✅ Graph displayed")
-show_plot(grid, socket_locations, routes)
+show_grid_and_routes(grid, socket_locations, routes)
+
+

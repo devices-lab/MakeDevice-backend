@@ -20,12 +20,6 @@ def create_grid(dimensions, keep_out_zones, resolution=0.1):
     grid_width = math.ceil(width / resolution)
     grid_height = math.ceil(height / resolution)
 
-    # Ensure grid dimensions are even numbers
-    # if grid_width % 2 != 0:
-    #     grid_width += 1
-    # if grid_height % 2 != 0:
-    #     grid_height += 1
-
     # Initialize grid to all zeros (free)
     grid = np.zeros((grid_height, grid_width), dtype=int)
 
@@ -46,7 +40,7 @@ def create_grid(dimensions, keep_out_zones, resolution=0.1):
         y1, y2 = max(0, y1), min(grid_height-1, y2)
         
         # Mark cells as blocked
-        grid[y1:y2+1, x1:x2+1] = 1
+        grid[y1:y2, x1:x2] = 1
 
     return grid
 
@@ -57,15 +51,13 @@ def a_star_search(grid, start, goal):
     neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
     grid_shape = grid.shape
 
-    # Use a NumPy array for gscore, fscore, and closed set for faster access and updates
+    # Initialize for pathfinding
     gscore = np.full(grid_shape, np.inf)
     fscore = np.full(grid_shape, np.inf)
     close_set = np.zeros(grid_shape, dtype=bool)
-
-    # Maps for reconstructing path
     came_from = {}
-    
-    # Start node initialization
+
+    # Start node scores
     gscore[start] = 0
     fscore[start] = heuristic(start, goal)
 
@@ -76,7 +68,6 @@ def a_star_search(grid, start, goal):
         current = heappop(open_set)[1]
 
         if current == goal:
-            # Reconstruct path
             return reconstruct_path(came_from, current)
 
         close_set[current] = True
@@ -84,16 +75,15 @@ def a_star_search(grid, start, goal):
             neighbor = (current[0] + i, current[1] + j)
 
             if 0 <= neighbor[0] < grid_shape[0] and 0 <= neighbor[1] < grid_shape[1]:
-                if grid[neighbor] or close_set[neighbor]:
-                    continue
+                # Allow stepping into the keep-out zone if it's the goal node
+                if neighbor == goal or not grid[neighbor]:
+                    tentative_g_score = gscore[current] + 1  # Uniform cost assumed
 
-                tentative_g_score = gscore[current] + 1  # Assuming uniform cost
-
-                if tentative_g_score < gscore[neighbor]:
-                    came_from[neighbor] = current
-                    gscore[neighbor] = tentative_g_score
-                    fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                    heappush(open_set, (fscore[neighbor], neighbor))
+                    if tentative_g_score < gscore[neighbor]:
+                        came_from[neighbor] = current
+                        gscore[neighbor] = tentative_g_score
+                        fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
+                        heappush(open_set, (fscore[neighbor], neighbor))
 
     return False
 
@@ -105,6 +95,40 @@ def reconstruct_path(came_from, current):
     path.append(current)
     return path[::-1]
 
+import numpy as np
+
+def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=3):
+    """
+    Apply keep-out zones for locations of sockets in other nets to the grid.
+    Keep-out zones are applied as a square around each socket point.
+
+    Args:
+        grid (numpy.array): Current grid with already applied keep-out zones.
+        socket_locations (dict): Locations of the sockets by net.
+        current_net (string): Name of the net currently being processed.
+        resolution (float): Units per grid cell, defining the scale of the grid.
+        keep_out_mm (int): Radius of the keep-out zone in millimeters.
+
+    Returns:
+        numpy.array: Updated grid with the additional keep-out zones applied.
+    """
+    temp_grid = np.copy(grid)
+    keep_out_cells = int(np.ceil(keep_out_mm / resolution))  # Convert mm to grid cells
+
+    for net, locations in socket_locations.items():
+        if net != current_net:  # Apply keep-out zones only for other nets
+            for x, y in locations:
+                x_index = int(x / resolution) + grid.shape[1] // 2
+                y_index = int(y / resolution) + grid.shape[0] // 2
+                # Apply keep-out zone around the socket
+                for i in range(-keep_out_cells, keep_out_cells + 1):
+                    for j in range(-keep_out_cells, keep_out_cells + 1):
+                        xi = x_index + i
+                        yi = y_index + j
+                        if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
+                            temp_grid[yi, xi] = 1  # Mark this position as blocked
+
+    return temp_grid
 
 def route_sockets(grid, socket_locations, resolution=0.1):
     """
@@ -113,6 +137,7 @@ def route_sockets(grid, socket_locations, resolution=0.1):
     Parameters:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
         socket_locations (dict): A dictionary of socket locations grouped by net names.
+        resolution (float): The resolution of the grid in units per grid cell.
 
     Returns:
         dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
@@ -126,23 +151,21 @@ def route_sockets(grid, socket_locations, resolution=0.1):
     # Process each net type
     for net, locations in socket_locations.items():
         net_routes = []  # Store routes for this net
+        
+        # Apply keep-out zones for socket in nets
+        temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)  # Apply temporary keep-out zones
+        
         # Assume you want to connect each socket with the next one in the list
         for i in range(len(locations) - 1):
             start = locations[i]
             end = locations[i + 1]
-            # Print start and end
-            print("ℹ️ Coordinates: ", start, end)
-            # Convert real-world coordinates to grid indices
-            start_index = (center_y + int(start[1]), center_x + int(start[0]))
-            end_index = (center_y + int(end[1]), center_x + int(end[0]))
-            print("ℹ️ Route indexes: ", start_index, end_index)
+            # Convert real-world coordinates to grid indices considering the resolution
+            start_index = (center_y + int(start[1] / resolution), center_x + int(start[0] / resolution))
+            end_index = (center_y + int(end[1] / resolution), center_x + int(end[0] / resolution))
 
             # Perform A* search
-            path = a_star_search(grid, start_index, end_index)
-            if path:
-                net_routes.append(path)
-            else:
-                net_routes.append(None)  # In case no path is found
+            path = a_star_search(temp_grid, start_index, end_index)
+            net_routes.append(path if path else None)
 
         routes[net] = net_routes
 

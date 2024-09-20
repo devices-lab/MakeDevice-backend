@@ -6,10 +6,19 @@ def print_full_array(array):
     with np.printoptions(threshold=np.inf):
         print(array)
 
+def show_grid(grid):
+    plt.figure(figsize=(7, 7))  # Set the figure size
+    # Calculate the correct extents to align the grid cells with the axes
+    extent = [0, grid.shape[1], 0, grid.shape[0]]
+    plt.imshow(grid, cmap='gray', interpolation='nearest', extent=extent)  # Display the grid
+    plt.colorbar()
+    plt.grid(True)
+    plt.show()
 
-def show_plot(grid, socket_locations, routes, resolution=0.1):
-    plt.figure(figsize=(10, 10))  # Set the figure size
-    plt.imshow(grid, cmap='gray', interpolation='nearest')  # Display the grid
+def show_grid_and_routes(grid, socket_locations, routes, resolution=0.1):
+    plt.figure(figsize=(7, 7))  # Set the figure size
+    extent = [0, grid.shape[1], 0, grid.shape[0]]
+    plt.imshow(grid, cmap='gray', interpolation='nearest', extent=extent)  # Display the grid
     
     # Define colors or markers for different types of sockets
     colors = {'JD_PWR': 'red', 'JD_GND': 'blue', 'JD_DATA': 'green'}
@@ -29,10 +38,23 @@ def show_plot(grid, socket_locations, routes, resolution=0.1):
     for net_type, paths in routes.items():
         for path in paths:
             if path:  # Ensure there is a valid path
-                path_x, path_y = zip(*[(center_y + int(p[0]), center_x + int(p[1])) for p in path])
-                plt.plot(path_y, path_x, c=colors[net_type], linewidth=2, alpha=0.5)  # Use the same color as the sockets
+                path_y, path_x = zip(*path)  # Coordinates are directly usable, no need for center adjustment
+                plt.plot(path_x, path_y, c=colors[net_type], linewidth=2, alpha=0.5)  # Use the same color as the sockets
                 
     plt.colorbar()
     plt.grid(True)
-    plt.legend(title='Net Types')
+    plt.legend(title='Jacdac nets')
     plt.show()
+    
+def generate_test_grid(dimensions):
+    """Generates a test grid of the specified size.
+
+    Args:
+        size (tuple): Tuple of numbers representing the size of the grid.
+
+    Returns:
+        numpy.Array: An array initialised with zeros.
+    """
+    width, height = dimensions
+    grid = np.zeros((width, height), dtype=int)
+    return grid
