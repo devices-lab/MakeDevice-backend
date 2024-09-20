@@ -27,22 +27,9 @@ jacdac_socket_nets = {
 # The Gerber Socket layer must end with "socket_layer_name.gbr"
 socket_layer_name = "Jacdac_Bus"
 
-
+# The following need to be passed on from MakeDevice
 module_details = "data.json"
 PCB_dimensions = (100, 100)
-
-
-# DEBUGGING
-# debug_PCB_dimensions = (3, 3)
-# debug_socket_locations = {
-#     "JD_PWR": [(0, -1), (1, 0)]
-
-# }
-
-# # Four points in the order (top_left, top_right, bottom_right, bottom_left)
-# debug_keep_out_zones = [((-1, 0), (1, 0), (1, 1), (-1, 1))]
-# debug_empty_keep_out_zones = []
-# debug_empty_routes = {}
 
 
 # # Merge the Jacdac Bus layers

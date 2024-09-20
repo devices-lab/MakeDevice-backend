@@ -195,10 +195,9 @@ class UnionFind:
                 if self.rank[root1] == self.rank[root2]:
                     self.rank[root2] += 1
                     
-
 def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first'):
     """
-    Routes sockets together on each net and returns the paths.
+    Routes sockets together on each net.
 
     Args:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
