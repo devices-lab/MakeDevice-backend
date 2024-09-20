@@ -11,14 +11,13 @@ def show_grid(grid):
     # Calculate the correct extents to align the grid cells with the axes
     extent = [0, grid.shape[1], 0, grid.shape[0]]
     plt.imshow(grid, cmap='gray', interpolation='nearest', extent=extent)  # Display the grid
-    plt.colorbar()
     plt.grid(True)
     plt.show()
 
 def show_grid_and_routes(grid, socket_locations, routes, resolution=0.1):
     plt.figure(figsize=(7, 7))  # Set the figure size
     extent = [0, grid.shape[1], 0, grid.shape[0]]
-    plt.imshow(grid, cmap='gray', interpolation='nearest', extent=extent)  # Display the grid
+    plt.imshow(grid, cmap='gray', interpolation='nearest', extent=None)  # Display the grid
     
     # Define colors or markers for different types of sockets
     colors = {'JD_PWR': 'red', 'JD_GND': 'blue', 'JD_DATA': 'green'}
@@ -30,8 +29,8 @@ def show_grid_and_routes(grid, socket_locations, routes, resolution=0.1):
     for net_type, positions in socket_locations.items():
         for (x, y) in positions:
             # Adjust coordinates for the plot: shifting origin to the center of the grid
-            plot_x = (center_y + int(y)/resolution)  # Adjust for numpy's row-major order (flip x and y)
-            plot_y = (center_x + int(x)/resolution)
+            plot_x = (center_y + int(y / resolution))  # Adjust for numpy's row-major order (flip x and y)
+            plot_y = (center_x + int(x / resolution))
             plt.scatter(plot_y, plot_x, c=colors[net_type], s=100, label=net_type, alpha=0.6)
 
      # Draw the routes
@@ -41,7 +40,6 @@ def show_grid_and_routes(grid, socket_locations, routes, resolution=0.1):
                 path_y, path_x = zip(*path)  # Coordinates are directly usable, no need for center adjustment
                 plt.plot(path_x, path_y, c=colors[net_type], linewidth=2, alpha=0.5)  # Use the same color as the sockets
                 
-    plt.colorbar()
     plt.grid(True)
     plt.legend(title='Jacdac nets')
     plt.show()

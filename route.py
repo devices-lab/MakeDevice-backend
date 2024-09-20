@@ -1,8 +1,9 @@
 import numpy as np
 import math
 from heapq import heappush, heappop
+from collections import deque
 
-def create_grid(dimensions, keep_out_zones, resolution=0.1):
+def create_grid(dimensions, keep_out_zones, resolution):
     """
     Create a grid for pathfinding where (0,0) is at the center of the grid.
 
@@ -11,7 +12,7 @@ def create_grid(dimensions, keep_out_zones, resolution=0.1):
         keep_out_zones (list of tuples): Each tuple contains four points
                                          (top_left, top_right, bottom_right, bottom_left) representing
                                          a rectangle in the same units as dimensions.
-        resolution (float): The size of each grid cell in units. Default is 1.0.
+        resolution (float): The size of each grid cell in units.
 
     Returns:
         numpy.ndarray: A 2D grid where 0 represents a free cell and 1 represents a blocked cell.
@@ -95,9 +96,38 @@ def reconstruct_path(came_from, current):
     path.append(current)
     return path[::-1]
 
-import numpy as np
+def breadth_first_search(grid, start, goal):
+    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    grid_shape = grid.shape
 
-def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=3):
+    # Initialize for pathfinding
+    visited = np.zeros(grid_shape, dtype=bool)
+    came_from = {}
+
+    # Start node
+    queue = deque([start])
+    visited[start] = True
+
+    while queue:
+        current = queue.popleft()
+
+        if current == goal:
+            return reconstruct_path(came_from, current)
+
+        for i, j in neighbors:
+            neighbor = (current[0] + i, current[1] + j)
+
+            if 0 <= neighbor[0] < grid_shape[0] and 0 <= neighbor[1] < grid_shape[1]:
+                if not visited[neighbor]:
+                    # Allow stepping onto the goal even if it is in a keep-out zone
+                    if neighbor == goal or grid[neighbor] == 0:
+                        queue.append(neighbor)
+                        visited[neighbor] = True
+                        came_from[neighbor] = current
+
+    return False
+
+def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=1):
     """
     Apply keep-out zones for locations of sockets in other nets to the grid.
     Keep-out zones are applied as a square around each socket point.
@@ -130,7 +160,43 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
 
     return temp_grid
 
-def route_sockets(grid, socket_locations, resolution=0.1):
+def calculate_distances(socket_locations, resolution):
+    distances = []
+    sockets = list(socket_locations.items())
+    for i in range(len(sockets) - 1):
+        for j in range(i + 1, len(sockets)):
+            net_i, locs_i = sockets[i]
+            net_j, locs_j = sockets[j]
+            for loc_i in locs_i:
+                for loc_j in locs_j:
+                    dist = heuristic((loc_i[0]/resolution, loc_i[1]/resolution), (loc_j[0]/resolution, loc_j[1]/resolution))
+                    distances.append((dist, (net_i, loc_i), (net_j, loc_j)))
+    distances.sort()
+    return distances
+
+class UnionFind:
+    def __init__(self, elements):
+        self.parent = {element: element for element in elements}
+        self.rank = {element: 0 for element in elements}
+
+    def find(self, element):
+        if self.parent[element] != element:
+            self.parent[element] = self.find(self.parent[element])
+        return self.parent[element]
+
+    def union(self, element1, element2):
+        root1 = self.find(element1)
+        root2 = self.find(element2)
+        if root1 != root2:
+            if self.rank[root1] > self.rank[root2]:
+                self.parent[root2] = root1
+            else:
+                self.parent[root1] = root2
+                if self.rank[root1] == self.rank[root2]:
+                    self.rank[root2] += 1
+                    
+
+def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first'):
     """
     Routes sockets based on the A* algorithm for each net type and returns the paths.
 
@@ -138,6 +204,8 @@ def route_sockets(grid, socket_locations, resolution=0.1):
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
         socket_locations (dict): A dictionary of socket locations grouped by net names.
         resolution (float): The resolution of the grid in units per grid cell.
+        algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' or 'breadth_first'.
+            Default is 'breadth_first'.
 
     Returns:
         dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
@@ -153,9 +221,9 @@ def route_sockets(grid, socket_locations, resolution=0.1):
         net_routes = []  # Store routes for this net
         
         # Apply keep-out zones for socket in nets
-        temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)  # Apply temporary keep-out zones
+        temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)
         
-        # Assume you want to connect each socket with the next one in the list
+        # Connect each socket with the next one in the list
         for i in range(len(locations) - 1):
             start = locations[i]
             end = locations[i + 1]
@@ -163,8 +231,11 @@ def route_sockets(grid, socket_locations, resolution=0.1):
             start_index = (center_y + int(start[1] / resolution), center_x + int(start[0] / resolution))
             end_index = (center_y + int(end[1] / resolution), center_x + int(end[0] / resolution))
 
-            # Perform A* search
-            path = a_star_search(temp_grid, start_index, end_index)
+            if algorithm == 'a_star':
+                path = a_star_search(temp_grid, start_index, end_index)
+            else:   
+                path = breadth_first_search(temp_grid, start_index, end_index)
+                
             net_routes.append(path if path else None)
 
         routes[net] = net_routes
