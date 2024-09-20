@@ -160,19 +160,19 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
 
     return temp_grid
 
-def calculate_distances(socket_locations, resolution):
-    distances = []
-    sockets = list(socket_locations.items())
-    for i in range(len(sockets) - 1):
-        for j in range(i + 1, len(sockets)):
-            net_i, locs_i = sockets[i]
-            net_j, locs_j = sockets[j]
-            for loc_i in locs_i:
-                for loc_j in locs_j:
-                    dist = heuristic((loc_i[0]/resolution, loc_i[1]/resolution), (loc_j[0]/resolution, loc_j[1]/resolution))
-                    distances.append((dist, (net_i, loc_i), (net_j, loc_j)))
-    distances.sort()
-    return distances
+def calculate_net_distances(socket_locations, resolution):
+    net_distances = {}
+    for net, locations in socket_locations.items():
+        distances = []
+        for i in range(len(locations) - 1):
+            for j in range(i + 1, len(locations)):
+                loc_i = locations[i]
+                loc_j = locations[j]
+                dist = heuristic((loc_i[0] / resolution, loc_i[1] / resolution), (loc_j[0] / resolution, loc_j[1] / resolution))
+                distances.append((dist, loc_i, loc_j))
+        distances.sort()
+        net_distances[net] = distances
+    return net_distances
 
 class UnionFind:
     def __init__(self, elements):
@@ -198,9 +198,48 @@ class UnionFind:
 
 def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first'):
     """
-    Routes sockets based on the A* algorithm for each net type and returns the paths.
+    Routes sockets together on each net and returns the paths.
 
-    Parameters:
+    Args:
+        grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
+        socket_locations (dict): A dictionary of socket locations grouped by net names.
+        resolution (float): The resolution of the grid in units per grid cell.
+        algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' or 'breadth_first'.
+            Default is 'breadth_first'.
+
+    Returns:
+        dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
+        with points as tuples.
+    """    
+    routes = {}
+    net_distances = calculate_net_distances(socket_locations, resolution)
+    
+    for net, distances in net_distances.items():
+        temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)
+        uf = UnionFind([tuple(loc) for loc in socket_locations[net]])  # Using tuples as UnionFind elements
+        
+        for dist, loc1, loc2 in distances:
+            if uf.find(tuple(loc1)) != uf.find(tuple(loc2)):
+                start_index = (int(loc1[1] / resolution) + temp_grid.shape[0] // 2, int(loc1[0] / resolution) + temp_grid.shape[1] // 2)
+                end_index = (int(loc2[1] / resolution) + temp_grid.shape[0] // 2, int(loc2[0] / resolution) + temp_grid.shape[1] // 2)
+                
+                if algorithm == 'a_star':
+                    path = a_star_search(temp_grid, start_index, end_index)
+                else:
+                    path = breadth_first_search(temp_grid, start_index, end_index)
+                
+                if path:
+                    routes.setdefault(net, []).append(path)
+                    uf.union(tuple(loc1), tuple(loc2))
+                    
+    return routes
+
+def route_sockets_not_optimised(grid, socket_locations, resolution, algorithm='breadth_first'):
+    """ This is a previous implementation of the route_sockets function. It simply routes each socket within a net
+    to the next one in the list. The new implementation is more optimized and routes sockets based on the distance between
+    them.
+
+    Args:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
         socket_locations (dict): A dictionary of socket locations grouped by net names.
         resolution (float): The resolution of the grid in units per grid cell.
