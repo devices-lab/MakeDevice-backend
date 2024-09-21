@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+def generate_test_grid(dimensions):
+    width, height = dimensions
+    grid = np.zeros((width, height), dtype=int)
+    return grid
+
 def print_full_array(array):
     # Temporarily set NumPy print options to display the entire array
     with np.printoptions(threshold=np.inf):
@@ -38,21 +43,39 @@ def show_grid_and_routes(grid, socket_locations, routes, resolution=0.1):
         for path in paths:
             if path:  # Ensure there is a valid path
                 path_y, path_x = zip(*path)  # Coordinates are directly usable, no need for center adjustment
-                plt.plot(path_x, path_y, c=colors[net_type], linewidth=2, alpha=0.5)  # Use the same color as the sockets
+                plt.plot(path_x, path_y, c=colors[net_type], linewidth=2, alpha=0.6)  # Use the same color as the sockets
                 
     plt.grid(True)
     plt.legend(title='Jacdac nets')
     plt.show()
-    
-def generate_test_grid(dimensions):
-    """Generates a test grid of the specified size.
 
-    Args:
-        size (tuple): Tuple of numbers representing the size of the grid.
-
-    Returns:
-        numpy.Array: An array initialised with zeros.
+def show_segments_and_sockets(socket_locations, segments):
     """
-    width, height = dimensions
-    grid = np.zeros((width, height), dtype=int)
-    return grid
+    Plots the line segments and socket locations without any underlying grid.
+    
+    Args:
+        socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as socket locations.
+        segments (dict): Dictionary with net names as keys and lists of tuples ((start_x, start_y), (end_x, end_y)) as line segments.
+    """
+    plt.figure(figsize=(10, 10))
+
+    # Define colors for different nets
+    colors = {'JD_PWR': 'red', 'JD_GND': 'blue', 'JD_DATA': 'green'}
+
+    # Plot the socket locations
+    for net_type, positions in socket_locations.items():
+        xs, ys = zip(*positions)
+        plt.scatter(xs, ys, color=colors.get(net_type, 'black'), s=100, label=net_type, alpha=0.6, edgecolors='white')
+
+    # Plot the segments
+    for net_type, paths in segments.items():
+        for start, end in paths:
+            start_x, start_y = start
+            end_x, end_y = end
+            plt.plot([start_x, end_x], [start_y, end_y], color=colors.get(net_type, 'black'), linewidth=2, alpha=0.75)
+
+    plt.grid(True)  # Optional: Can be removed if a cleaner look is preferred
+    plt.legend(title='Net Types')
+    plt.gca().set_aspect('equal', adjustable='datalim')
+    plt.gca().invert_yaxis()  # Invert y-axis to match traditional Cartesian coordinate system
+    plt.show()

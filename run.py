@@ -2,7 +2,7 @@ from gerbonara.rs274x import GerberFile
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_gerber_layers
 from route import create_grid, route_sockets
-from debug import show_grid, show_grid_and_routes, generate_test_grid, print_full_array
+from debug import show_grid_and_routes
 
 # Coordinate rounding is done to up to the nearest resolution value.
 # Increasing the resolution will allow for precise routing, at the cost of 
@@ -39,7 +39,6 @@ print("✅ Merged", socket_layer_name, "layers")
 # # Get the locations of the sockets
 socket_locations = extract_socket_locations(gerber_sockets, jacdac_socket_nets)
 print("✅ Socket locations identified")
-print(socket_locations)
 
 # Get the keep out zones 
 keep_out_zones = extract_keep_out_zones(gerber_sockets)
@@ -56,5 +55,3 @@ print("✅ Routing completed")
 # Display on the graph
 print("✅ Graph displayed")
 show_grid_and_routes(grid, socket_locations, routes, resolution=GRID_RESOLUTION)
-
-

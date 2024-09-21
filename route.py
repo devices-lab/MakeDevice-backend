@@ -2,21 +2,26 @@ import numpy as np
 import math
 from heapq import heappush, heappop
 from collections import deque
+from debug import show_segments_and_sockets
 
 def create_grid(dimensions, keep_out_zones, resolution):
     """
-    Create a grid for pathfinding where (0,0) is at the center of the grid.
+    Create an array grid for the pathfinding algorithm. 
 
-    Parameters:
+    Args:
         dimensions (tuple): The full width and height of the grid in units (e.g., millimeters).
         keep_out_zones (list of tuples): Each tuple contains four points
                                          (top_left, top_right, bottom_right, bottom_left) representing
-                                         a rectangle in the same units as dimensions.
-        resolution (float): The size of each grid cell in units.
+                                         a rectangle in the same units as dimensions. Those are the keep-out
+                                         zones, where the algorithm will avoid routing.
+        resolution (float): The size of each grid cell in units. Coordinate values are rounded up to the
+                            nearest resolution value. Increasing the resolution will result in a larger grid,
+                            hence increasing the precision at the cost of increased computation time.
 
     Returns:
         numpy.ndarray: A 2D grid where 0 represents a free cell and 1 represents a blocked cell.
     """
+    
     width, height = dimensions
     grid_width = math.ceil(width / resolution)
     grid_height = math.ceil(height / resolution)
@@ -127,39 +132,6 @@ def breadth_first_search(grid, start, goal):
 
     return False
 
-def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=1):
-    """
-    Apply keep-out zones for locations of sockets in other nets to the grid.
-    Keep-out zones are applied as a square around each socket point.
-
-    Args:
-        grid (numpy.array): Current grid with already applied keep-out zones.
-        socket_locations (dict): Locations of the sockets by net.
-        current_net (string): Name of the net currently being processed.
-        resolution (float): Units per grid cell, defining the scale of the grid.
-        keep_out_mm (int): Radius of the keep-out zone in millimeters.
-
-    Returns:
-        numpy.array: Updated grid with the additional keep-out zones applied.
-    """
-    temp_grid = np.copy(grid)
-    keep_out_cells = int(np.ceil(keep_out_mm / resolution))  # Convert mm to grid cells
-
-    for net, locations in socket_locations.items():
-        if net != current_net:  # Apply keep-out zones only for other nets
-            for x, y in locations:
-                x_index = int(x / resolution) + grid.shape[1] // 2
-                y_index = int(y / resolution) + grid.shape[0] // 2
-                # Apply keep-out zone around the socket
-                for i in range(-keep_out_cells, keep_out_cells + 1):
-                    for j in range(-keep_out_cells, keep_out_cells + 1):
-                        xi = x_index + i
-                        yi = y_index + j
-                        if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
-                            temp_grid[yi, xi] = 1  # Mark this position as blocked
-
-    return temp_grid
-
 def calculate_net_distances(socket_locations, resolution):
     net_distances = {}
     for net, locations in socket_locations.items():
@@ -195,9 +167,44 @@ class UnionFind:
                 if self.rank[root1] == self.rank[root2]:
                     self.rank[root2] += 1
                     
+def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=1):
+    """
+    Applies keep-out zones around sockets in other nets. This is essential for ensuring that the routes
+    on a given layer do not cut through vias on their respetive layers. Keep-out zones around sockets 
+    are applied as a square around each socket point.
+
+    Args:
+        grid (numpy.array): Current grid with already applied keep-out zones.
+        socket_locations (dict): Locations of the sockets by net.
+        current_net (string): Name of the net currently being processed.
+        resolution (float): Units per grid cell, defining the scale of the grid.
+        keep_out_mm (int): Radius of the keep-out zone in millimeters. Default is 1mm. 
+
+    Returns:
+        numpy.ndarray: Updated grid with the additional keep-out zones applied.
+    """
+    temp_grid = np.copy(grid)
+    keep_out_cells = int(np.ceil(keep_out_mm / resolution))  # Convert mm to grid cells
+
+    for net, locations in socket_locations.items():
+        if net != current_net:  # Apply keep-out zones only for other nets
+            for x, y in locations:
+                x_index = int(x / resolution) + grid.shape[1] // 2
+                y_index = int(y / resolution) + grid.shape[0] // 2
+                # Apply keep-out zone around the socket
+                for i in range(-keep_out_cells, keep_out_cells + 1):
+                    for j in range(-keep_out_cells, keep_out_cells + 1):
+                        xi = x_index + i
+                        yi = y_index + j
+                        if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
+                            temp_grid[yi, xi] = 1  # Mark this position as blocked
+
+    return temp_grid
+                    
 def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first'):
     """
-    Routes sockets together on each net.
+    Performs routing for each Gerber Socket on the same net, based on the grid with the keep-out zones. Also
+    applies additional keep-out zones for the socket on other nets to avoid shorts with vias.
 
     Args:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
@@ -230,7 +237,12 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first')
                 if path:
                     routes.setdefault(net, []).append(path)
                     uf.union(tuple(loc1), tuple(loc2))
-                    
+    
+    center_x = grid.shape[0] // 2
+    center_y = grid.shape[1] // 2
+    segments = consolidate_segments(routes, resolution, center_x, center_y)
+    show_segments_and_sockets(segments, socket_locations)
+    
     return routes
 
 def route_sockets_not_optimised(grid, socket_locations, resolution, algorithm='breadth_first'):
@@ -279,3 +291,59 @@ def route_sockets_not_optimised(grid, socket_locations, resolution, algorithm='b
         routes[net] = net_routes
 
     return routes
+
+def consolidate_segments(routes, resolution, center_x, center_y):
+    """
+    Consolidates contiguous line segments into longer lines. This translates the indices from the grid to 
+    line ednpoints that can be used for creating traces using `gerber-writer`.
+
+    Args:
+        routes (dict): The routing paths indexed by net names, each path is a list of grid indices.
+        resolution (float): The grid resolution.
+        center_x (int): X-coordinate of the grid center.
+        center_y (int): Y-coordinate of the grid center.
+
+    Returns:
+        dict: A dictionary where each key is a net name and the value is a list of line segments
+              (start point, end point) in real-world coordinates.
+    """
+    consolidated_routes = {}
+
+    for net, paths in routes.items():
+        consolidated_paths = []
+        for path in paths:
+            if len(path) < 2:
+                continue
+            # Start the new segment
+            current_segment_start = path[0]
+            current_direction = None
+
+            for i in range(1, len(path)):
+                # Calculate direction
+                previous = path[i - 1]
+                current = path[i]
+                direction = (current[0] - previous[0], current[1] - previous[1])
+
+                if current_direction is None:
+                    current_direction = direction
+                elif direction != current_direction:
+                    # Finish the current segment
+                    consolidated_paths.append((current_segment_start, previous))
+                    # Start a new segment
+                    current_segment_start = previous
+                    current_direction = direction
+
+                # Extend the segment
+                if i == len(path) - 1:
+                    consolidated_paths.append((current_segment_start, current))
+
+        # Convert grid indices to real-world coordinates
+        real_world_paths = []
+        for start, end in consolidated_paths:
+            real_start = ((start[1] - center_x) * resolution, (center_y - start[0]) * resolution)
+            real_end = ((end[1] - center_x) * resolution, (center_y - end[0]) * resolution)
+            real_world_paths.append((real_start, real_end))
+
+        consolidated_routes[net] = real_world_paths
+
+    return consolidated_routes

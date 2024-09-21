@@ -2,6 +2,8 @@ import json
 import shutil
 from pathlib import Path
 from gerbonara import GerberFile, LayerStack
+from numpy import pi
+
 
 def merge_gerber_layers(module_details, layer_name, gerber_dir_path='./gerbers', output_dir_path='./output'):
     # Load the configuration from JSON (use this for now, later this will replaced with fetch from the frontend)
@@ -38,7 +40,7 @@ def merge_gerber_layers(module_details, layer_name, gerber_dir_path='./gerbers',
                 gerber = GerberFile.open(file_path)
                 
                 # Apply transformations and rotate
-                rotation_radians = module['rotation'] * (3.14159 / 180)
+                rotation_radians = module['rotation'] * (pi / 180)
                 gerber.rotate(angle=rotation_radians)
                 gerber.offset(dx=module['position']['x'], dy=module['position']['y'])
 
@@ -57,6 +59,7 @@ def merge_gerber_layers(module_details, layer_name, gerber_dir_path='./gerbers',
     else:
         print(f"No '{layer_name}.gbr' files were processed.")
         return None
+
 
 
 def merge_gerber_stacks(module_details, gerber_dir_path='./gerbers', output_dir_path='./output'):
@@ -96,7 +99,7 @@ def merge_gerber_stacks(module_details, gerber_dir_path='./gerbers', output_dir_
         current_stack = LayerStack.open_dir(module_path)
 
         # Apply transformations and rotate
-        rotation_radians = module['rotation'] * (3.14159 / 180)
+        rotation_radians = module['rotation'] * (pi / 180)
         current_stack.rotate(angle=rotation_radians)
         current_stack.offset(x=module['position']['x'], y=module['position']['y'])
 
