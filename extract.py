@@ -3,9 +3,9 @@ from gerbonara.apertures import CircleAperture
 
 def extract_socket_locations(gerber, sockets_diameter_mapping):
     """
-    Extracts the locations of socket connections from a Gerber file.
+    Extracts the locations of the Gerber Sockets from a Gerber file.
 
-    Parameters:
+    Args:
         gerber (GerberFile): The Gerber file object from gerbonara. 
         sockets_diameter_mapping (dict): A dictionary mapping net names to their assigned diameters. 
             Example format: {"JD_PWR": 0.11, "JD_GND": 0.12, "JD_DATA": 0.13} 
@@ -24,7 +24,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping):
             if diameter in diameter_to_net:
                 net_name = diameter_to_net[diameter]
                 if isinstance(obj, Line):  # Assuming lines are used to represent sockets
-                    location = (obj.x1, obj.y1)
+                    location = (obj.x1, obj.y1) # Invert y-axis
                     socket_locations.setdefault(net_name, []).append(location)
 
     return socket_locations
@@ -33,8 +33,9 @@ def extract_keep_out_zones(gerber, aperature_diameter=0.1):
     """
     Extracts and returns a list of rectangles representing the keep-out zones from the given Gerber object.
     
-    Parameters:
+    Args:
         gerber (GerberFile): The Gerber file object from gerbonara.
+        aperture_diameter (float): The diameter (in mm) of the aperture used to trace out the keep-out zones. Defaults to 0.1.
     
     Returns:
         rectangles (tuple list): A list of tuples representing the rectangles of the keep-out zones. 

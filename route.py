@@ -2,7 +2,6 @@ import numpy as np
 import math
 from heapq import heappush, heappop
 from collections import deque
-from debug import show_segments_and_sockets
 
 def create_grid(dimensions, keep_out_zones, resolution):
     """
@@ -201,7 +200,7 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
 
     return temp_grid
                     
-def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first'):
+def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first', debug=False):
     """
     Performs routing for each Gerber Socket on the same net, based on the grid with the keep-out zones. Also
     applies additional keep-out zones for the socket on other nets to avoid shorts with vias.
@@ -214,8 +213,8 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first')
             Default is 'breadth_first'.
 
     Returns:
-        dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
-        with points as tuples.
+        dict: A dictionary of nets and segments, where each key is a net name and the value is a list of tuples of line segments
+                ((start_x, start_y), (end_x, end_y)) in the Gerber coordinates.
     """    
     routes = {}
     net_distances = calculate_net_distances(socket_locations, resolution)
@@ -238,14 +237,20 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first')
                     routes.setdefault(net, []).append(path)
                     uf.union(tuple(loc1), tuple(loc2))
     
+    # For debug purposes only
+    if debug:
+        return routes
+    
+    # Get the centers of the grid for translating the indices
     center_x = grid.shape[0] // 2
     center_y = grid.shape[1] // 2
-    segments = consolidate_segments(routes, resolution, center_x, center_y)
-    show_segments_and_sockets(segments, socket_locations)
     
-    return routes
+    # Consolidate the the list of grid indices into line segments on the coordinate plane
+    segments = consolidate_segments(routes, resolution, center_x, center_y)
+    
+    return segments
 
-def route_sockets_not_optimised(grid, socket_locations, resolution, algorithm='breadth_first'):
+def route_sockets_deprecated(grid, socket_locations, resolution, algorithm='breadth_first'):
     """ This is a previous implementation of the route_sockets function. It simply routes each socket within a net
     to the next one in the list. The new implementation is more optimized and routes sockets based on the distance between
     them.
@@ -340,8 +345,8 @@ def consolidate_segments(routes, resolution, center_x, center_y):
         # Convert grid indices to real-world coordinates
         real_world_paths = []
         for start, end in consolidated_paths:
-            real_start = ((start[1] - center_x) * resolution, (center_y - start[0]) * resolution)
-            real_end = ((end[1] - center_x) * resolution, (center_y - end[0]) * resolution)
+            real_start = ((start[1] - center_x) * resolution, (center_y - start[0]) * resolution * -1) # Invert y-axis
+            real_end = ((end[1] - center_x) * resolution, (center_y - end[0]) * resolution * -1) # Invert y-axis
             real_world_paths.append((real_start, real_end))
 
         consolidated_routes[net] = real_world_paths

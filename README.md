@@ -13,41 +13,24 @@ See the `data.json` file.
 
 #### Next on TODO:
 
-- blue socket doesn't connect when at 90 degrees, WHYYYYYY
 
 
-1,5 units into the keepout zone, that's why it doesn't detect the connection
-FIX: socket location to idex conversion is not correct
-
-0 degree works fine, upper socket JD_GND has 0.5 units from the edge of the zone
-socket location (402, 800) 
-edge zone end y=401.5
 
 
-360 doesn't work, moves the upper socket to 1.5 units from the edge of the zone
-socket location (403, 800)
-edge zone end y=401.5
+### TO FIX
 
-transforming the shapes moves the socket location!
+- show_grid_segments_sockets is inverted compared to show_grid_routes_sockets
+This is an issue somewhere with inverting the y-axis for the keep-out-zones or the socket-locations. I currently (24-09-2024 @ 22:20) do not have the time to fix this, as it is merely a debug function, but it would be good to enure that the y-axis coordiantes are consistent throughout the extraction and routing. I added the -ve sign to flip the socket-locations on the debug function `show_grid_segments_sockets` and it will do for debugging for now. Strangely all of the segments seem to have the correct coordinates for the inverted y-axis setup. Need to look into this when I have the time.
 
-
-EXPERIMENTATION
-
-under = socket location does not overlap the keep-out zone
-over = socket location overlaps the keep-out zone
-
-- no transformation -
-
-JD_PWR (500, 700), edge y=699.5 (under)
-JD_GND (500, 300), edge y=299.5 (over)
-JD_DATA (400, 500), edge x=399.5 (over)
-
-- 360 rotation - 
-JD_PWR (500, 699), edge y=699.5 (over)
-JD_GND (500, 301), edge y=299.5 (over) - 
-JD_DATA (401, 500), edge x=399.5 (over) - ROUTE FAIL
+F_Cu.gbr - Top copper - JD_PWR
+In1_Cu.gbr - Inner top copper - JD_DATA
+In2_Cu.gbr - Inner bottom copper - SWD/DEBUGGING (work on later)
+B_Cu.gbr - Bottom copper - JD_GND
 
 
-observations:
-1. edges didn't move
-2. points moved 
+TO FIX:
+1. plated and non-plated drill files just end up merged onto an "unknown" drill file
+2. inner layers are unrecognised and cause trouble
+3. jacdac-bus layers don't get merged, but don't need to
+
+maybe merge layer using GerberFile? one by one?
