@@ -18,6 +18,9 @@ def extract_socket_locations(gerber, sockets_diameter_mapping):
     diameter_to_net = {value: key for key, value in sockets_diameter_mapping.items()}
     socket_locations = {}
 
+    if not gerber.objects:
+        print("No objects found in a GerberSocket file.")
+    
     for obj in gerber.objects:
         if hasattr(obj, 'aperture') and isinstance(obj.aperture, CircleAperture):
             diameter = obj.aperture.diameter

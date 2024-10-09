@@ -2,7 +2,7 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 import os
 from datetime import datetime
 
-def generate_gerber(segments, socket_locations, trace_width, via_diameter, output_dir="./generated"):
+def generate_gerber(segments, socket_locations, trace_width, via_diameter, board_name, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     
@@ -50,14 +50,14 @@ def generate_gerber(segments, socket_locations, trace_width, via_diameter, outpu
             for layer in layers.values():
                 layer.add_pad(via_pad, (x, y), 0)
 
-    # Write Gerber files for each layer
+    # Save Gerber file for each layer
     for net_type, layer in layers.items():
         filename, _ = layer_mappings[net_type]
-        file_path = os.path.join(output_dir, filename)
+        file_path = os.path.join(output_dir, board_name + "-" + filename)
         with open(file_path, 'w') as file:
             file.write(layer.dumps_gerber())
         
-def generate_excellon(socket_locations, drill_size, output_dir="./generated"):
+def generate_excellon(socket_locations, drill_size, board_name, output_dir="./generated"):
     """
     Generates an Excellon drill file for plated through holes (PTH).
     
@@ -69,8 +69,6 @@ def generate_excellon(socket_locations, drill_size, output_dir="./generated"):
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
-    # File path
-    file_path = os.path.join(output_dir, "PTH.drl")
     
     # Drill file content
     timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -98,6 +96,7 @@ def generate_excellon(socket_locations, drill_size, output_dir="./generated"):
     
     content.append("M30")  # End of program
 
-    # Write the file
+    # Save drill file
+    file_path = os.path.join(output_dir, board_name + "-" + "PTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
