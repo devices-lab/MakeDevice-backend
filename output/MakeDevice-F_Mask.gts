@@ -37,7 +37,7 @@ G75
 20,1,0.1,-0.05,0.35,-0.05,-0.35,0*
 %
 %AMCALCM13*
-0 Fully substituted instance of GNX300EA085C531B9FE macro*
+0 Fully substituted instance of GNX6272EF33661818AD macro*
 0 Original parameters: 0.05X-0.35X-0.05X0.35X-0.05X0.35X0.05X-0.35X0.05*
 4,1,4,-0.05,0.35,-0.05,-0.35,0.05,-0.35,0.05,0.35,-0.05,0.35,0*
 1,1,0.1,-0.05,0.35,0*
@@ -50,7 +50,7 @@ G75
 20,1,0.1,0.05,0.35,-0.05,0.35,0*
 %
 %AMCALCM14*
-0 Fully substituted instance of GNX300EA085C531B9FE macro*
+0 Fully substituted instance of GNX6272EF33661818AD macro*
 0 Original parameters: 0.05X-0.05X-0.35X0.05X-0.35X0.05X0.35X-0.05X0.35*
 4,1,4,-0.35,0.05,-0.35,-0.05,0.35,-0.05,0.35,0.05,-0.35,0.05,0*
 1,1,0.1,-0.35,0.05,0*

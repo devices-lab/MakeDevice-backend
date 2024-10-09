@@ -31,11 +31,16 @@ jacdac_socket_nets = {
     "JD_DATA": 0.13
 }
 
-# Load the configuration from JSON
+# Load the JSON configuration from a file (data.json)
 with open("data.json", 'r') as file:
-    modules = json.load(file)
+    data = json.load(file)
 
-    
+# Extract board details and modules
+board = data['board']
+modules = data['modules']
+
+print("board", board)
+print("modules", modules)
 PCB_dimensions = (100, 100)
 
 def run():
