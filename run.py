@@ -15,9 +15,6 @@ from generate import generate_gerber, generate_excellon
 # should be set to 0.1.
 GRID_RESOLUTION = 1
 
-# Prefix for all generated and merged Gerber files
-BOARD_NAME = "MakeDevice"
-
 # The socket layer name must match that of the layer name given in the Gerber files via
 #  the PCB design tool like KiCad
 # The Gerber Socket layer must end with "socket_layer_name.gbr"
@@ -39,9 +36,8 @@ with open("data.json", 'r') as file:
 board = data['board']
 modules = data['modules']
 
-print("board", board)
-print("modules", modules)
-PCB_dimensions = (100, 100)
+board_name = board["name"]
+baord_size = board["size"]
 
 def run():
     # Clear out ./output and ./generated directories
@@ -61,7 +57,7 @@ def run():
     print("✅ Keep out zones identified")
 
     # Create a grid
-    grid = create_grid(PCB_dimensions, keep_out_zones, resolution=GRID_RESOLUTION)
+    grid = create_grid(board["size"], keep_out_zones, resolution=GRID_RESOLUTION)
     print("✅ Grid created")
 
     # Pass the grid along with the socket locations to the router
@@ -69,15 +65,15 @@ def run():
     print("✅ Routing completed")
 
     # Generate Gerber files
-    generate_gerber(segments, socket_locations, trace_width=0.254, via_diameter=0.6, board_name=BOARD_NAME)
+    generate_gerber(segments, socket_locations, trace_width=0.254, via_diameter=0.6, board_name=board_name)
     print("✅ Generated Gerber files")
 
     # Generate Excellon files
-    generate_excellon(socket_locations, drill_size=0.3, board_name=BOARD_NAME)
+    generate_excellon(socket_locations, drill_size=0.3, board_name=board_name)
     print("✅ Generated Excellon files")
 
     # Merge the Gerber stacks, along with the new generated layers
-    merge_gerber_stacks(modules, BOARD_NAME)
+    merge_gerber_stacks(modules, board_name)
     print("✅ Merged all files in the board stack")
     
 def debug():

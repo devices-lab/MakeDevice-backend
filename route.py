@@ -8,7 +8,8 @@ def create_grid(dimensions, keep_out_zones, resolution):
     Create an array grid for the pathfinding algorithm. 
 
     Args:
-        dimensions (tuple): The full width and height of the grid in units (e.g., millimeters).
+        dimensions (dict): A dictionary with 'x' and 'y' keys representing the width and height 
+                           of the grid in units (e.g., millimeters).
         keep_out_zones (list of tuples): Each tuple contains four points
                                          (top_left, top_right, bottom_right, bottom_left) representing
                                          a rectangle in the same units as dimensions. Those are the keep-out
@@ -21,7 +22,8 @@ def create_grid(dimensions, keep_out_zones, resolution):
         numpy.ndarray: A 2D grid where 0 represents a free cell and 1 represents a blocked cell.
     """
     
-    width, height = dimensions
+    width = dimensions['x']
+    height = dimensions['y']
     grid_width = math.ceil(width / resolution)
     grid_height = math.ceil(height / resolution)
 

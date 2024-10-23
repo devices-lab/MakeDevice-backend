@@ -93,7 +93,7 @@ def merge_gerber_stacks(modules, board_name, modules_dir='./modules', output_dir
         
     # Handle inner layers separately
     for layer in inner_layers:
-        merge_gerber_layers(modules, layer, output_dir=output_dir)
+        merge_gerber_layers(modules, layer)
         
     # Rename the files in the output directory
     rename_files(output_dir, board_name)
@@ -110,11 +110,6 @@ def merge_directories(target_dir_path, source_dir_path):
     Args:
         target_dir_path (Path): The path to the target directory where files will be merged.
         source_dir_path (Path): The path to the source directory containing files to be merged.
-    Raises:
-        FileNotFoundError: If either the target or source directory does not exist.
-        ValueError: If the file type is not recognized based on the file extension.
-    Example:
-        merge_directories(Path('/path/to/target'), Path('/path/to/source'))
     """
     for source_file_path in source_dir_path.iterdir():
         if source_file_path.is_file():
