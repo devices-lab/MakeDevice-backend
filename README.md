@@ -18,5 +18,4 @@ See the `data.json` file.
 
 #### Problems
 
-- When merging, the plated drills from the first module get put into ~test_module_1.drl file, and the remaining are not added
-- The drill files from from the modules are not added into remaining of the MakeDevice-NPTH and PTH files
+- Ensure that the x and y sizes of the baord are what is expected, and that they are not inverted on their axis

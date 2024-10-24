@@ -1,8 +1,7 @@
 import json
 from extract import extract_socket_locations, extract_keep_out_zones
-from process import merge_gerber_layers, merge_gerber_stacks, clear_directories
+from process import merge_layers, merge_stacks, clear_directories
 from route import create_grid, route_sockets
-from debug import show_grid_segments_sockets, show_grid_routes_sockets
 from generate import generate_gerber, generate_excellon
 
 # Coordinate rounding is done to up to the nearest resolution value.
@@ -37,44 +36,43 @@ board = data['board']
 modules = data['modules']
 
 board_name = board["name"]
-baord_size = board["size"]
 
 def run():
     # Clear out ./output and ./generated directories
     clear_directories()
-    print("✅ Cleared out /output and /generated directories 🗑️")
+    print("🟢 Cleared out /output and /generated directories")
     
     # Merge the Jacdac Bus layers
-    sockets_layer = merge_gerber_layers(modules, socket_layer_name)
-    print("✅ Merged", socket_layer_name, "layers 📑")
+    sockets_layer = merge_layers(modules, socket_layer_name, board_name)
+    print("🟢 Merged", socket_layer_name, "layers")
 
     # Get the locations of the sockets
     socket_locations = extract_socket_locations(sockets_layer, jacdac_socket_nets)
-    print("✅ Socket locations identified 🔍")
+    print("🟢 Socket locations identified")
 
     # Get the keep out zones 
     keep_out_zones = extract_keep_out_zones(sockets_layer)
-    print("✅ Keep out zones identified 🔍 ")
+    print("🟢 Keep out zones identified")
 
     # Create a grid
     grid = create_grid(board["size"], keep_out_zones, resolution=GRID_RESOLUTION)
-    print("✅ Grid created 🧮")
+    print("🟢 Grid created")
 
     # Pass the grid along with the socket locations to the router
     segments = route_sockets(grid, socket_locations, resolution=GRID_RESOLUTION, algorithm="breadth_first")
-    print("✅ Routing completed 📐")
+    print("🟢 Routing completed")
 
     # Generate Gerber files
-    generate_gerber(segments, socket_locations, trace_width=0.254, via_diameter=0.6, board_name=board_name)
-    print("✅ Generated Gerber files ✨")
+    generate_gerber(segments, socket_locations, trace_width=0.254, via_diameter=0.6, board_info=board)
+    print("🟢 Generated Gerber files")
 
     # Generate Excellon files
     generate_excellon(socket_locations, drill_size=0.3, board_name=board_name)
-    print("✅ Generated Excellon files ✨")
+    print("🟢 Generated Excellon files")
 
     # Merge the Gerber stacks, along with the new generated layers
-    merge_gerber_stacks(modules, board_name)
-    print("✅ Merged all files in the board stack 📚")
+    merge_stacks(modules, board_name)
+    print("🟢 Merged all files in the board stack")
     
 def debug():
     clear_directories()

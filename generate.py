@@ -2,7 +2,7 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 import os
 from datetime import datetime
 
-def generate_gerber(segments, socket_locations, trace_width, via_diameter, board_name, output_dir="./generated"):
+def generate_gerber(segments, socket_locations, trace_width, via_diameter, board_info, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     
@@ -53,9 +53,11 @@ def generate_gerber(segments, socket_locations, trace_width, via_diameter, board
     # Save Gerber file for each layer
     for net_type, layer in layers.items():
         filename, _ = layer_mappings[net_type]
-        file_path = os.path.join(output_dir, board_name + "-" + filename)
+        file_path = os.path.join(output_dir, board_info["name"] + "-" + filename)
         with open(file_path, 'w') as file:
             file.write(layer.dumps_gerber())
+    
+    generate_board_outline(board_info)
         
 def generate_excellon(socket_locations, drill_size, board_name, output_dir="./generated"):
     """
@@ -100,3 +102,43 @@ def generate_excellon(socket_locations, drill_size, board_name, output_dir="./ge
     file_path = os.path.join(output_dir, board_name + "-" + "PTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
+
+
+def generate_board_outline(board, output_dir="./output"):
+    """
+    Generates a Gerber file for the board outline based on the board size and origin.
+
+    Args:
+        board (dict): Dictionary containing board information with 'name', 'size', and 'origin'.
+        output_dir (str): Directory to store the generated Gerber outline file. Defaults to "./generated".
+    """
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Extract board parameters
+    board_name = board['name']
+    size_x = board['size']['x']
+    size_y = board['size']['y']
+    origin_x = board['origin']['x']
+    origin_y = board['origin']['y']
+
+    # Create a DataLayer for the board outline
+    outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
+
+    # Create a rectangular path for the board outline based on the size and origin
+    path = Path()
+    path.moveto((origin_x - size_x/2, origin_y - size_y/2))
+    path.lineto((origin_x + size_x/2, origin_y - size_y/2))
+    path.lineto((origin_x + size_x/2, origin_y + size_y/2))
+    path.lineto((origin_x - size_x/2, origin_y + size_y/2))
+    path.lineto((origin_x - size_x/2, origin_y - size_y/2))
+
+    # Add the outline path to the layer
+    outline_layer.add_traces_path(path, width=0.15, function="Outline")  # 0.15 mm width is common for outline traces
+
+    # Generate the filename for the outline Gerber file
+    file_path = os.path.join(output_dir, f"{board_name}-Edge_Cuts.gm1")
+
+    # Write the Gerber content to the file
+    with open(file_path, 'w') as file:
+        file.write(outline_layer.dumps_gerber())
