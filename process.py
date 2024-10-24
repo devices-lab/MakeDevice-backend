@@ -50,10 +50,10 @@ def merge_gerber_layers(modules, layer_name, modules_dir='./modules', output_dir
         print(f"No files matching '{layer_name}' were processed.")
         return None
                            
-def merge_gerber_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', additional_dir='./generated'):
+def merge_gerber_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
-    additional_dir_path = Path(additional_dir)
+    generated_dir_path = Path(generated_dir)
     
     # Define patterns to recognize inner layer files
     inner_layers = ['In1_Cu.g2', 'In2_Cu.g3']  
@@ -99,7 +99,7 @@ def merge_gerber_stacks(modules, board_name, modules_dir='./modules', output_dir
     rename_files(output_dir, board_name)
     
     # And lastly, merge with the additional generated files
-    merge_directories(output_dir_path, additional_dir_path)
+    merge_directories(output_dir_path, generated_dir_path)
     
 def merge_directories(target_dir_path, source_dir_path):
     """
