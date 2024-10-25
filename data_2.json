@@ -1,20 +1,14 @@
 {
   "board": {
     "name": "MakeDevice",
-    "size": { "x": 100, "y": 100 },
+    "size": { "x": 50, "y": 100 },
     "origin": { "x": 0, "y": 0 }
   },
   "modules": [
     {
       "name": "test_module_1",
       "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -15, "y": -25 },
-      "rotation": 0
-    },
-    {
-      "name": "test_module_1",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -35, "y": 25 },
+      "position": { "x": 10, "y": 0 },
       "rotation": 0
     }
   ]

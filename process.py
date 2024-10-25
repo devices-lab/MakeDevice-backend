@@ -4,6 +4,20 @@ from gerbonara import GerberFile, ExcellonFile
 from numpy import pi
 
 def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output'):
+    """
+    Merges specified layers from multiple module configurations into a single Gerber file.
+    Parameters:
+        modules (list): A list of dictionaries, each containing:
+            - 'name' (str): The name of the module.
+            - 'rotation' (float): The rotation angle in degrees.
+            - 'position' (dict): A dictionary with 'x' and 'y' keys for the position offset.
+        layer_name (str): The name of the layer to merge.
+        board_name (str): The name of the output board.
+        modules_dir (str, optional): The directory containing module subdirectories. Defaults to './modules'.
+        output_dir (str, optional): The directory to save the merged Gerber file. Defaults to './output'.
+    Returns:
+        GerberFile: The merged Gerber file if any files were processed, otherwise None.
+    """
     # Define the directories for input and output
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
@@ -51,6 +65,17 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
         return None
                            
 def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
+    """
+    Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
+    Parameters:
+        modules (list): A list of dictionaries, each containing information about a module.
+        board_name (str): The name of the board to be used in the merging process.
+        modules_dir (str, optional): The directory where the module directories are located. Defaults to './modules'.
+        output_dir (str, optional): The directory where the merged output will be stored. Defaults to './output'.
+        generated_dir (str, optional): The directory containing additional generated files to be merged. Defaults to './generated'.
+    Returns:
+        None
+    """
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
     generated_dir_path = Path(generated_dir)
@@ -73,6 +98,19 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     merge_directories(output_dir_path, generated_dir_path, board_name)
 
 def merge_directories(target_dir_path, source_dir_path, board_name, module=None):
+    """
+    Merges entire directories of Gerber and Excellon files from a source directory into a 
+    target directory, applying optional transformations if the module information is provided.
+    Parameters:
+        target_dir_path (Path): The path to the target directory where merged files will be saved.
+        source_dir_path (Path): The path to the source directory containing files to be merged.
+        board_name (str): The name of the board to be used in the new filenames.
+        module (dict, optional): A dictionary containing module information for transformations. 
+                                Expected keys are 'rotation' (in degrees) and 'position' 
+                                (a dictionary with 'x' and 'y' coordinates).
+    Returns:
+        None
+    """
     # Process each Gerber or Excellon file in the module directory
     for source_file_path in source_dir_path.iterdir():
         
@@ -120,6 +158,14 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None)
             source_file.save(target_file_path)
             
 def clear_directories(output_dir='./output', generated_dir='./generated'):
+    """
+    Remove the specified output and generated directories if they exist.
+    Parameters:
+        output_dir (str): The path to the output directory to be cleared. Defaults to './output'.
+        generated_dir (str): The path to the generated directory to be cleared. Defaults to './generated'.
+    Returns:
+        None
+    """
     output_dir_path = Path(output_dir)
     generated_dir_path = Path(generated_dir)
    

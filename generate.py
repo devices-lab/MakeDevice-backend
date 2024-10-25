@@ -5,14 +5,15 @@ from datetime import datetime
 def generate_gerber(segments, socket_locations, trace_width, via_diameter, board_info, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
-    
-    Args:
+    Parameters::
         segments (dict): Dictionary with net names as keys and lists of line segments,
                          where each segment is a tuple of start and end coordinate tuples.
         socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as socket locations.
         trace_width (float): Width of the traces in mm.
         via_diameter (float): Diameter of the vias in mm.
         output_dir (str): Directory to store the generated Gerber files. Defaults to "./output".
+    Returns:
+        None
     """
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -62,11 +63,12 @@ def generate_gerber(segments, socket_locations, trace_width, via_diameter, board
 def generate_excellon(socket_locations, drill_size, board_name, output_dir="./generated"):
     """
     Generates an Excellon drill file for plated through holes (PTH).
-    
-    Args:
+    Parameters:
         socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as drill locations.
         drill_size (float): Diameter of the drill holes in mm.
         output_dir (str): Directory to store the generated drill file. Defaults to "./output".
+    Returns:
+        None
     """
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
