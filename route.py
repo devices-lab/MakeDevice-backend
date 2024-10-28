@@ -6,18 +6,16 @@ from collections import deque
 def create_grid(dimensions, keep_out_zones, resolution):
     """
     Create an array grid for the pathfinding algorithm. 
-
-    Args:
+    Parameters:
         dimensions (dict): A dictionary with 'x' and 'y' keys representing the width and height 
                            of the grid in units (e.g., millimeters).
-        keep_out_zones (list of tuples): Each tuple contains four points
+        keep_out_zones (list of tuples): Each element contains four tuples of points
                                          (top_left, top_right, bottom_right, bottom_left) representing
                                          a rectangle in the same units as dimensions. Those are the keep-out
                                          zones, where the algorithm will avoid routing.
         resolution (float): The size of each grid cell in units. Coordinate values are rounded up to the
                             nearest resolution value. Increasing the resolution will result in a larger grid,
                             hence increasing the precision at the cost of increased computation time.
-
     Returns:
         numpy.ndarray: A 2D grid where 0 represents a free cell and 1 represents a blocked cell.
     """
@@ -173,14 +171,12 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
     Applies keep-out zones around sockets in other nets. This is essential for ensuring that the routes
     on a given layer do not cut through vias on their respetive layers. Keep-out zones around sockets 
     are applied as a square around each socket point.
-
-    Args:
+    Parameters:
         grid (numpy.array): Current grid with already applied keep-out zones.
         socket_locations (dict): Locations of the sockets by net.
         current_net (string): Name of the net currently being processed.
         resolution (float): Units per grid cell, defining the scale of the grid.
         keep_out_mm (int): Radius of the keep-out zone in millimeters. Default is 1mm. 
-
     Returns:
         numpy.ndarray: Updated grid with the additional keep-out zones applied.
     """
@@ -207,16 +203,15 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
     Performs routing for each Gerber Socket on the same net, based on the grid with the keep-out zones. Also
     applies additional keep-out zones for the socket on other nets to avoid shorts with vias.
 
-    Args:
+    Parameters:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
-        socket_locations (dict): A dictionary of socket locations grouped by net names.
+                            socket_locations (dict): A dictionary of socket locations grouped by net names.
         resolution (float): The resolution of the grid in units per grid cell.
         algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' or 'breadth_first'.
-            Default is 'breadth_first'.
-
+                         Default is 'breadth_first'.
     Returns:
         dict: A dictionary of nets and segments, where each key is a net name and the value is a list of tuples of line segments
-                ((start_x, start_y), (end_x, end_y)) in the Gerber coordinates.
+              ((start_x, start_y), (end_x, end_y)) in the Gerber coordinates.
     """    
     routes = {}
     net_distances = calculate_net_distances(socket_locations, resolution)
@@ -256,14 +251,12 @@ def route_sockets_deprecated(grid, socket_locations, resolution, algorithm='brea
     """ This is a previous implementation of the route_sockets function. It simply routes each socket within a net
     to the next one in the list. The new implementation is more optimized and routes sockets based on the distance between
     them.
-
-    Args:
+    Parameters:
         grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
-        socket_locations (dict): A dictionary of socket locations grouped by net names.
+                            socket_locations (dict): A dictionary of socket locations grouped by net names.
         resolution (float): The resolution of the grid in units per grid cell.
-        algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' or 'breadth_first'.
-            Default is 'breadth_first'.
-
+                            algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' 
+                            or 'breadth_first'. Default is 'breadth_first'.
     Returns:
         dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
         with points as tuples.

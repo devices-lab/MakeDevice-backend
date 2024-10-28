@@ -5,7 +5,7 @@ from datetime import datetime
 def generate_gerber(segments, socket_locations, trace_width, via_diameter, board_info, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
-    Parameters::
+    Parameters:
         segments (dict): Dictionary with net names as keys and lists of line segments,
                          where each segment is a tuple of start and end coordinate tuples.
         socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as socket locations.
