@@ -49,11 +49,13 @@ def create_grid(dimensions, keep_out_zones, resolution):
 
     return grid
 
-def heuristic(a, b):
-    # dx = abs(a[0] - b[0])
-    # dy = abs(a[1] - b[1])
-    # return (dx + dy) + (math.sqrt(2) - 2) * min(dx, dy)
+def heuristic_cartesian(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def heuristic_diagonal(a, b):
+    dx = abs(a[0] - b[0])
+    dy = abs(a[1] - b[1])
+    return (dx + dy) + (math.sqrt(2) - 2) * min(dx, dy)
 
 def reconstruct_path(came_from, current):
     path = []
@@ -65,7 +67,9 @@ def reconstruct_path(came_from, current):
 
 def a_star_search(grid, start, goal):
 
-    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
+    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] # Cardinals
+
     grid_shape = grid.shape
 
     # Initialize for pathfinding
@@ -76,7 +80,7 @@ def a_star_search(grid, start, goal):
 
     # Start node scores
     gscore[start] = 0
-    fscore[start] = heuristic(start, goal)
+    fscore[start] = heuristic_diagonal(start, goal)
 
     open_set = []
     heappush(open_set, (fscore[start], start))
@@ -98,14 +102,14 @@ def a_star_search(grid, start, goal):
                     if tentative_g_score < gscore[neighbour]:
                         came_from[neighbour] = current
                         gscore[neighbour] = tentative_g_score
-                        fscore[neighbour] = tentative_g_score + heuristic(neighbour, goal)
+                        fscore[neighbour] = tentative_g_score + heuristic_diagonal(neighbour, goal)
                         heappush(open_set, (fscore[neighbour], neighbour))
 
     return False
 
 def breadth_first_search(grid, start, goal):
-    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
-    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] 
+    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
+    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] # Cardinals
     grid_shape = grid.shape
 
     # Initialize for pathfinding
@@ -125,13 +129,6 @@ def breadth_first_search(grid, start, goal):
         for i, j in neighbours:
             neighbour = (current[0] + i, current[1] + j)
 
-            # For diagonals
-            # if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
-            #     if not visited[neighbour] and (neighbour == goal or grid[neighbour] == 0):
-            #         queue.append(neighbour)
-            #         visited[neighbour] = True
-            #         came_from[neighbour] = current
-                    
             if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
                 # Allow stepping onto the goal even if it is in a keep-out zone
                 if not visited[neighbour] and (neighbour == goal or grid[neighbour] == 0):
@@ -149,7 +146,8 @@ def calculate_net_distances(socket_locations, resolution):
             for j in range(i + 1, len(locations)):
                 loc_i = locations[i]
                 loc_j = locations[j]
-                dist = heuristic((loc_i[0] / resolution, loc_i[1] / resolution), (loc_j[0] / resolution, loc_j[1] / resolution))
+                # Change to heuristic_cartesian() for simpler 90-degree routing
+                dist = heuristic_diagonal((loc_i[0] / resolution, loc_i[1] / resolution), (loc_j[0] / resolution, loc_j[1] / resolution))
                 distances.append((dist, loc_i, loc_j))
         distances.sort()
         net_distances[net] = distances
@@ -204,7 +202,7 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
                         xi = x_index + i
                         yi = y_index + j
                         if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
-                            temp_grid[yi, xi] = 1  # Mark this position as blocked
+                            temp_grid[yi, xi] = 1 # Mark this position as blocked
 
     return temp_grid
                     

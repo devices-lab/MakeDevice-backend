@@ -28,7 +28,7 @@ jacdac_socket_nets = {
 }
 
 # Load the JSON configuration from a file (data.json)
-with open("data_2.json", 'r') as file:
+with open("data.json", 'r') as file:
     data = json.load(file)
 
 # Extract board details and modules
