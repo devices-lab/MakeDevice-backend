@@ -85,6 +85,10 @@ def extract_keep_out_zones(gerber, aperature_diameter=0.1):
                     top_right = sorted_points[1]
                     bottom_left = sorted_points[2]
                     bottom_right = sorted_points[3]
+                    # top_left = (sorted_points[0][0] + 1, sorted_points[0][1] + 1)
+                    # top_right = (sorted_points[1][0], sorted_points[1][1] + 1)
+                    # bottom_left = (sorted_points[2][0] + 1, sorted_points[2][1])
+                    # bottom_right = sorted_points[3]
                     rectangles.append((top_left, top_right, bottom_right, bottom_left))
                     used_indices.update(rectangle_indices)
 

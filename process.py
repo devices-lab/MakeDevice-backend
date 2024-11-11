@@ -25,10 +25,10 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
     # Ensure the directory exists
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
-    # Initialize an empty GerberFile for merging
+    # Initialise an empty GerberFile for merging
     merged_file = None
 
-    # Process each module configuration
+    # Process each module
     for module in modules:
         # Path to the module's directory within the /gerbers directory
         module_path = modules_dir_path / module['name']
@@ -174,3 +174,13 @@ def clear_directories(output_dir='./output', generated_dir='./generated'):
     
     if generated_dir_path.exists():
         shutil.rmtree(generated_dir_path)
+        
+def compress_directory(directory="output"):
+    """
+    Compresses the specified directory into a ZIP file.
+    Parameters:
+        directory (str): The path to the directory to be compressed, and name given to the zip file.
+    Returns:
+        None
+    """
+    shutil.make_archive(directory, 'zip', directory)

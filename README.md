@@ -10,9 +10,41 @@
 
 See the `data.json` file.
 
-#### Next on TODO
+
+#### Modification to route on the same layer
+
+1. a. Update route_sockets to accept a list of nets that should be routed together on the same copper layer
+1. b. Have an indicator as to which layer the routing should be on, for example layer=1 for the top copper layer
+
+2. Route 
+
+#### New ideas/discussions
+
+- What's the effective startegy for routing? 
+    (1) Algorithmic - path finding for every net [go for this]
+    (2) Parametric/pre-defined - having routes go up/down, connect to a bus, or other consistent method
+- How much do we care about modularity for other types of boards, apart from the micro:bit?
+- Programming layer
+    (a) What's the approach going to be
+    (b) Impedence matched programming/debug lines? 
+    (c) Any additional hardware/button that will need to be places in the design?
+- BOM generation and pick & place files
+- Use GerberSocket layer to define apertures for 3D prints
+- Thinking about the next step of MakeDevice i.e. removing the MCUs
+    (a) MakeDevice should know about which components go together, there needs to metadata
+    (b) Tiers of modules
+        (1) Physical Jacdac modules that have a virtual mounting footprint
+        (2) Virtual Jacdac modules, simply flattened (we are working on it now)
+        (3) Virtual modules without MCUs, one central brain component
 
 
 
+#### Progress
+- [ ] Issues with routing 
 
-#### Problems
+Other notes from the meeting:
+
+Solid ground plane vs traces
+Can use the one free layer to run trace/vias for routing on the top layer
+
+

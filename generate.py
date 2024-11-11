@@ -109,10 +109,11 @@ def generate_excellon(socket_locations, drill_size, board_name, output_dir="./ge
 def generate_board_outline(board, output_dir="./output"):
     """
     Generates a Gerber file for the board outline based on the board size and origin.
-
-    Args:
+    Parameters:
         board (dict): Dictionary containing board information with 'name', 'size', and 'origin'.
         output_dir (str): Directory to store the generated Gerber outline file. Defaults to "./generated".
+    Returns:
+        None
     """
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)

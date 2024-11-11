@@ -1,6 +1,6 @@
 import json
 from extract import extract_socket_locations, extract_keep_out_zones
-from process import merge_layers, merge_stacks, clear_directories
+from process import merge_layers, merge_stacks, clear_directories, compress_directory
 from route import create_grid, route_sockets
 from generate import generate_gerber, generate_excellon
 
@@ -73,6 +73,9 @@ def run():
     # Merge the Gerber stacks, along with the new generated layers
     merge_stacks(modules, board_name)
     print("🟢 Merged all files in the board stack")
+    
+    compress_directory("output")
+    print("🟢 Directory compressed")
     
 def debug():
     clear_directories()

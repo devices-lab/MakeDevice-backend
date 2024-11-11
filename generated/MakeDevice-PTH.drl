@@ -1,7 +1,7 @@
 M48
-; DRILL file {MakeDevice v0.1} date 2024-10-25T11:21:27
+; DRILL file {MakeDevice v0.1} date 2024-11-11T20:31:24
 ; FORMAT={-:-/ absolute / metric / decimal}
-; #@! TF.CreationDate,2024-10-25T11:21:27
+; #@! TF.CreationDate,2024-11-11T20:31:24
 ; #@! TF.GenerationSoftware,Kicad,Pcbnew,8.0.2-1
 ; #@! TF.FileFunction,Plated,1,4,PTH
 FMAT,2
@@ -12,7 +12,10 @@ T1C0.300
 G90
 G05
 T1
-X10.00Y10.00
-X20.00Y0.00
-X0.00Y0.00
+X10.00Y22.00
+X-10.00Y-2.00
+X20.00Y12.00
+X0.00Y-12.00
+X0.00Y12.00
+X-20.00Y-12.00
 M30

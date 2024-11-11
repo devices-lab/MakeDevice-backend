@@ -50,10 +50,22 @@ def create_grid(dimensions, keep_out_zones, resolution):
     return grid
 
 def heuristic(a, b):
+    # dx = abs(a[0] - b[0])
+    # dy = abs(a[1] - b[1])
+    # return (dx + dy) + (math.sqrt(2) - 2) * min(dx, dy)
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+def reconstruct_path(came_from, current):
+    path = []
+    while current in came_from:
+        path.append(current)
+        current = came_from[current]
+    path.append(current)
+    return path[::-1]
+
 def a_star_search(grid, start, goal):
-    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     grid_shape = grid.shape
 
     # Initialize for pathfinding
@@ -76,32 +88,24 @@ def a_star_search(grid, start, goal):
             return reconstruct_path(came_from, current)
 
         close_set[current] = True
-        for i, j in neighbors:
-            neighbor = (current[0] + i, current[1] + j)
+        for i, j in neighbours:
+            neighbour = (current[0] + i, current[1] + j)
 
-            if 0 <= neighbor[0] < grid_shape[0] and 0 <= neighbor[1] < grid_shape[1]:
-                # Allow stepping into the keep-out zone if it's the goal node
-                if neighbor == goal or not grid[neighbor]:
-                    tentative_g_score = gscore[current] + 1  # Uniform cost assumed
-
-                    if tentative_g_score < gscore[neighbor]:
-                        came_from[neighbor] = current
-                        gscore[neighbor] = tentative_g_score
-                        fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                        heappush(open_set, (fscore[neighbor], neighbor))
+            if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
+                if neighbour == goal or not grid[neighbour]:
+                    step_cost = math.sqrt(i*i + j*j)  # 1 for cardinals, sqrt(2) for diagonals
+                    tentative_g_score = gscore[current] + step_cost
+                    if tentative_g_score < gscore[neighbour]:
+                        came_from[neighbour] = current
+                        gscore[neighbour] = tentative_g_score
+                        fscore[neighbour] = tentative_g_score + heuristic(neighbour, goal)
+                        heappush(open_set, (fscore[neighbour], neighbour))
 
     return False
 
-def reconstruct_path(came_from, current):
-    path = []
-    while current in came_from:
-        path.append(current)
-        current = came_from[current]
-    path.append(current)
-    return path[::-1]
-
 def breadth_first_search(grid, start, goal):
-    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
+    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] 
     grid_shape = grid.shape
 
     # Initialize for pathfinding
@@ -118,16 +122,22 @@ def breadth_first_search(grid, start, goal):
         if current == goal:
             return reconstruct_path(came_from, current)
 
-        for i, j in neighbors:
-            neighbor = (current[0] + i, current[1] + j)
+        for i, j in neighbours:
+            neighbour = (current[0] + i, current[1] + j)
 
-            if 0 <= neighbor[0] < grid_shape[0] and 0 <= neighbor[1] < grid_shape[1]:
-                if not visited[neighbor]:
-                    # Allow stepping onto the goal even if it is in a keep-out zone
-                    if neighbor == goal or grid[neighbor] == 0:
-                        queue.append(neighbor)
-                        visited[neighbor] = True
-                        came_from[neighbor] = current
+            # For diagonals
+            # if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
+            #     if not visited[neighbour] and (neighbour == goal or grid[neighbour] == 0):
+            #         queue.append(neighbour)
+            #         visited[neighbour] = True
+            #         came_from[neighbour] = current
+                    
+            if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
+                # Allow stepping onto the goal even if it is in a keep-out zone
+                if not visited[neighbour] and (neighbour == goal or grid[neighbour] == 0):
+                        queue.append(neighbour)
+                        visited[neighbour] = True
+                        came_from[neighbour] = current
 
     return False
 
@@ -215,7 +225,7 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
     """    
     routes = {}
     net_distances = calculate_net_distances(socket_locations, resolution)
-    
+
     for net, distances in net_distances.items():
         temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)
         uf = UnionFind([tuple(loc) for loc in socket_locations[net]])  # Using tuples as UnionFind elements
@@ -225,6 +235,7 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
                 start_index = (int(loc1[1] / resolution) + temp_grid.shape[0] // 2, int(loc1[0] / resolution) + temp_grid.shape[1] // 2)
                 end_index = (int(loc2[1] / resolution) + temp_grid.shape[0] // 2, int(loc2[0] / resolution) + temp_grid.shape[1] // 2)
                 
+                print(f"🟠 Using {algorithm} for routing")
                 if algorithm == 'a_star':
                     path = a_star_search(temp_grid, start_index, end_index)
                 else:
@@ -246,6 +257,9 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
     segments = consolidate_segments(routes, resolution, center_x, center_y)
     
     return segments
+
+def route_multiple_nets():
+    pass
 
 def route_sockets_deprecated(grid, socket_locations, resolution, algorithm='breadth_first'):
     """ This is a previous implementation of the route_sockets function. It simply routes each socket within a net
