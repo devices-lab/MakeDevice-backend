@@ -79,7 +79,6 @@ def run():
     # Generate Gerber files
     generate_gerber(segments, socket_locations, layer_mappings, trace_width=0.254, via_diameter=0.6, board_info=board)
     print("🟢 Generated Gerber files")
-    print(socket_locations)
 
     # Generate Excellon files
     generate_excellon(socket_locations, drill_size=0.3, board_name=board_name)

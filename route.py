@@ -3,6 +3,8 @@ import math
 from heapq import heappush, heappop
 from collections import deque
 
+# Some of the algorithm logic in this file was generated using ChatGPT GPT-4
+
 def create_grid(dimensions, keep_out_zones, resolution):
     """
     Create an array grid for the pathfinding algorithm. 

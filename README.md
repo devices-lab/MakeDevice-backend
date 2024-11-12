@@ -40,14 +40,17 @@ See the `data.json` file.
 
 - Work completed since last meeting
   1. Fixed issues with generated traces cutting through the keep-out zones, particularly top and right side of the keep-out zones
-  2. Fixed A* search algorithm for pathfinding
+  2. Fixed A\* search algorithm for pathfinding
   3. Implemented diagonal routing, breadth first search creates noticebly cleaner traces
-  4. New layer_mappings parameters passed into generate_gebrer script, which specify which net goes ot which net
+  4. New layer_mappings parameters passed into generate_gebrer script, which specify which net goes on which layer
+  5. Implemented detection of intersection
+  6.
 
 #### TODO:
 
-- [ ] Modify generate_gerber to accept net to layer mapping
-- [ ] For nets that go on the same layer, check if the segments overlap, if they do, place vias on the layer just underneath
+- [ ] Now find out which line segment is causing the collision, and then using the collision_avoidance set a via at that distance from the intersection on the line segment
+- [ ] Ensure that if the distance from the intersection to the end of a line segment is less than the collision_avoidance, then attempt to place vias on the other net. If not possible on both, then throw an error 
+- [ ] Before any intersection checking, I must first ensure that no line segments are overlapping
 
 Other notes from the meeting:
 
