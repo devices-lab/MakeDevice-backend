@@ -27,15 +27,29 @@ jacdac_socket_nets = {
     "JD_DATA": 0.13
 }
 
+# Define the layer mappings based on net type
+# layer_mappings = {
+#     'JD_PWR': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
+#     'JD_DATA': ('In1_Cu.g2', 'Copper,L2,Inner,Signal'),
+#     'PROG': ('In2_Cu.g3', 'Copper,L3,Inner,Signal'),
+#     'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal')
+# }
+
+layer_mappings = {
+    'JD_PWR': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
+    'JD_DATA': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
+    'PROG': ('In2_Cu.g3', 'Copper,L3,Inner,Signal'),
+    'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal')
+}
+
 # Load the JSON configuration from a file (data.json)
 with open("data.json", 'r') as file:
     data = json.load(file)
 
 # Extract board details and modules
 board = data['board']
+board_name = board['name']
 modules = data['modules']
-
-board_name = board["name"]
 
 def run():
     # Clear out ./output and ./generated directories
@@ -63,8 +77,9 @@ def run():
     print("🟢 Routing completed")
 
     # Generate Gerber files
-    generate_gerber(segments, socket_locations, trace_width=0.254, via_diameter=0.6, board_info=board)
+    generate_gerber(segments, socket_locations, layer_mappings, trace_width=0.254, via_diameter=0.6, board_info=board)
     print("🟢 Generated Gerber files")
+    print(socket_locations)
 
     # Generate Excellon files
     generate_excellon(socket_locations, drill_size=0.3, board_name=board_name)
