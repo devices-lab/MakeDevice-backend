@@ -3,7 +3,7 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 from intersect import merge_overlapping_segments, check_net_intersections_by_layer, process_intersections, split_segments
 
-def generate_gerber(segments, socket_locations, layer_mappings, trace_width, via_diameter, board_info, intersection_clearance=1.0, output_dir="./generated"):
+def generate(segments, socket_locations, layer_mappings, trace_width, via_diameter, board_info, intersection_clearance=1.0, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     Parameters:
@@ -34,20 +34,31 @@ def generate_gerber(segments, socket_locations, layer_mappings, trace_width, via
     for filename, attributes in default_layers.items():
         layers[filename] = DataLayer(attributes, negative=False) 
         
-    all_vias = []
+    via_locations = []
     for positions in socket_locations.values():
         for x, y in positions:
-            all_vias.append((x, y))
+            via_locations.append((x, y))
         
     # Perform modifications to the segments to avoid intersections
     merge_overlapping_segments(segments)
     intersections = check_net_intersections_by_layer(segments, layer_mappings)
-    intersection_segments = process_intersections(intersections, intersection_clearance)
-    split_segments(segments, intersection_segments)
+    intersection_details = process_intersections(intersections, intersection_clearance)
+    split_segments(segments, intersection_details)
     
-    # Add inner traces and vias
-    print(intersection_segments)
-    
+    # Handle each intersection
+    for intersection in intersection_details:
+        point1 = intersection['point1']
+        point2 = intersection['point2']
+
+        # Add the two new segments between point1 and point2
+        new_segment = (point1, point2)
+        if "EMPTY" not in segments:
+            segments["EMPTY"] = []
+        segments["EMPTY"].append(new_segment)
+
+        # Add the two points as vias
+        via_locations.append(point1)
+        via_locations.append(point2)
 
     for net_type, paths in segments.items():
         # Check if the net type is in the layer mappings
@@ -64,7 +75,7 @@ def generate_gerber(segments, socket_locations, layer_mappings, trace_width, via
             print(f"🔴 Net '{net_type}' not found in layer mappings")
 
     # Add vias to all layers for each socket location across all net types
-    for x, y in all_vias:
+    for x, y in via_locations:
         via_pad = Circle(via_diameter, 'ViaPad', negative=False)  # Via specifications
         for layer in layers.values():
             layer.add_pad(via_pad, (x, y), 0)
@@ -75,9 +86,10 @@ def generate_gerber(segments, socket_locations, layer_mappings, trace_width, via
         with open(file_path, 'w') as file:
             file.write(layer.dumps_gerber())
     
+    generate_excellon(via_locations, drill_size=via_diameter/2, board_name=board_info['name'])
     generate_board_outline(board_info)
 
-def generate_excellon(socket_locations, drill_size, board_name, output_dir="./generated"):
+def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
     """
     Generates an Excellon drill file for plated through holes (PTH).
     Parameters:
@@ -111,9 +123,8 @@ def generate_excellon(socket_locations, drill_size, board_name, output_dir="./ge
     ]
 
     # Adding drill locations from socket_locations
-    for positions in socket_locations.values():
-        for x, y in positions:
-            content.append(f"X{x:.2f}Y{y:.2f}")
+    for x, y in via_locations:
+        content.append(f"X{x:.2f}Y{y:.2f}")
     
     content.append("M30")  # End of program
 

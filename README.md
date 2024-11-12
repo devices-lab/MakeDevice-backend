@@ -44,13 +44,13 @@ See the `data.json` file.
   3. Implemented diagonal routing, breadth first search creates noticebly cleaner traces
   4. New layer_mappings parameters passed into generate_gebrer script, which specify which net goes on which layer
   5. Implemented detection of intersection
-  6.
+  6. Now removes traces that overlap on top of each other, entirely or partially
+  7. Segment splitting (removing the old segment at the intersection and insering two new ones)
+  8. 
 
 #### TODO:
 
-- [ ] Now find out which line segment is causing the collision, and then using the collision_avoidance set a via at that distance from the intersection on the line segment
-- [ ] Ensure that if the distance from the intersection to the end of a line segment is less than the collision_avoidance, then attempt to place vias on the other net. If not possible on both, then throw an error 
-- [ ] Before any intersection checking, I must first ensure that no line segments are overlapping
+- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to puy through
 
 Other notes from the meeting:
 

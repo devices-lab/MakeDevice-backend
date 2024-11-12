@@ -2,7 +2,7 @@ import json
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
 from route import create_grid, route_sockets
-from generate import generate_gerber, generate_excellon
+from generate import generate
 
 # Coordinate rounding is done to up to the nearest resolution value.
 # Increasing the resolution will allow for precise routing, at the cost of 
@@ -28,18 +28,12 @@ jacdac_socket_nets = {
 }
 
 # Define the layer mappings based on net type
-# layer_mappings = {
-#     'JD_PWR': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
-#     'JD_DATA': ('In1_Cu.g2', 'Copper,L2,Inner,Signal'),
-#     'PROG': ('In2_Cu.g3', 'Copper,L3,Inner,Signal'),
-#     'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal')
-# }
-
 layer_mappings = {
     'JD_PWR': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
     'JD_DATA': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
+    'EMPTY': ('In1_Cu.g2', 'Copper,L2,Inner,Signal'),
     'PROG': ('In2_Cu.g3', 'Copper,L3,Inner,Signal'),
-    'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal')
+    'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal'),
 }
 
 # Load the JSON configuration from a file (data.json)
@@ -76,13 +70,9 @@ def run():
     segments = route_sockets(grid, socket_locations, resolution=GRID_RESOLUTION, algorithm="breadth_first")
     print("🟢 Routing completed")
 
-    # Generate Gerber files
-    generate_gerber(segments, socket_locations, layer_mappings, trace_width=0.254, via_diameter=0.6, board_info=board)
-    print("🟢 Generated Gerber files")
-
-    # Generate Excellon files
-    generate_excellon(socket_locations, drill_size=0.3, board_name=board_name)
-    print("🟢 Generated Excellon files")
+    # Generate Gerber and Excellon files
+    generate(segments, socket_locations, layer_mappings, trace_width=0.254, via_diameter=0.6, board_info=board)
+    print("🟢 Generated Gerber and Excellon files")
 
     # Merge the Gerber stacks, along with the new generated layers
     merge_stacks(modules, board_name)
