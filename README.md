@@ -51,6 +51,7 @@ See the `data.json` file.
 #### TODO:
 
 - [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to puy through
+- [ ] BUGS: fix the bugs that occur when rotating modules, UGH!
 
 Other notes from the meeting:
 
