@@ -1,23 +1,16 @@
 #### Create a virtual environement and install required libraries
 
-`python3 -m venv venv`
-`source venv/bin/activate`
-`pip3 install -r requirements.txt`
+1. Create a virual environment with `python3 -m venv venv`
+2. Activate it with `source venv/bin/activate`
+3. Install dependencies `pip3 install -r requirements.txt`
 
 #### Running the server
 
-`python3 run.py`
+Run the program with `python3 run.py`
 
 #### Editing the data, i.e. modules and positions/rotations
 
-See the `data.json` file.
-
-#### Modification to route on the same layer
-
-1. a. Update route_sockets to accept a list of nets that should be routed together on the same copper layer
-1. b. Have an indicator as to which layer the routing should be on, for example layer=1 for the top copper layer
-
-1. Route
+See the `data.json` and `data_2.json` files.
 
 #### New ideas/discussions
 
@@ -40,7 +33,6 @@ See the `data.json` file.
 
 #### Progress
 
-- Work completed since last meeting
   1. Fixed issues with generated traces cutting through the keep-out zones, particularly top and right side of the keep-out zones
   2. Fixed A\* search algorithm for pathfinding
   3. Implemented diagonal routing, breadth first search creates noticebly cleaner traces
@@ -48,14 +40,8 @@ See the `data.json` file.
   5. Implemented detection of intersection
   6. Now removes traces that overlap on top of each other, entirely or partially
   7. Segment splitting (removing the old segment at the intersection and insering two new ones)
-  8. 
 
 #### TODO:
 
 - [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to puy through
 - [ ] BUGS: fix the bugs that occur when rotating modules, UGH!
-
-Other notes from the meeting:
-
-Solid ground plane vs traces
-Can use the one free layer to run trace/vias for routing on the top layer
