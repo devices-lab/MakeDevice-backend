@@ -1,3 +1,4 @@
+aiofiles==24.1.0
 annotated-types==0.6.0
 appdirs==1.4.4
 beautifulsoup4==4.12.2
@@ -12,7 +13,12 @@ Flask==3.0.3
 Flask-Cors==5.0.0
 fonttools==4.53.1
 gerber-writer==0.4.2.19
-gerbonara==1.2.0
+gerbonara==1.4.0
+h11==0.14.0
+h2==4.1.0
+hpack==4.0.0
+Hypercorn==0.17.3
+hyperframe==6.0.1
 itsdangerous==2.2.0
 Jinja2==3.1.4
 kiwisolver==1.4.7
@@ -21,8 +27,9 @@ MarkupSafe==2.1.5
 matplotlib==3.9.2
 numpy==1.26.4
 packaging==24.1
-pcb-tools==0.1
+pcb-tools==0.1.6
 pillow==10.2.0
+priority==2.0.0
 pycparser==2.21
 pydantic==2.6.4
 pydantic_core==2.16.3
@@ -32,6 +39,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-slugify==8.0.1
 PyYAML==6.0.1
+Quart==0.19.8
 Rtree==1.1.0
 scipy==1.10.1
 shapely==2.0.3
@@ -42,3 +50,4 @@ typing_extensions==4.10.0
 tzlocal==5.2
 wasmtime==14.0.0
 Werkzeug==3.0.4
+wsproto==1.2.0

@@ -1,0 +1,19 @@
+
+# MacOS
+.DS_Store
+
+# dotenv
+.env
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+# Project specific
+output/
+generated/
+output.zip
+
+# Cache 
+__pycache__/
