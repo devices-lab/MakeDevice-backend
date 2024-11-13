@@ -1,18 +1,18 @@
-#### Create a virtual environement and install required libraries
+## Create a virtual environement and install required libraries
 
 1. Create a virual environment with `python3 -m venv venv`
 2. Activate it with `source venv/bin/activate`
 3. Install dependencies `pip3 install -r requirements.txt`
 
-#### Running the server
+## Running the server
 
 Run the program with `python3 run.py`
 
-#### Editing the data, i.e. modules and positions/rotations
+## Editing the data, i.e. modules and positions/rotations
 
 See the `data.json` and `data_2.json` files.
 
-#### New ideas/discussions
+### New ideas/discussions
 
 - What's the effective startegy for routing?
   (1) Algorithmic - path finding for every net [go for this]
@@ -31,7 +31,7 @@ See the `data.json` and `data_2.json` files.
   (2) Virtual Jacdac modules, simply flattened (we are working on it now)
   (3) Virtual modules without MCUs, one central brain component
 
-#### Progress
+### Progress
 
   1. Fixed issues with generated traces cutting through the keep-out zones, particularly top and right side of the keep-out zones
   2. Fixed A\* search algorithm for pathfinding
@@ -41,7 +41,7 @@ See the `data.json` and `data_2.json` files.
   6. Now removes traces that overlap on top of each other, entirely or partially
   7. Segment splitting (removing the old segment at the intersection and insering two new ones)
 
-#### TODO:
+### TODO:
 
 - [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to puy through
 - [ ] BUGS: fix the bugs that occur when rotating modules, UGH!
