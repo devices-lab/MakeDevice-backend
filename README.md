@@ -4,6 +4,12 @@
 2. Activate it with `source venv/bin/activate`
 3. Install dependencies `pip3 install -r requirements.txt`
 
+You must use Python version `3.11`, or lower, othewsie it won't work with some outdated dependencies. To control Python versions you may use the `pyenv` tool. 
+
+1. `brew install pyenv`
+2. `pyenv install 3.11.0`
+3. `pyenv global 3.11.0` to set globally or `pyenv local 3.11.0` to set in the current directory.
+
 ## Running the server
 
 Run the program with `python3 run.py`
