@@ -10,6 +10,7 @@ You must use Python version `3.11`, or lower, othewsie it won't work with some o
 2. `pyenv install 3.11.0`
 3. `pyenv global 3.11.0` to set globally or `pyenv local 3.11.0` to set in the current directory.
 
+In the case this tools doesn't change your Python version (happens on an M-chip Mac), add `eval "$(pyenv init --path)"` to your ~/.zshrc and re-open the terminal.
 ## Running the server
 
 Run the program with `python3 run.py`
