@@ -3,6 +3,10 @@ from pathlib import Path
 from gerbonara import GerberFile, ExcellonFile
 from numpy import pi
 
+from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separate_unique_and_duplicates, shake_designators
+from cpl import iterate_cpl_files, map_cpl_designators
+from utils import write_csv
+
 def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output'):
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
@@ -79,25 +83,40 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
     generated_dir_path = Path(generated_dir)
-    
+
+    # Initialise a dictionary to store the filepaths for the BOM and CPL files for each module
+    fabrication_data_filepaths = {
+        "BOM": [],
+        "CPL": []
+    }
+
     # Ensure the directory exists
     output_dir_path.mkdir(parents=True, exist_ok=True)
-
-    for module in modules:
+    for module in modules:  
         module_path = modules_dir_path / module['name']
 
         if not module_path.exists() or not module_path.is_dir():
             print(f"🔴 Directory not found: '{module_path}'")
             continue
         
-        # Merge each module's Gerber files into the output directory, and apply transformations 
+        # Merge each module's Gerber or fabrication files into the output directory, and apply transformations 
         # by passing the information from each modules 
-        merge_directories(output_dir_path, module_path, board_name, module)
+        # Along the way collect the filepaths for the CPL and BOM files for each module...
+        fabrication_data_filepaths = merge_directories(output_dir_path, module_path, board_name, module, fabrication_data_filepaths.copy())
+        print('fabrication data filepaths: ', fabrication_data_filepaths)
         
+        
+        
+    # do some bom and pick and place processing here    
+    processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
+    processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
     # And lastly, merge with the additional generated files from /generated directory
-    merge_directories(output_dir_path, generated_dir_path, board_name)
+    merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
 
-def merge_directories(target_dir_path, source_dir_path, board_name, module=None):
+
+
+def merge_directories(target_dir_path, source_dir_path, board_name, module=None, fabrication_data_filepaths=None):
+    print('MERGING: ', source_dir_path)
     """
     Merges entire directories of Gerber and Excellon files from a source directory into a 
     target directory, applying optional transformations if the module information is provided.
@@ -108,13 +127,18 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None)
         module (dict, optional): A dictionary containing module information for transformations. 
                                 Expected keys are 'rotation' (in degrees) and 'position' 
                                 (a dictionary with 'x' and 'y' coordinates).
+        fabrication_data_filepaths (dict, optional): A dictionary containing lists of filepaths for BOM and CPL files.
     Returns:
         None
     """
+    
+
+    isBOM = False 
+    isCPL = False 
     # Process each Gerber or Excellon file in the module directory
     for source_file_path in source_dir_path.iterdir():
         
-        if source_file_path.suffix.upper() not in ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP']:
+        if source_file_path.suffix.upper() not in ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']:
             # Omit the mechanical layer (".GM1"), as that gets handled separately 
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
@@ -136,6 +160,25 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None)
                 source_file.rotate(angle=rotation_radians)
                 source_file.offset(x=offset_x, y=offset_y)
             
+        #Check if file is csv
+        elif source_file_path.suffix.upper() == '.CSV':
+            
+            # Check if file contains 'CPL' or 'PNP', which would indicate it's a pick and place file
+            if 'CPL' in source_file_path.name.upper() or 'PNP' in source_file_path.name.upper():
+                print(f"⚒️ found a pick and place file {source_file_path}")
+                if (fabrication_data_filepaths!= None):
+                    fabrication_data_filepaths['CPL'].append(source_file_path)
+                
+                continue
+
+                
+            # Check if file contains 'BOM', which would indicate it's a bill of materials file
+            elif 'BOM' in source_file_path.name.upper():
+                print(f"💣 found a BOM file {source_file_path}")
+                if (fabrication_data_filepaths!= None):
+                    fabrication_data_filepaths['BOM'].append(source_file_path)
+
+                continue
         else:
             source_file = GerberFile.open(source_file_path)
             target_file = GerberFile.open(target_file_path) if target_file_path.exists() else None
@@ -156,6 +199,64 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None)
         else:
             # Save the transformed source file directly if no target file exists
             source_file.save(target_file_path)
+
+        
+    if (fabrication_data_filepaths!=None):
+        return fabrication_data_filepaths
+    
+    
+    
+
+
+
+
+def process_BOM(bom_filepaths, target_dir):
+    bom_items = iterate_bom_files(bom_filepaths)
+    print('BOM items: ', bom_items)
+
+    # Separate unique and duplicates items
+    separated_bom_items = separate_unique_and_duplicates(bom_items, 'JLCPCB Part')
+    print('Separated BOM items: ', separated_bom_items)
+    # Group by JLCPCB Part
+    grouped_bom_items = group_by_attribute(separated_bom_items['duplicates'], 'JLCPCB Part')
+    print('Grouped BOM items: ', grouped_bom_items)
+     # Resolve duplicates
+    resolved_duplicates = resolve_duplicates(grouped_bom_items)
+    # Shake designators
+    bom_list_unmapped = resolved_duplicates + separated_bom_items['unique']
+    print('BOM list unresolved: ', bom_list_unmapped)
+    # Map designators
+    bom_list_mapped = shake_designators(bom_list_unmapped)
+    # Write the bom to the taget_dir
+    bom_file_path = str(target_dir) + '/' + 'bom.csv'
+    # Filter bom
+    filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in bom_list_mapped['list']]
+    
+    #Writing final bom
+    print('writing bom to: ', bom_file_path)
+    write_csv(bom_file_path, filtered_bom)
+    # Print the mapped BOM list
+    print('BOM list mapped: ', bom_list_mapped) 
+    return bom_list_mapped
+    
+
+
+def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
+    
+    print('cpl filepaths: ', cpl_filepaths)
+    list_of_cpl_dicts = iterate_cpl_files(modules, cpl_filepaths)
+
+    #MAP CPL DESIGNATORS
+    mapped_cpl_list = map_cpl_designators(list_of_cpl_dicts, processed_bom['mapping'])
+    print('mapped cpl list: ', mapped_cpl_list)
+    # Write the cpl to the taget_dir
+
+
+    cpl_filepath = str(target_dir) + '/' + 'cpl.csv'
+    print('writing CPL to: ', cpl_filepath)
+    write_csv(cpl_filepath, mapped_cpl_list)
+    # Print the mapped BOM list
+    print('CPL list mapped: ', mapped_cpl_list)
             
 def clear_directories(output_dir='./output', generated_dir='./generated'):
     """
