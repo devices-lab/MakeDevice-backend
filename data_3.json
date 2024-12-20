@@ -1,0 +1,15 @@
+{
+  "board": {
+    "name": "MakeDevice",
+    "size": { "x": 200, "y": 200 },
+    "origin": { "x": 0, "y": 0 }
+  },
+  "modules": [
+    {
+      "name": "jacdac-slider-MH-0.1",
+      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
+      "position": { "x": 0, "y": -50 },
+      "rotation": 0
+    }
+  ]
+}

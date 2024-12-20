@@ -24,7 +24,7 @@ def resolve_duplicates(duplicates):
     
     resolved_duplicates = []
     for d in duplicates:
-        print(f'Resolving duplicates in bom...')
+        # print(f'Resolving duplicates in bom...')
         resolved_duplicate = {}
         count = 0
         for e in duplicates[d]:
@@ -69,7 +69,7 @@ def group_by_attribute(dict_list, attribute):
 
 
 def shake_designators(list_of_dicts):
-    print("\nDesignator mapping decisions:")
+    # print("\nDesignator mapping decisions:")
     # Initialize variables
     new_list = []
     designator_mapping = {}
@@ -101,7 +101,7 @@ def shake_designators(list_of_dicts):
                 component_counters[component_type] += 1
             
             # Print mapping decision
-            print(f"Mapping {designator} -> {new_designator}")
+            # print(f"Mapping {designator} -> {new_designator}")
             all_mapping_decisions.append(f"Mapping {designator} -> {new_designator}")
             
             # Store mapping

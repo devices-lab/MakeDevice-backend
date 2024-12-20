@@ -113,8 +113,6 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     # And lastly, merge with the additional generated files from /generated directory
     merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
 
-
-
 def merge_directories(target_dir_path, source_dir_path, board_name, module=None, fabrication_data_filepaths=None):
     print('MERGING: ', source_dir_path)
     """
@@ -131,7 +129,6 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
     Returns:
         None
     """
-    
 
     isBOM = False 
     isCPL = False 
@@ -204,12 +201,6 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
     if (fabrication_data_filepaths!=None):
         return fabrication_data_filepaths
     
-    
-    
-
-
-
-
 def process_BOM(bom_filepaths, target_dir):
     bom_items = iterate_bom_files(bom_filepaths)
     print('BOM items: ', bom_items)

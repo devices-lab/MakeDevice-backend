@@ -130,3 +130,4 @@ def show_grid_segments_sockets(grid, segments, socket_locations, resolution):
     plt.gca().set_aspect('equal', adjustable='datalim')
     plt.gca().invert_yaxis()  # Invert y-axis to match traditional Cartesian coordinate systems
     plt.show()
+    

@@ -10,7 +10,7 @@ def iterate_cpl_files(modules, filepaths):
         # Get the filepaths for the CPL files
         myCplFilepaths = filepaths
         list_of_dicts = []
-        print('Reading CPL files...')
+        # print('Reading CPL files...')
         for module in modules:
             currentDict = read_csv(filepaths[modules.index(module)])
             
@@ -47,7 +47,7 @@ def iterate_cpl_files(modules, filepaths):
 
 # Map all the designators in the CPL to their new values
 def map_cpl_designators(cpl_list, designator_mapping):
-    print('returned: ' + str(cpl_list))
+    # print('returned: ' + str(cpl_list))
     mapped_list = []
     seen_designators = set()
     

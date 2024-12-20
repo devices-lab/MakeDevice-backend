@@ -17,7 +17,7 @@ GRID_RESOLUTION = 1
 # The socket layer name must match that of the layer name given in the Gerber files via
 #  the PCB design tool like KiCad
 # The Gerber Socket layer must end with "socket_layer_name.gbr"
-socket_layer_name = "Jacdac_Bus.gbr"
+socket_layer_name = "GerberSockets.gbr"
 
 # The following are the socket radii for the Jacdac Gerber Sockets, as described 
 # in the design guidelines for the Jacdac virtual components 
@@ -37,7 +37,7 @@ layer_mappings = {
 }
 
 # Load the JSON configuration from a file (data.json)
-with open("data_2.json", 'r') as file:
+with open("data_1.json", 'r') as file:
     data = json.load(file)
 
 # Extract board details and modules
@@ -82,8 +82,12 @@ def run():
     compress_directory("output")
     print("🟢 Directory compressed")
     
+    
 def debug():
     clear_directories()
-    
-# Select mode
-run()
+    sockets_layer = merge_layers(modules, socket_layer_name, board_name)
+    socket_locations = extract_socket_locations(sockets_layer, jacdac_socket_nets)
+    print("🔌 Socket locations")
+    print(len(socket_locations), "modules", socket_locations)
+# Run the program
+debug()
