@@ -1,0 +1,40 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,8.0.2-1*%
+%TF.CreationDate,2024-12-23T20:39:15+00:00*%
+%TF.ProjectId,jacdac-slider-MH-0.1,6a616364-6163-42d7-936c-696465722d4d,v0.1*%
+%TF.SameCoordinates,PX8d24d00PY36d6160*%
+%TF.FileFunction,Copper,L3,Inr*%
+%TF.FilePolarity,Positive*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 8.0.2-1) date 2024-12-23 20:39:15*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%TA.AperFunction,ComponentPad*%
+%ADD10C,4.400000*%
+%TD*%
+%TA.AperFunction,FiducialPad,Local*%
+%ADD11C,4.400000*%
+%TD*%
+G04 APERTURE END LIST*
+D10*
+%TO.N,GND*%
+%TO.C,MH2*%
+X25000000Y10000000D03*
+%TD*%
+%TO.N,GND*%
+%TO.C,MH4*%
+X25000000Y-9999999D03*
+%TD*%
+D11*
+%TO.N,JD_DATA*%
+%TO.C,MH1*%
+X-25000000Y10000001D03*
+%TD*%
+D10*
+%TO.N,JD_PWR*%
+%TO.C,MH3*%
+X-25000800Y-10000800D03*
+%TD*%
+M02*

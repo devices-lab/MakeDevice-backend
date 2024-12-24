@@ -129,19 +129,19 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
     Returns:
         None
     """
-
-    isBOM = False 
-    isCPL = False 
+    
     # Process each Gerber or Excellon file in the module directory
     for source_file_path in source_dir_path.iterdir():
         
+        # Omit the mechanical layer (".GM1"), as that gets handled separately 
         if source_file_path.suffix.upper() not in ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']:
-            # Omit the mechanical layer (".GM1"), as that gets handled separately 
+            
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
         
         # Construct the new target filename by replacing the module name with board_name
-        new_file_name = f"{board_name}-{source_file_path.name.split('-', 1)[-1]}"
+        # Split all the way to the last '-' to handle filenames with multiple '-' characters
+        new_file_name = f"{board_name}-{source_file_path.name.split('-', -1)[-1]}"
         target_file_path = target_dir_path / new_file_name
 
         # Determine the type of file based on the extension
@@ -157,21 +157,19 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
                 source_file.rotate(angle=rotation_radians)
                 source_file.offset(x=offset_x, y=offset_y)
             
-        #Check if file is csv
         elif source_file_path.suffix.upper() == '.CSV':
             
             # Check if file contains 'CPL' or 'PNP', which would indicate it's a pick and place file
             if 'CPL' in source_file_path.name.upper() or 'PNP' in source_file_path.name.upper():
-                print(f"⚒️ found a pick and place file {source_file_path}")
+                print(f"📍Found a pick and place file {source_file_path}")
                 if (fabrication_data_filepaths!= None):
                     fabrication_data_filepaths['CPL'].append(source_file_path)
                 
                 continue
 
-                
             # Check if file contains 'BOM', which would indicate it's a bill of materials file
             elif 'BOM' in source_file_path.name.upper():
-                print(f"💣 found a BOM file {source_file_path}")
+                print(f"💣 Found a BOM file {source_file_path}")
                 if (fabrication_data_filepaths!= None):
                     fabrication_data_filepaths['BOM'].append(source_file_path)
 

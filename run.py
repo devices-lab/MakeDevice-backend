@@ -1,8 +1,10 @@
 import json
+import sys
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
 from route import create_grid, route_sockets
 from generate import generate
+
 
 # Coordinate rounding is done to up to the nearest resolution value.
 # Increasing the resolution will allow for precise routing, at the cost of 
@@ -36,16 +38,26 @@ layer_mappings = {
     'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal'),
 }
 
-# Load the JSON configuration from a file (data.json)
-with open("data_1.json", 'r') as file:
-    data = json.load(file)
 
-# Extract board details and modules
-board = data['board']
-board_name = board['name']
-modules = data['modules']
 
-def run():
+def run(test_data):
+    
+    # Load the JSON configuration from a file (data.json)
+    try:
+        with open(f"test_data/data_{test_data}.json", 'r') as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        print(f"Error: File data_{test_data}.json not found.")
+        return
+    except json.JSONDecodeError:
+        print(f"Error: File data_{test_data}.json is not a valid JSON.")
+        return
+
+    # Extract board details and modules
+    board = data['board']
+    board_name = board['name']
+    modules = data['modules']
+
     # Clear out ./output and ./generated directories
     clear_directories()
     print("🟢 Cleared out /output and /generated directories")
@@ -82,12 +94,7 @@ def run():
     compress_directory("output")
     print("🟢 Directory compressed")
     
-    
 def debug():
-    clear_directories()
-    sockets_layer = merge_layers(modules, socket_layer_name, board_name)
-    socket_locations = extract_socket_locations(sockets_layer, jacdac_socket_nets)
-    print("🔌 Socket locations")
-    print(len(socket_locations), "modules", socket_locations)
-# Run the program
-debug()
+    print("Debugging...")
+
+run(3)
