@@ -40,17 +40,17 @@ layer_mappings = {
 
 
 
-def run(test_data):
+def run(file_number):
     
-    # Load the JSON configuration from a file (data.json)
+    # Load the JSON configuration from a file (data_#.json)
     try:
-        with open(f"test_data/data_{test_data}.json", 'r') as file:
+        with open(f"test_data/data_{file_number}.json", 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
-        print(f"Error: File data_{test_data}.json not found.")
+        print(f"Error: File data_{file_number}.json not found.")
         return
     except json.JSONDecodeError:
-        print(f"Error: File data_{test_data}.json is not a valid JSON.")
+        print(f"Error: File data_{file_number}.json is not a valid JSON.")
         return
 
     # Extract board details and modules

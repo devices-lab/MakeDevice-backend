@@ -39,7 +39,7 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
 
         # Check if the directory exists
         if not module_path.exists() or not module_path.is_dir():
-            print(f"🔴 Directory not found: {module_path}")
+            print(f"🔴 Module not found: {module_path}")
             continue
 
         # Find the first file that includes the specified layer_name in its filename
@@ -96,25 +96,22 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
         module_path = modules_dir_path / module['name']
 
         if not module_path.exists() or not module_path.is_dir():
-            print(f"🔴 Directory not found: '{module_path}'")
+            print(f"🔴 Module not found: '{module_path}'")
             continue
         
         # Merge each module's Gerber or fabrication files into the output directory, and apply transformations 
         # by passing the information from each modules 
         # Along the way collect the filepaths for the CPL and BOM files for each module...
         fabrication_data_filepaths = merge_directories(output_dir_path, module_path, board_name, module, fabrication_data_filepaths.copy())
-        print('fabrication data filepaths: ', fabrication_data_filepaths)
         
-        
-        
-    # do some bom and pick and place processing here    
+    # do some bom and pick and place processing here ]
+    # WHAT the hell does "some" mean? Say what it does and why in this location ugh so annoying
     processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
     processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
     # And lastly, merge with the additional generated files from /generated directory
     merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
 
 def merge_directories(target_dir_path, source_dir_path, board_name, module=None, fabrication_data_filepaths=None):
-    print('MERGING: ', source_dir_path)
     """
     Merges entire directories of Gerber and Excellon files from a source directory into a 
     target directory, applying optional transformations if the module information is provided.
@@ -135,7 +132,6 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
         
         # Omit the mechanical layer (".GM1"), as that gets handled separately 
         if source_file_path.suffix.upper() not in ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']:
-            
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
         
@@ -161,16 +157,16 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
             
             # Check if file contains 'CPL' or 'PNP', which would indicate it's a pick and place file
             if 'CPL' in source_file_path.name.upper() or 'PNP' in source_file_path.name.upper():
-                print(f"📍Found a pick and place file {source_file_path}")
-                if (fabrication_data_filepaths!= None):
+                print(f"📍Found a pick and place (CPL/PNP) file {source_file_path}")
+                if (fabrication_data_filepaths != None):
                     fabrication_data_filepaths['CPL'].append(source_file_path)
                 
                 continue
 
             # Check if file contains 'BOM', which would indicate it's a bill of materials file
             elif 'BOM' in source_file_path.name.upper():
-                print(f"💣 Found a BOM file {source_file_path}")
-                if (fabrication_data_filepaths!= None):
+                print(f"💣 Found a bill of materials (BOM) file {source_file_path}")
+                if (fabrication_data_filepaths != None):
                     fabrication_data_filepaths['BOM'].append(source_file_path)
 
                 continue
@@ -196,28 +192,28 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
             source_file.save(target_file_path)
 
         
-    if (fabrication_data_filepaths!=None):
+    if (fabrication_data_filepaths != None):
         return fabrication_data_filepaths
     
 def process_BOM(bom_filepaths, target_dir):
     bom_items = iterate_bom_files(bom_filepaths)
-    print('BOM items: ', bom_items)
 
     # Separate unique and duplicates items
     separated_bom_items = separate_unique_and_duplicates(bom_items, 'JLCPCB Part')
-    print('Separated BOM items: ', separated_bom_items)
+    
     # Group by JLCPCB Part
     grouped_bom_items = group_by_attribute(separated_bom_items['duplicates'], 'JLCPCB Part')
-    print('Grouped BOM items: ', grouped_bom_items)
-     # Resolve duplicates
+
+    # Resolve duplicates
     resolved_duplicates = resolve_duplicates(grouped_bom_items)
+    
     # Shake designators
     bom_list_unmapped = resolved_duplicates + separated_bom_items['unique']
-    print('BOM list unresolved: ', bom_list_unmapped)
+
     # Map designators
     bom_list_mapped = shake_designators(bom_list_unmapped)
     # Write the bom to the taget_dir
-    bom_file_path = str(target_dir) + '/' + 'bom.csv'
+    bom_file_path = str(target_dir) + '/' + '{bom.csv'
     # Filter bom
     filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in bom_list_mapped['list']]
     
@@ -228,8 +224,6 @@ def process_BOM(bom_filepaths, target_dir):
     print('BOM list mapped: ', bom_list_mapped) 
     return bom_list_mapped
     
-
-
 def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
     
     print('cpl filepaths: ', cpl_filepaths)

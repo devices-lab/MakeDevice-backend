@@ -1,7 +1,5 @@
 import csv
-from cpl import iterate_cpl_files, map_cpl_designators
-from utils import read_csv, rotate_entries, write_csv
-
+from utils import read_csv
 
 # Read the bom file as csv and convert to list of dictionaries
 def read_bom_file(filepath):
@@ -21,10 +19,8 @@ def iterate_bom_files(filepaths):
 
 # Resolve duplicates  
 def resolve_duplicates(duplicates):
-    
     resolved_duplicates = []
     for d in duplicates:
-        # print(f'Resolving duplicates in bom...')
         resolved_duplicate = {}
         count = 0
         for e in duplicates[d]:
@@ -32,13 +28,9 @@ def resolve_duplicates(duplicates):
                 resolved_duplicate = e
             else: 
                 resolved_duplicate['Designator'] = resolved_duplicate['Designator'] + ',' + str(e['Designator'])  
-
-
             if (count != 0):
                 resolved_duplicates.append(resolved_duplicate)
             count +=1
-        
-    
     return resolved_duplicates
 
 def separate_unique_and_duplicates(dict_list, key_to_check):
@@ -57,7 +49,6 @@ def separate_unique_and_duplicates(dict_list, key_to_check):
         'duplicates': duplicates
     }
 
-
 def group_by_attribute(dict_list, attribute):
     grouped_dict = {}
     for d in dict_list:
@@ -69,7 +60,6 @@ def group_by_attribute(dict_list, attribute):
 
 
 def shake_designators(list_of_dicts):
-    # print("\nDesignator mapping decisions:")
     # Initialize variables
     new_list = []
     designator_mapping = {}
@@ -118,87 +108,77 @@ def shake_designators(list_of_dicts):
         "mapping": designator_mapping,
         "all_mapping_decisions": all_mapping_decisions
     }
-   
-
-
-
-
-
-
-
-modules = {
-  "board": {
-    "name": "MakeDevice",
-    "size": { "x": 100, "y": 100 },
-    "origin": { "x": 0, "y": 0 }
-  },
-  "modules": [
-    {
-      "name": "test_module_1",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -15, "y": -30 },
-      "rotation": 0
-    },
-
-    {
-      "name": "test_module_1",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -25, "y": -30 },
-      "rotation": 0
-    }
-  
-  ]
-}
 
 # Below is a reference for how the bom and cpl functions can be used in the main script
-# 
-"""
-list_of_dicts = iterate_bom_files(modules)
-print(*list_of_dicts, sep='\n')
-print('\n\n\n\n')
 
-result = separate_unique_and_duplicates(list_of_dicts, 'JLCPCB Part')
-grouped_result = group_by_attribute(result['duplicates'], 'JLCPCB Part')
-resolved = resolve_duplicates(grouped_result)
+# modules = {
+#   "board": {
+#     "name": "MakeDevice",
+#     "size": { "x": 100, "y": 100 },
+#     "origin": { "x": 0, "y": 0 }
+#   },
+#   "modules": [
+#     {
+#       "name": "test_module_1",
+#       "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
+#       "position": { "x": -15, "y": -30 },
+#       "rotation": 0
+#     },
+
+#     {
+#       "name": "test_module_1",
+#       "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
+#       "position": { "x": -25, "y": -30 },
+#       "rotation": 0
+#     }
+  
+#   ]
+# }
+
+# list_of_dicts = iterate_bom_files(modules)
+# print(*list_of_dicts, sep='\n')
+# print('\n\n\n\n')
+
+# result = separate_unique_and_duplicates(list_of_dicts, 'JLCPCB Part')
+# grouped_result = group_by_attribute(result['duplicates'], 'JLCPCB Part')
+# resolved = resolve_duplicates(grouped_result)
 
 
-# List before designator shaking
-print('\n\n\n\n')
-print('List before designator shaking')
-list_before_designator_shaking = result['unique'] + resolved
-print(*list_before_designator_shaking, sep='\n')
+# # List before designator shaking
+# print('\n\n\n\n')
+# print('List before designator shaking')
+# list_before_designator_shaking = result['unique'] + resolved
+# print(*list_before_designator_shaking, sep='\n')
 
-# List after designator shaking
-after_designator_shaking = shake_designators(list_before_designator_shaking)
+# # List after designator shaking
+# after_designator_shaking = shake_designators(list_before_designator_shaking)
 
-print('\n\n\n\n')
-#print(list_after_designator_shaking["list"])
-print(*after_designator_shaking["list"], sep='\n')
-"""
-"""
-print('\n\n\n\n')
-print(after_designator_shaking["mapping"])
+# print('\n\n\n\n')
+# #print(list_after_designator_shaking["list"])
+# print(*after_designator_shaking["list"], sep='\n')
+# """
+# """
+# print('\n\n\n\n')
+# print(after_designator_shaking["mapping"])
 
-print('\n\n\n\n')
-print(after_designator_shaking["all_mapping_decisions"])
+# print('\n\n\n\n')
+# print(after_designator_shaking["all_mapping_decisions"])
 
-# Read the cpl file as csv and convert to list of dictionaries
-list_of_cpl_dicts = iterate_cpl_files(modules)
-print(*list_of_cpl_dicts, sep='\n')
-print('\n\n\n\n')
+# # Read the cpl file as csv and convert to list of dictionaries
+# list_of_cpl_dicts = iterate_cpl_files(modules)
+# print(*list_of_cpl_dicts, sep='\n')
+# print('\n\n\n\n')
  
-mapped_cpl_list = map_cpl_designators(list_of_cpl_dicts, after_designator_shaking['mapping'])
-print(*mapped_cpl_list, sep='\n')
+# mapped_cpl_list = map_cpl_designators(list_of_cpl_dicts, after_designator_shaking['mapping'])
+# print(*mapped_cpl_list, sep='\n')
 
-# Print length of BOM and CPL lists
-print(f"Length of BOM list: {len(list_of_dicts)}")
-print(f"Length of CPL list: {len(list_of_cpl_dicts)}")
+# # Print length of BOM and CPL lists
+# print(f"Length of BOM list: {len(list_of_dicts)}")
+# print(f"Length of CPL list: {len(list_of_cpl_dicts)}")
 
 
 
-# Create a new list without the 'Original Designator' column
-filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in after_designator_shaking['list']]
-write_csv('new_bom.csv', filtered_bom)
-write_csv('new_cpl.csv', mapped_cpl_list)
-
- """
+# # Create a new list without the 'Original Designator' column
+# filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in after_designator_shaking['list']]
+# write_csv('new_bom.csv', filtered_bom)
+# write_csv('new_cpl.csv', mapped_cpl_list)
