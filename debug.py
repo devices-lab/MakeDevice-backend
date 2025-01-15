@@ -1,5 +1,8 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
+from gerber_writer import DataLayer, Path
+
 
 def generate_test_grid(dimensions):
     width, height = dimensions
@@ -131,3 +134,42 @@ def show_grid_segments_sockets(grid, segments, socket_locations, resolution):
     plt.gca().invert_yaxis()  # Invert y-axis to match traditional Cartesian coordinate systems
     plt.show()
     
+def plot_debug_gerber(rectangles, output_file="debug.gbr", trace_width=0.1, output_dir="./output"):
+    """
+    Draws rectangles on a Gerber file for debugging purposes.
+
+    Args:
+        rectangles (list): List of rectangles, where each rectangle is represented as a list of 4 tuples (x, y).
+        output_file (str): Name of the output Gerber file. Defaults to "debug.gbr".
+        trace_width (float): Width of the rectangle edges in mm. Defaults to 0.15 mm.
+        output_dir (str): Directory to store the generated Gerber file. Defaults to "./generated".
+
+    Returns:
+        None
+    """
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Create a DataLayer for the debug rectangles
+    debug_layer = DataLayer("Debug,Rectangles", negative=False)
+
+    # Loop through the rectangles and draw them
+    for rectangle in rectangles:
+        # Create a path for each rectangle
+        path = Path()
+        path.moveto(rectangle[0])  # Move to the first point
+        for point in rectangle[1:]:
+            path.lineto(point)  # Draw lines to subsequent points
+        path.lineto(rectangle[0])  # Close the rectangle by connecting back to the first point
+
+        # Add the rectangle path to the layer
+        debug_layer.add_traces_path(path, trace_width, "DebugRectangle")
+
+    # Generate the output file path
+    file_path = os.path.join(output_dir, output_file)
+
+    # Write the Gerber content to the file
+    with open(file_path, 'w') as file:
+        file.write(debug_layer.dumps_gerber())
+
+    print(f"Debug Gerber file saved at: {file_path}")

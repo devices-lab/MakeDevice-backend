@@ -4,13 +4,14 @@
 2. Activate it with `source venv/bin/activate`
 3. Install dependencies `pip3 install -r requirements.txt`
 
-You must use Python version `3.11`, or lower, othewsie it won't work with some outdated dependencies. To control Python versions you may use the `pyenv` tool. 
+You must use Python version `3.11`, or lower, othewsie it won't work with some outdated dependencies. To control Python versions you may use the `pyenv` tool.
 
 1. `brew install pyenv`
 2. `pyenv install 3.11.0`
 3. `pyenv global 3.11.0` to set globally or `pyenv local 3.11.0` to set in the current directory.
 
 In the case this tools doesn't change your Python version (happens on an M-chip Mac), add `eval "$(pyenv init --path)"` to your ~/.zshrc and re-open the terminal.
+
 ## Running the server
 
 Run the program with `python3 run.py`
@@ -40,15 +41,34 @@ See the `data.json` and `data_2.json` files.
 
 ### Progress
 
-  1. Fixed issues with generated traces cutting through the keep-out zones, particularly top and right side of the keep-out zones
-  2. Fixed A\* search algorithm for pathfinding
-  3. Implemented diagonal routing, breadth first search creates noticebly cleaner traces
-  4. New layer_mappings parameters passed into generate_gebrer script, which specify which net goes on which layer
-  5. Implemented detection of intersection
-  6. Now removes traces that overlap on top of each other, entirely or partially
-  7. Segment splitting (removing the old segment at the intersection and insering two new ones)
+1. Fixed issues with generated traces cutting through the keep-out zones, particularly top and right side of the keep-out zones
+2. Fixed A\* search algorithm for pathfinding
+3. Implemented diagonal routing, breadth first search creates noticebly cleaner traces
+4. New layer_mappings parameters passed into generate_gebrer script, which specify which net goes on which layer
+5. Implemented detection of intersection
+6. Now removes traces that overlap on top of each other, entirely or partially
+7. Segment splitting (removing the old segment at the intersection and insering two new ones)
 
-### TODO:
+### Issues TO FIX
 
-- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to puy through
-- [ ] BUGS: fix the bugs that occur when rotating modules, UGH!
+**Wed 15 Jan, 2025**
+
+- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
+
+- [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution.
+- [x] When extracting sockets, the location was getting rounded to the nearest grid resolution value, therefore locations of sockets are accurately detected
+- [x] The keep-out zone extraction has incorrect coordinates for the top-right corner
+- [ ] When adding an unknown (debug.gbr) file to /output directory, this resulted in double the amount of merged files (happened twice nad not again later???)
+- [ ] Improve layer mappings, and set it up so that you can pass which layer
+- [x] Not checking if the route goes inside of a keep-out zone when the route moves diagonally
+- [x] Fix the strategy with the keep-out zones if the margin is > 0, when routing a net, remove the keepout area of the margin around the current sockets
+- [x] Remove breadth-first-search as it is less efficient
+- [x] Temporary keep-out zones for vias are smaller for left and bottom located vias, and right and top are too large
+- [ ] When a route exists/enters a socket keep-out zone, it goes directly out, rather than diagonally, or just to the closest line 
+- [ ] Check the logoci for merging with the closest trace on the same net
+
+### JSON idea for each module
+
+Contains information about
+
+- Which layers it uses/how many 2/4

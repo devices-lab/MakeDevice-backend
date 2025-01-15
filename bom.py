@@ -89,6 +89,7 @@ def shake_designators(list_of_dicts):
                     component_counters[component_type] = 1
                 new_designator = f"{component_type}{component_counters[component_type]}"
                 component_counters[component_type] += 1
+
             
             # Print mapping decision
             # print(f"Mapping {designator} -> {new_designator}")

@@ -104,8 +104,7 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
         # Along the way collect the filepaths for the CPL and BOM files for each module...
         fabrication_data_filepaths = merge_directories(output_dir_path, module_path, board_name, module, fabrication_data_filepaths.copy())
         
-    # do some bom and pick and place processing here ]
-    # WHAT the hell does "some" mean? Say what it does and why in this location ugh so annoying
+    # do some bom and pick and place processing here
     processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
     processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
     # And lastly, merge with the additional generated files from /generated directory
@@ -218,28 +217,27 @@ def process_BOM(bom_filepaths, target_dir):
     filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in bom_list_mapped['list']]
     
     #Writing final bom
-    print('writing bom to: ', bom_file_path)
+    # print('writing bom to: ', bom_file_path)
     write_csv(bom_file_path, filtered_bom)
     # Print the mapped BOM list
-    print('BOM list mapped: ', bom_list_mapped) 
+    # print('BOM list mapped: ', bom_list_mapped) 
     return bom_list_mapped
     
 def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
     
-    print('cpl filepaths: ', cpl_filepaths)
+    # print('cpl filepaths: ', cpl_filepaths)
     list_of_cpl_dicts = iterate_cpl_files(modules, cpl_filepaths)
 
     #MAP CPL DESIGNATORS
     mapped_cpl_list = map_cpl_designators(list_of_cpl_dicts, processed_bom['mapping'])
-    print('mapped cpl list: ', mapped_cpl_list)
+    # print('mapped cpl list: ', mapped_cpl_list)
+    
     # Write the cpl to the taget_dir
-
-
     cpl_filepath = str(target_dir) + '/' + 'cpl.csv'
-    print('writing CPL to: ', cpl_filepath)
+    # print('writing CPL to: ', cpl_filepath)
     write_csv(cpl_filepath, mapped_cpl_list)
     # Print the mapped BOM list
-    print('CPL list mapped: ', mapped_cpl_list)
+    # print('CPL list mapped: ', mapped_cpl_list)
             
 def clear_directories(output_dir='./output', generated_dir='./generated'):
     """
@@ -260,7 +258,7 @@ def clear_directories(output_dir='./output', generated_dir='./generated'):
         shutil.rmtree(generated_dir_path)
         
 def compress_directory(directory="output"):
-    """
+    """ 
     Compresses the specified directory into a ZIP file.
     Parameters:
         directory (str): The path to the directory to be compressed, and name given to the zip file.

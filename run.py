@@ -32,13 +32,11 @@ jacdac_socket_nets = {
 # Define the layer mappings based on net type
 layer_mappings = {
     'JD_PWR': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
-    'JD_DATA': ('F_Cu.gtl', 'Copper,L1,Top,Signal'),
-    'EMPTY': ('In1_Cu.g2', 'Copper,L2,Inner,Signal'),
+    'JD_DATA': ('In1_Cu.g2', 'Copper,L2,Top,Signal'),
+    # 'EMPTY': ('In1_Cu.g2', 'Copper,L2,Inner,Signal'),
     'PROG': ('In2_Cu.g3', 'Copper,L3,Inner,Signal'),
     'JD_GND': ('B_Cu.gbl', 'Copper,L4,Bottom,Signal'),
 }
-
-
 
 def run(file_number):
     
@@ -67,19 +65,20 @@ def run(file_number):
     print("🟢 Merged", socket_layer_name, "layers")
 
     # Get the locations of the sockets
-    socket_locations = extract_socket_locations(sockets_layer, jacdac_socket_nets)
+    socket_locations = extract_socket_locations(sockets_layer, jacdac_socket_nets, resolution=GRID_RESOLUTION)
     print("🟢 Socket locations identified")
 
     # Get the keep out zones 
-    keep_out_zones = extract_keep_out_zones(sockets_layer)
+    keep_out_zones = extract_keep_out_zones(sockets_layer, resolution=GRID_RESOLUTION)
     print("🟢 Keep out zones identified")
+    print(keep_out_zones)
 
     # Create a grid
     grid = create_grid(board["size"], keep_out_zones, resolution=GRID_RESOLUTION)
     print("🟢 Grid created")
 
     # Pass the grid along with the socket locations to the router
-    segments = route_sockets(grid, socket_locations, resolution=GRID_RESOLUTION, algorithm="breadth_first")
+    segments = route_sockets(grid, socket_locations, resolution=GRID_RESOLUTION, algorithm="a_star")
     print("🟢 Routing completed")
 
     # Generate Gerber and Excellon files
@@ -93,6 +92,10 @@ def run(file_number):
     # Compress the output directory
     compress_directory("output")
     print("🟢 Directory compressed")
+    
+    # Open the .zip folder in GerbView application
+    
+    
     
 def debug():
     print("Debugging...")

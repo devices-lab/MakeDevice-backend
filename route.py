@@ -2,6 +2,7 @@ import numpy as np
 import math
 from heapq import heappush, heappop
 from collections import deque
+from debug import show_grid, plot_debug_gerber
 
 # Some of the algorithm logic in this file was generated using ChatGPT GPT-4
 
@@ -33,19 +34,22 @@ def create_grid(dimensions, keep_out_zones, resolution):
     # Middle of the grid
     center_x, center_y = grid_width // 2, grid_height // 2
 
-    # Mark keep-out zones in the grid
+     # Mark keep-out zones in the grid
     for zone in keep_out_zones:
-        top_left, top_right, bottom_right, bottom_left = zone
-        # Convert points to grid indices, adjusting for the center
-        x1 = center_x + int(min(top_left[0], bottom_left[0]) / resolution)
-        x2 = center_x + int(max(top_right[0], bottom_right[0]) / resolution)
-        y1 = center_y + int(min(top_left[1], top_right[1]) / resolution)
-        y2 = center_y + int(max(bottom_left[1], bottom_right[1]) / resolution)
-        
-        # Normalize for array boundaries
-        x1, x2 = max(0, x1), min(grid_width-1, x2)
-        y1, y2 = max(0, y1), min(grid_height-1, y2)
-        
+        bottom_left, top_left, top_right, bottom_right = zone
+
+        # Convert rectangle bounds to grid indices
+        x1 = center_x + math.floor(bottom_left[0] / resolution)
+        x2 = center_x + math.ceil(top_right[0] / resolution)
+        y1 = center_y - math.ceil(top_right[1] / resolution)
+        y2 = center_y - math.floor(bottom_left[1] / resolution)
+
+        # Ensure bounds are within grid limits
+        x1 = max(0, min(grid_width - 1, x1))
+        x2 = max(0, min(grid_width - 1, x2))
+        y1 = max(0, min(grid_height - 1, y1))
+        y2 = max(0, min(grid_height - 1, y2))
+
         # Mark cells as blocked
         grid[y1:y2, x1:x2] = 1
 
@@ -69,9 +73,9 @@ def reconstruct_path(came_from, current):
 
 def a_star_search(grid, start, goal):
 
-    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
-    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] # Cardinals
-
+    # Separate cardinal and diagonal neighbors
+    cardinal_moves = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    diagonal_moves = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
     grid_shape = grid.shape
 
     # Initialize for pathfinding
@@ -94,50 +98,60 @@ def a_star_search(grid, start, goal):
             return reconstruct_path(came_from, current)
 
         close_set[current] = True
-        for i, j in neighbours:
-            neighbour = (current[0] + i, current[1] + j)
 
-            if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
-                if neighbour == goal or not grid[neighbour]:
-                    step_cost = math.sqrt(i*i + j*j)  # 1 for cardinals, sqrt(2) for diagonals
+        # Check all possible neighbors (cardinals + diagonals)
+        
+        # 1. Check cardinal moves
+        for dx, dy in cardinal_moves:
+            nx, ny = current[0] + dx, current[1] + dy
+            if 0 <= nx < grid_shape[0] and 0 <= ny < grid_shape[1]:
+                # If free cell or is the goal
+                if (nx, ny) == goal or grid[nx, ny] == 0:
+                    step_cost = 1.0  # cardinal distance
                     tentative_g_score = gscore[current] + step_cost
-                    if tentative_g_score < gscore[neighbour]:
-                        came_from[neighbour] = current
-                        gscore[neighbour] = tentative_g_score
-                        fscore[neighbour] = tentative_g_score + heuristic_diagonal(neighbour, goal)
-                        heappush(open_set, (fscore[neighbour], neighbour))
+                    if tentative_g_score < gscore[nx, ny]:
+                        came_from[(nx, ny)] = current
+                        gscore[nx, ny] = tentative_g_score
+                        fscore[nx, ny] = tentative_g_score + heuristic_diagonal((nx, ny), goal)
+                        heappush(open_set, (fscore[nx, ny], (nx, ny)))
+        
+        # 2. Check diagonal moves (only if corner cells are open)
+        for dx, dy in diagonal_moves:
+            nx, ny = current[0] + dx, current[1] + dy
+            if 0 <= nx < grid_shape[0] and 0 <= ny < grid_shape[1]:
+                # Ensure no corner cutting
+                # If we move from (x, y) to (x+1, y+1):
+                # we need (x+1, y) and (x, y+1) to be unblocked
+                # Similarly for other diagonal directions
+                x_blocked = False
 
-    return False
+                # Horizontal neighbor
+                if dx != 0 and dy != 0:
+                    # Orthogonal neighbor 1
+                    n1 = (current[0] + dx, current[1])
+                    # Orthogonal neighbor 2
+                    n2 = (current[0], current[1] + dy)
+                    # Check if either is blocked
+                    if not (0 <= n1[0] < grid_shape[0] and 0 <= n1[1] < grid_shape[1]):
+                        x_blocked = True
+                    elif grid[n1] == 1:
+                        x_blocked = True
+                    if not (0 <= n2[0] < grid_shape[0] and 0 <= n2[1] < grid_shape[1]):
+                        x_blocked = True
+                    elif grid[n2] == 1:
+                        x_blocked = True
 
-def breadth_first_search(grid, start, goal):
-    neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)] # Diagonals
-    # neighbours = [(0, 1), (1, 0), (0, -1), (-1, 0)] # Cardinals
-    grid_shape = grid.shape
-
-    # Initialize for pathfinding
-    visited = np.zeros(grid_shape, dtype=bool)
-    came_from = {}
-
-    # Start node
-    queue = deque([start])
-    visited[start] = True
-
-    while queue:
-        current = queue.popleft()
-
-        if current == goal:
-            return reconstruct_path(came_from, current)
-
-        for i, j in neighbours:
-            neighbour = (current[0] + i, current[1] + j)
-
-            if 0 <= neighbour[0] < grid_shape[0] and 0 <= neighbour[1] < grid_shape[1]:
-                # Allow stepping onto the goal even if it is in a keep-out zone
-                if not visited[neighbour] and (neighbour == goal or grid[neighbour] == 0):
-                        queue.append(neighbour)
-                        visited[neighbour] = True
-                        came_from[neighbour] = current
-
+                # If not blocked, proceed
+                if not x_blocked:
+                    if (nx, ny) == goal or grid[nx, ny] == 0:
+                        step_cost = math.sqrt(2)  # diagonal distance
+                        tentative_g_score = gscore[current] + step_cost
+                        if tentative_g_score < gscore[nx, ny]:
+                            came_from[(nx, ny)] = current
+                            gscore[nx, ny] = tentative_g_score
+                            fscore[nx, ny] = tentative_g_score + heuristic_diagonal((nx, ny), goal)
+                            heappush(open_set, (fscore[nx, ny], (nx, ny)))
+    
     return False
 
 def calculate_net_distances(socket_locations, resolution):
@@ -179,33 +193,50 @@ class UnionFind:
 def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution, keep_out_mm=1):
     """
     Applies keep-out zones around sockets in other nets. This is essential for ensuring that the routes
-    on a given layer do not cut through vias on their respetive layers. Keep-out zones around sockets 
-    are applied as a square around each socket point.
+    on a given net do not cut through vias on other nets. These keep-out zones around the sockets are of 
+    square shape. 
+    
     Parameters:
-        grid (numpy.array): Current grid with already applied keep-out zones.
-        socket_locations (dict): Locations of the sockets by net.
+        grid (numpy.array): Current grid (with already applied keep-out zones).
+        socket_locations (dict): Locations of the sockets, organised by net.
         current_net (string): Name of the net currently being processed.
         resolution (float): Units per grid cell, defining the scale of the grid.
-        keep_out_mm (int): Radius of the keep-out zone in millimeters. Default is 1mm. 
+        keep_out_mm (int): Radius of the keep-out zone in millimeters. Defaults to 1mm. 
     Returns:
         numpy.ndarray: Updated grid with the additional keep-out zones applied.
     """
     temp_grid = np.copy(grid)
     keep_out_cells = int(np.ceil(keep_out_mm / resolution))  # Convert mm to grid cells
 
-    for net, locations in socket_locations.items():
-        if net != current_net:  # Apply keep-out zones only for other nets
-            for x, y in locations:
-                x_index = int(x / resolution) + grid.shape[1] // 2
-                y_index = int(y / resolution) + grid.shape[0] // 2
-                # Apply keep-out zone around the socket
-                for i in range(-keep_out_cells, keep_out_cells + 1):
-                    for j in range(-keep_out_cells, keep_out_cells + 1):
-                        xi = x_index + i
-                        yi = y_index + j
-                        if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
-                            temp_grid[yi, xi] = 1 # Mark this position as blocked
+    # rectangles = []  # For debugging: list of rectangles for plotting
 
+    for net, locations in socket_locations.items():
+        for x, y in locations:
+            
+            # For debugging: add the keep-out zones as rectangle verices tuples to the list
+            # x1 = x - keep_out_mm
+            # x2 = x + keep_out_mm
+            # y1 = y - keep_out_mm
+            # y2 = y + keep_out_mm
+            # rectangles.append(((x1, y1), (x2, y1), (x2, y2), (x1, y2)))
+            
+            x_index = int(x / resolution) + grid.shape[1] // 2
+            y_index = int(y / resolution) + grid.shape[0] // 2
+            # Apply keep-out zone around the socket
+            for i in range(-keep_out_cells, keep_out_cells):
+                for j in range(-keep_out_cells, keep_out_cells):
+                    xi = x_index + i
+                    yi = y_index + j
+                    # Check if the keep-out zone for the socket is within the grid boundaries
+                    if 0 <= xi < grid.shape[1] and 0 <= yi < grid.shape[0]:
+                        if net != current_net:
+                            temp_grid[yi, xi] = 1 # Mark this position as blocked
+                        else:
+                            temp_grid[yi, xi] = 0 # Mark this position as free
+
+    # For debugging: plot the rectangles on debug.gbr
+    # plot_debug_gerber(rectangles)
+    
     return temp_grid
                     
 def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first', debug=False):
@@ -236,18 +267,13 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
                 end_index = (int(loc2[1] / resolution) + temp_grid.shape[0] // 2, int(loc2[0] / resolution) + temp_grid.shape[1] // 2)
                 
                 print(f"🟠 Using {algorithm} for routing")
-                if algorithm == 'a_star':
-                    path = a_star_search(temp_grid, start_index, end_index)
-                else:
-                    path = breadth_first_search(temp_grid, start_index, end_index)
+                path = a_star_search(temp_grid, start_index, end_index)
                 
                 if path:
                     routes.setdefault(net, []).append(path)
                     uf.union(tuple(loc1), tuple(loc2))
-    
-    # For debug purposes only
-    if debug:
-        return routes
+                else:
+                    print(f"🔴 No path found between {loc1} and {loc2} for net {net}")        
     
     # Get the centers of the grid for translating the indices
     center_x = grid.shape[0] // 2
@@ -261,57 +287,13 @@ def route_sockets(grid, socket_locations, resolution, algorithm='breadth_first',
 def route_multiple_nets():
     pass
 
-def route_sockets_deprecated(grid, socket_locations, resolution, algorithm='breadth_first'):
-    """ This is a previous implementation of the route_sockets function. It simply routes each socket within a net
-    to the next one in the list. The new implementation is more optimized and routes sockets based on the distance between
-    them.
-    Parameters:
-        grid (numpy.array): The grid on which to perform the routing, with obstacles marked.
-                            socket_locations (dict): A dictionary of socket locations grouped by net names.
-        resolution (float): The resolution of the grid in units per grid cell.
-                            algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' 
-                            or 'breadth_first'. Default is 'breadth_first'.
-    Returns:
-        dict: A dictionary where each key is a net name and the value is a list of lists containing paths 
-        with points as tuples.
-    """
-    routes = {}  # This will store the paths for each net type
-
-    # Middle of the grid, used to translate coordinates
-    center_x, center_y = grid.shape[1] // 2, grid.shape[0] // 2
-
-    # Process each net type
-    for net, locations in socket_locations.items():
-        net_routes = []  # Store routes for this net
-        
-        # Apply keep-out zones for socket in nets
-        temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)
-        
-        # Connect each socket with the next one in the list
-        for i in range(len(locations) - 1):
-            start = locations[i]
-            end = locations[i + 1]
-            # Convert real-world coordinates to grid indices considering the resolution
-            start_index = (center_y + int(start[1] / resolution), center_x + int(start[0] / resolution))
-            end_index = (center_y + int(end[1] / resolution), center_x + int(end[0] / resolution))
-
-            if algorithm == 'a_star':
-                path = a_star_search(temp_grid, start_index, end_index)
-            else:   
-                path = breadth_first_search(temp_grid, start_index, end_index)
-                
-            net_routes.append(path if path else None)
-
-        routes[net] = net_routes
-
-    return routes
 
 def consolidate_segments(routes, resolution, center_x, center_y):
     """
-    Consolidates contiguous line segments into longer lines. This translates the indices from the grid to 
+    Consolidates contiguous/overlaping line segments into longer lines. This translates the indices from the grid to 
     line ednpoints that can be used for creating traces using `gerber-writer`.
 
-    Args:
+    Parameters:
         routes (dict): The routing paths indexed by net names, each path is a list of grid indices.
         resolution (float): The grid resolution.
         center_x (int): X-coordinate of the grid center.
