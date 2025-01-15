@@ -53,19 +53,19 @@ See the `data.json` and `data_2.json` files.
 
 **Wed 15 Jan, 2025**
 
-- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
-
-- [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution.
 - [x] When extracting sockets, the location was getting rounded to the nearest grid resolution value, therefore locations of sockets are accurately detected
 - [x] The keep-out zone extraction has incorrect coordinates for the top-right corner
-- [ ] When adding an unknown (debug.gbr) file to /output directory, this resulted in double the amount of merged files (happened twice nad not again later???)
-- [ ] Improve layer mappings, and set it up so that you can pass which layer
 - [x] Not checking if the route goes inside of a keep-out zone when the route moves diagonally
 - [x] Fix the strategy with the keep-out zones if the margin is > 0, when routing a net, remove the keepout area of the margin around the current sockets
 - [x] Remove breadth-first-search as it is less efficient
 - [x] Temporary keep-out zones for vias are smaller for left and bottom located vias, and right and top are too large
-- [ ] When a route exists/enters a socket keep-out zone, it goes directly out, rather than diagonally, or just to the closest line 
+
+- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
+- [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution.
+- [ ] When adding an unknown (debug.gbr) file to /output directory, this resulted in double the amount of merged files (happened twice nad not again later???)
+- [ ] When a route exists/enters a socket keep-out zone, it goes directly out, rather than diagonally, or just to the closest line
 - [ ] Check the logoci for merging with the closest trace on the same net
+- [ ] Improve layer mappings, and set it up so that you can pass which layer
 
 ### JSON idea for each module
 
