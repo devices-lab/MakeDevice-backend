@@ -4,7 +4,7 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.breadth_first import BreadthFirstFinder
-from debug import show_grid, plot_debug_gerber
+# from debug import show_grid, plot_debug_gerber
 
 def to_grid_indices(x, y, center_x, center_y, resolution):
     """
