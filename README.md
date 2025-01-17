@@ -60,12 +60,23 @@ See the `data.json` and `data_2.json` files.
 - [x] Remove breadth-first-search as it is less efficient
 - [x] Temporary keep-out zones for vias are smaller for left and bottom located vias, and right and top are too large
 
+**Thu 16 Jan, 2025**
+- [ ] First thing in the morning - look at the ChatGPT query
+- [ ] Run routing to the nearest trace if it is closer than running it to the socket. 
+- [ ] Resolve the issues of traces entering sockets diagonally, but leaving vertically/horizontally or vice versa
+
+- [ ] Try out the `python-pathfinding` library to see if it is any good
+
 - [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
 - [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution.
 - [ ] When adding an unknown (debug.gbr) file to /output directory, this resulted in double the amount of merged files (happened twice nad not again later???)
 - [ ] When a route exists/enters a socket keep-out zone, it goes directly out, rather than diagonally, or just to the closest line
 - [ ] Check the logoci for merging with the closest trace on the same net
 - [ ] Improve layer mappings, and set it up so that you can pass which layer
+
+Go though extensive testing before moving onto the intersections
+
+
 
 ### A new idea to store information about each module in a JSON
 

@@ -1,26 +1,43 @@
 {
   "board": {
     "name": "MakeDevice",
-    "size": { "x": 100, "y": 100 },
+    "size": { "x": 200, "y": 200 },
     "origin": { "x": 0, "y": 0 }
   },
+
+  "configuration": {
+    "algorithm": "breadth_first",
+    "diagonals": 1,
+    "resolution": 1,
+    "gs_layer_name": "GerberSockets.gbr",
+    "socket_diameters": {
+      "JD_PWR": 0.11,
+      "JD_GND": 0.12,
+      "JD_DATA": 0.13
+    },
+    "layer_mappings": {
+      "JD_PWR": ["F_Cu.gtl", "Copper,L1,Top,Signal"],
+      "JD_DATA": ["F_Cu.gtl", "Copper,L1,Top,Signal"],
+      "EMPTY": ["In1_Cu.g2", "Copper,L2,Top,Signal"],
+      "PROG": ["In2_Cu.g3", "Copper,L3,Inner,Signal"],
+      "JD_GND": ["B_Cu.gbl", "Copper,L4,Bottom,Signal"]
+    }, 
+    "intersections": 1,
+    "gerber_options": {
+      "trace_width": 0.25,
+      "via_diameter": 0.6
+    }
+  },
+
   "modules": [
     {
-      "name": "test_module_1",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -15, "y": -30 },
-      "rotation": 0
+      "name": "20x50-jacdac-MH-0.1",
+      "position": { "x": 4, "y": 28 },
+      "rotation": 180
     },
     {
-      "name": "test_module_1",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": -35, "y": 25 },
-      "rotation": 0
-    },
-    {
-      "name": "test_module_2",
-      "id": "b237c702-3c29-42c6-aac8-a5b155eae05d",
-      "position": { "x": 25, "y": 0 },
+      "name": "20x50-jacdac-MH-0.1",
+      "position": { "x": -33, "y": -28 },
       "rotation": 0
     }
   ]

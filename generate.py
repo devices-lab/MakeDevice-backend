@@ -3,7 +3,7 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 from intersect import merge_overlapping_segments, check_net_intersections_by_layer, process_intersections, split_segments
 
-def generate(segments, socket_locations, layer_mappings, trace_width, via_diameter, board_info, intersection_clearance=1.0, output_dir="./generated"):
+def generate(segments, socket_locations, layer_mappings, gerber_options, board_info, intersection_clearance=1.0, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     Parameters:
@@ -20,6 +20,10 @@ def generate(segments, socket_locations, layer_mappings, trace_width, via_diamet
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
+    # Extract the trace and via sizes
+    trace_width = gerber_options['trace_width']
+    via_diameter = gerber_options['via_diameter']
+    
     # Set software identification
     set_generation_software('Devices-Lab', 'MakeDevice', '0.1')
     

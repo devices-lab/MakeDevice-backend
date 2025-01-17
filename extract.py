@@ -39,7 +39,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
                         round_to_resolution(obj.y1, resolution)
                     )
                     socket_locations.setdefault(net_name, []).append(location)
-                    
+    
     return socket_locations
 
 def extract_keep_out_zones(gerber, resolution, aperature_diameter=0.1, margin=1, debug=True):
@@ -107,7 +107,7 @@ def extract_keep_out_zones(gerber, resolution, aperature_diameter=0.1, margin=1,
                     used_indices.update(rectangle_indices)
 
             if debug:
-                plot_debug_gerber(rectangles)
+                plot_debug_gerber(rectangles, output_file="debug_margin.gbr")
         
     return rectangles
 
