@@ -1,8 +1,6 @@
 **TODO**
 
-- [ ] Improve layer mappings, and set it up so that keys are layers, and it only takes a list of nets (one of those specified
-- [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
-- [ ] Set up the intersections using elevators and world 
+- [ ] Set up the intersections using elevators and world
 - [ ] Re-work the intersections
 - [ ] Re-organise the logic for the BOM and CLP logic to run separately from the Gerber generation phase
 - [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution
@@ -10,7 +8,6 @@
 - [ ] Check the correctness and shape of the JSON file, and validity of the file names, etc.
 - [ ] Implement error handling
 - [ ] Implement a server endpoint
-
 
 **Issues**
 
@@ -41,4 +38,6 @@
 
 **Mon 20, Jan 2025**
 
-- [ ]
+- [x] Improved layer mappings, and set it up so that keys are layers, and it only takes a list of nets
+- [x] Fixed the way layer mappings are passed onto the generate function, the EMPTY net is not necessary anymore
+- [x] Began to implement a new method to perform intersections - working on a new way using elevators layers of 2D grid = 3D grid (worlds)
