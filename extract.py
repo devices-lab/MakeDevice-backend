@@ -42,7 +42,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
     
     return socket_locations
 
-def extract_keep_out_zones(gerber, resolution, aperature_diameter=0.1, margin=1, debug=True):
+def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution, debug=True):
     """
     Extracts and returns a list of rectangles representing the keep-out zones from the given Gerber object.
     
@@ -59,7 +59,7 @@ def extract_keep_out_zones(gerber, resolution, aperature_diameter=0.1, margin=1,
     """
     lines = [obj for obj in gerber.objects if isinstance(obj, Line) and 
              isinstance(obj.aperture, CircleAperture) and 
-             abs(obj.aperture.diameter - aperature_diameter) < 0.0001]
+             abs(obj.aperture.diameter - keep_out_zone_aperture_diameter) < 0.0001]
 
     rectangles = []
     used_indices = set()
@@ -98,10 +98,10 @@ def extract_keep_out_zones(gerber, resolution, aperature_diameter=0.1, margin=1,
                         for p in points
                     }
                     sorted_points = sorted(rounded_points, key=lambda p: (p[0], p[1]))  # Sort primarily by x, secondarily by y
-                    bottom_left = sorted_points[0][0] - margin, sorted_points[0][1] - margin
-                    top_left = sorted_points[1][0] - margin, sorted_points[1][1] + margin
-                    top_right = sorted_points[3][0] + margin, sorted_points[3][1] + margin
-                    bottom_right = sorted_points[2][0] + margin, sorted_points[2][1] - margin
+                    bottom_left = sorted_points[0][0] - keep_out_zone_margin, sorted_points[0][1] - keep_out_zone_margin
+                    top_left = sorted_points[1][0] - keep_out_zone_margin, sorted_points[1][1] + keep_out_zone_margin
+                    top_right = sorted_points[3][0] + keep_out_zone_margin, sorted_points[3][1] + keep_out_zone_margin
+                    bottom_right = sorted_points[2][0] + keep_out_zone_margin, sorted_points[2][1] - keep_out_zone_margin
                     
                     rectangles.append((bottom_left, top_left, top_right, bottom_right))
                     used_indices.update(rectangle_indices)

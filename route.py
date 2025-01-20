@@ -178,7 +178,7 @@ class UnionFind:
                 if self.rank[root1] == self.rank[root2]:
                     self.rank[root2] += 1
 
-def route_sockets(grid, socket_locations, resolution, algorithm="breadth_first", diagonals=True, debug=False):
+def route_sockets(grid, socket_locations, layer_mapping, resolution, algorithm, allow_diagonal_traces, debug=False):
     """
     Performs routing for each Gerber Socket on the same net, based on the grid with the keep-out zones. Also
     applies additional keep-out zones for the socket on other nets to avoid shorts with vias. The Union-Find 
@@ -191,8 +191,7 @@ def route_sockets(grid, socket_locations, resolution, algorithm="breadth_first",
                             socket_locations (dict): A dictionary of socket locations grouped by net names.
         resolution (float): The resolution of the grid in units per grid cell.
         algorithm (str): Optional, the pathfinding algorithm to use, either 'a_star' or 'breadth_first'.
-                         Default is 'breadth_first'.
-        diagonals (bool): Optional, whether to allow diagonal movement in pathfinding. Default is True.
+        allow_diagonal_traces (bool): Optional, whether to allow diagonal movement in pathfinding. 
         
     Returns:
         dict: A dictionary of nets and segments, where each key is a net name and the value is a list of tuples of line segments
@@ -206,13 +205,13 @@ def route_sockets(grid, socket_locations, resolution, algorithm="breadth_first",
     grid_width = grid.shape[1]
     grid_height = grid.shape[0]
     center_x, center_y = grid_width // 2, grid_height // 2
-    
-    print(f"Center of the panel <{center_x}, {center_y}>")
 
     for net, distances in net_distances.items():
         temp_grid = apply_socket_keep_out_zones(grid, socket_locations, net, resolution)
         uf = UnionFind([tuple(loc) for loc in socket_locations[net]])  # Using tuples as UnionFind elements
         
+        print(f"🔵 Applied temporary grid for sockets on net {net}")
+
         for dist, loc1, loc2 in distances:
             # Check if the two locations are already connected in the union-find structure
             if uf.find(tuple(loc1)) != uf.find(tuple(loc2)):
@@ -225,11 +224,9 @@ def route_sockets(grid, socket_locations, resolution, algorithm="breadth_first",
                 path_grid = Grid(matrix=temp_grid)
                 
                 if algorithm == "breadth_first":
-                    finder = BreadthFirstFinder(diagonal_movement=(DiagonalMovement.always if diagonals else DiagonalMovement.never))
+                    finder = BreadthFirstFinder(diagonal_movement=(DiagonalMovement.always if allow_diagonal_traces else DiagonalMovement.never))
                 if algorithm == "a_star":
-                    finder = AStarFinder(diagonal_movement=(DiagonalMovement.always if diagonals else DiagonalMovement.never))
-                
-                print(path_grid)
+                    finder = AStarFinder(diagonal_movement=(DiagonalMovement.always if allow_diagonal_traces else DiagonalMovement.never))
                 
                 start = path_grid.node(start_index[0], start_index[1])
                 end = path_grid.node(end_index[0], end_index[1])

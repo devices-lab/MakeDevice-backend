@@ -1,13 +1,20 @@
 **TODO**
 
-- [ ] Improve layer mappings, and set it up so that keys are layers, and it only takes a list of nets (one of those specified )
+- [ ] Improve layer mappings, and set it up so that keys are layers, and it only takes a list of nets (one of those specified
 - [ ] Fix up the way layer mappings are passed onto the generate, maybe the EMPTY net is not necessary to put through
+- [ ] Set up the intersections using elevators and world 
 - [ ] Re-work the intersections
 - [ ] Re-organise the logic for the BOM and CLP logic to run separately from the Gerber generation phase
 - [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution
+- [ ] Fix up JSON extractions and maybe alter the shape of the JSON file
 - [ ] Check the correctness and shape of the JSON file, and validity of the file names, etc.
 - [ ] Implement error handling
 - [ ] Implement a server endpoint
+
+
+**Issues**
+
+- [ ] Increasing the margin to a value greater than 1 doesn't allow for routing due to the sockets not being exposed correctly
 
 **Wed 15 Jan, 2025**
 
@@ -31,3 +38,7 @@
 
 - [x] Moved all configuration to a JSON file, including the layer mapping
 - [x] Added support for selecting diagonal routing, or turning it off
+
+**Mon 20, Jan 2025**
+
+- [ ]

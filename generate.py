@@ -3,7 +3,7 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 from intersect import merge_overlapping_segments, check_net_intersections_by_layer, process_intersections, split_segments
 
-def generate(segments, socket_locations, layer_mappings, gerber_options, board_info, intersection_clearance=1.0, output_dir="./generated"):
+def generate(segments, socket_locations, board_info, configuration, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     Parameters:
@@ -20,67 +20,81 @@ def generate(segments, socket_locations, layer_mappings, gerber_options, board_i
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract the trace and via sizes
+    # Extract configurations from the passed JSON object
+    layer_mapping = configuration['layer_mapping']
+    gerber_options = configuration['gerber_options']
     trace_width = gerber_options['trace_width']
-    via_diameter = gerber_options['via_diameter']
+    via_annular_ring_diameter = gerber_options['via_annular_ring_diameter']
+    via_drilled_hole_diameter = gerber_options['via_drilled_hole_diameter']
+    intersection_clearance = gerber_options['intersection_clearance']
     
     # Set software identification
-    set_generation_software('Devices-Lab', 'MakeDevice', '0.1')
+    set_generation_software(board_info['generation_software']['vendor'], 
+                            board_info['generation_software']['application'], 
+                            board_info['generation_software']['version'])
     
-    default_layers = {
-        'F_Cu.gtl': 'Copper,L1,Top,Signal',
-        'In1_Cu.g2': 'Copper,L2,Inner,Signal',
-        'In2_Cu.g3': 'Copper,L3,Inner,Signal',
-        'B_Cu.gbl': 'Copper,L4,Bottom,Signal'
-    }
-    
+    # Set up the Gerber layers
     layers = {}
-    for filename, attributes in default_layers.items():
-        layers[filename] = DataLayer(attributes, negative=False) 
-        
+    for filename, details in layer_mapping.items():
+        layers[filename] = DataLayer(details["attributes"], negative=False)
+    
+    # Reverse map layer_mappings to specify which net is on which layer
+    net_to_layer_mapping = {}
+    for filename, details in layer_mapping.items():
+        for net in details["nets"]:
+            net_to_layer_mapping[net] = filename
+            
+    print(net_to_layer_mapping)
+            
+    # Extract the via locations from the socket locations
     via_locations = []
     for positions in socket_locations.values():
         for x, y in positions:
             via_locations.append((x, y))
-        
-    # Perform modifications to the segments to avoid intersections
-    merge_overlapping_segments(segments)
-    intersections = check_net_intersections_by_layer(segments, layer_mappings)
-    intersection_details = process_intersections(intersections, intersection_clearance)
-    split_segments(segments, intersection_details)
     
-    # Handle each intersection
-    for intersection in intersection_details:
-        point1 = intersection['point1']
-        point2 = intersection['point2']
+    
+    # # Perform modifications to the segments to avoid intersections
+    # merge_overlapping_segments(segments)
+    # intersections = check_net_intersections_by_layer(segments, net_to_layer_mapping)
+    # intersection_details = process_intersections(intersections, intersection_clearance)
+    # split_segments(segments, intersection_details)
+    
+    # # Handle each intersection
+    # for intersection in intersection_details:
+    #     point1 = intersection['point1']
+    #     point2 = intersection['point2']
 
-        # Add the two new segments between point1 and point2
-        new_segment = (point1, point2)
-        if "EMPTY" not in segments:
-            segments["EMPTY"] = []
-        segments["EMPTY"].append(new_segment)
+    #     # Add the two new segments between point1 and point2
+    #     new_segment = (point1, point2)
+    #     if "EMPTY" not in segments:
+    #         segments["EMPTY"] = []
+    #     segments["EMPTY"].append(new_segment)
 
-        # Add the two points as vias
-        via_locations.append(point1)
-        via_locations.append(point2)
+    #     # Add the two points as vias
+    #     via_locations.append(point1)
+    #     via_locations.append(point2)
 
-    for net_type, paths in segments.items():
-        # Check if the net type is in the layer mappings
-        if net_type in layer_mappings:
-            filename, attributes = layer_mappings[net_type]
-            layer = layers[filename]
-            for start, end in paths:
+    plotted_nets = set()
+
+    for filename, details in layer_mapping.items():
+        for net in details["nets"]:
+            if net not in segments:
+                print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router, and will be ignored")
+                continue
+            if net in plotted_nets:
+                print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")
+                continue
+            for start, end in segments[net]:
                 # Turn the segment into a path to the Gerber layer
                 path = Path()
                 path.moveto(start)
                 path.lineto(end)
-                layer.add_traces_path(path, trace_width, 'Conductor')
-        else:
-            print(f"🔴 Net '{net_type}' not found in layer mappings")
+                layers[filename].add_traces_path(path, trace_width, 'Conductor')
+            plotted_nets.add(net) # Mark the net as plotted to avoid duplicates
 
     # Add vias to all layers for each socket location across all net types
     for x, y in via_locations:
-        via_pad = Circle(via_diameter, 'ViaPad', negative=False)  # Via specifications
+        via_pad = Circle(via_annular_ring_diameter, 'ViaPad', negative=False)  # Via specifications
         for layer in layers.values():
             layer.add_pad(via_pad, (x, y), 0)
 
@@ -90,7 +104,7 @@ def generate(segments, socket_locations, layer_mappings, gerber_options, board_i
         with open(file_path, 'w') as file:
             file.write(layer.dumps_gerber())
     
-    generate_excellon(via_locations, drill_size=via_diameter/2, board_name=board_info['name'])
+    generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
     generate_board_outline(board_info)
 
 def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
@@ -99,7 +113,7 @@ def generate_excellon(via_locations, drill_size, board_name, output_dir="./gener
     Parameters:
         socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as drill locations.
         drill_size (float): Diameter of the drill holes in mm.
-        output_dir (str): Directory to store the generated drill file. Defaults to "./output".
+        output_dir (str): Directory to store the generated drill file. Defaults to "./generated".
     Returns:
         None
     """

@@ -3,6 +3,7 @@ from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
 from route import create_grid, route_sockets
 from generate import generate
+import warnings
 
 def run(file_number):
     
@@ -11,26 +12,28 @@ def run(file_number):
         with open(f"test_data/data_{file_number}.json", 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
-        print(f"Error: File data_{file_number}.json not found.")
+        print(f"🔴 File data_{file_number}.json not found.")
         return
     except json.JSONDecodeError:
-        print(f"Error: File data_{file_number}.json is not a valid JSON.")
+        print(f"🔴 File data_{file_number}.json is not a valid JSON.")
         return
 
     # Board details
-    board = data['board']
-    board_name = board['name']
+    board_info = data['board_info']
+    board_name = board_info['name']
+    board_size = board_info['size']
     
-    # Preferences and configurations
+    # Configurations
     configuration = data['configuration']
     algorithm = configuration['algorithm']
-    diagonals = configuration['diagonals']
+    allow_diagonal_traces = configuration['allow_diagonal_traces']
+    allow_intersections = configuration['allow_intersections']
     resolution = configuration['resolution']
     gs_layer_name = configuration['gs_layer_name']
-    socket_diameters = configuration['socket_diameters']
-    layer_mappings = configuration['layer_mappings']
-    gerber_options = configuration['gerber_options']
-    
+    sockets_diameter_mapping = configuration['socket_diameter_mapping']
+    keep_out_zone_aperture_diameter = configuration['keep_out_zone_aperture_diameter']
+    keep_out_zone_margin = configuration['keep_out_zone_margin']
+
     # Modules and positioning
     modules = data['modules']
     
@@ -38,28 +41,28 @@ def run(file_number):
     clear_directories()
     print("🟢 Cleared out /output and /generated directories")
     
-    # Merge the Jacdac Bus layers
+    # Merge the GerberSockets layers from all individual modules
     sockets_layer = merge_layers(modules, gs_layer_name, board_name)
     print("🟢 Merged", gs_layer_name, "layers")
 
     # Get the locations of the sockets
-    socket_locations = extract_socket_locations(sockets_layer, socket_diameters, resolution=resolution)
+    socket_locations = extract_socket_locations(sockets_layer, sockets_diameter_mapping, resolution)
     print("🟢 Socket locations identified")
 
     # Get the keep out zones 
-    keep_out_zones = extract_keep_out_zones(sockets_layer, resolution=resolution)
+    keep_out_zones = extract_keep_out_zones(sockets_layer, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution)
     print("🟢 Keep out zones identified")
 
     # Create a grid
-    grid = create_grid(board["size"], keep_out_zones, resolution=resolution)
+    grid = create_grid(board_size, keep_out_zones, resolution)
     print("🟢 Grid created")
 
     # Pass the grid along with the socket locations to the router
-    segments = route_sockets(grid, socket_locations, resolution=resolution, algorithm=algorithm, diagonals=diagonals)
+    segments = route_sockets(grid, socket_locations, resolution, algorithm, allow_diagonal_traces, allow_intersections)
     print("🟢 Routing completed")
 
     # Generate Gerber and Excellon files
-    generate(segments, socket_locations, layer_mappings, gerber_options, board_info=board)
+    generate(segments, socket_locations, board_info, configuration)
     print("🟢 Generated Gerber and Excellon files")
 
     # Merge the Gerber stacks, along with the new generated layers
@@ -70,4 +73,7 @@ def run(file_number):
     compress_directory("output")
     print("🟢 Directory compressed")
     
-run(2)
+    
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore") 
+    run(1)
