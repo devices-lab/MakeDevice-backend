@@ -1,21 +1,22 @@
-**TODO**
+**Additions/new features**
 
-- [ ] Set up the intersections using elevators and world
-- [ ] Re-work the intersections
-- [ ] Re-organise the logic for the BOM and CLP logic to run separately from the Gerber generation phase
-- [ ] When setting the grid resolution to 0.1, it doesn't work when it does work in 1 grid resolution
-- [ ] Fix up JSON extractions and maybe alter the shape of the JSON file
-- [ ] Check the correctness and shape of the JSON file, and validity of the file names, etc.
-- [ ] Implement error handling
-- [ ] Implement a server endpoint
-- [ ] Add a flag for flooding an entire layer
-- [ ] Merging overlapping tunnel segments causes a via to disappear
-- [ ] Allow for diagonals for tunnels?
-
+- [ ] Re-organise the logic for the BOM and CLP logic to run separately from the Gerber generation phase (basically, in its own file and called separately from `run.py`. not mixed in with `generation.py`)
+- [ ] Give full support to grid resolution being 0.1
+- [ ] Check the correctness and shape of the passed JSON file, and type validity etc.
+- [ ] Implement error handling to send messages back to the frontend
+- [ ] Implement a server endpoint - look at what Kobi did when implemented it with the MakeDevice
+- [ ] Add a flag for flooding an entire layer and add support for copper flood fills
 
 **Issues**
 
+- [ ] Finalise the shape of the passed JSON, and draft a shape for the device JSON for MakeDevice
 - [ ] Increasing the margin to a value greater than 1 doesn't allow for routing due to the sockets not being exposed correctly
+- [ ] A\* finder with 90-degree bends results in jagged and funky routes - can it get fixed? Perhaps try out some of the other finders
+- [ ] Diagonal pathfinding for tunnels on a 3D grid does not work (currently set to DiagonalMovement3D.never)
+- [ ] When merging overlapping segments, some vias seem to disappear (currently merging overlapping segments is turned off - see the logic in `manipulate.py`)
+- [ ] Currently the tunneling layer does not take into consideration if there are any other traces/obstacles apart from the GerberSockets keep-out zones
+- [ ] Consider other nets on the same layer as the TUNNEL, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
+- [ ] Do more testing, there are problems that will come up all the time
 
 **Wed 15 Jan, 2025**
 
@@ -46,7 +47,18 @@
 - [x] Fixed the way layer mappings are passed onto the generate function, the EMPTY net is not necessary anymore
 - [x] Began to implement a new method to perform intersections - working on a new way using elevators layers of 2D grid = 3D grid (worlds)
 
-**Tue 21, Jan 2025** 
+**Tue 21, Jan 2025**
 
-Write here tomorrow
+- [x] Implemented a new method to perform intersections using multiple grid conencted with elevators - turns out that it doesn't work exactly as intended, and has some quirks with moving up/down between layers
+- [x] Re-implemented a new way using the `python-pathfinding3D` library, which supports 3D worlds by default without the need for elevators
+- [x] Simplified and cleaned up the routing logic, and now it the routing will by default try to use 2D grid, and if no path is found AND another net is present, then it will try to find path using 3D grid
+- [x] Adjusted the consolidation function, which now end previous segments and start new segments whenever the z-axis changes
+- [x] Removed all the previous logic for preparing and generating intersections
+- [x] Remaned `intersection.py` -> `manipulate.py`
+- [x] Added logic for finding where vias should be inserted fr intersections with the tunnel layers
+- [x] Added `playground.py` to play around with some of the features of `python-pathfinding3D` librar
 
+**Wed 22, Jan 2025** 
+
+- [x] Experimented once again with stacking 2D grids, but reverted changes back to 3D grids for tunnels
+- [x] Updated `requirements.txt` with the latest packages
