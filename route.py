@@ -8,6 +8,9 @@ from pathfinding.finder.breadth_first import BreadthFirstFinder
 from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
 from pathfinding3d.core.grid import Grid as Grid3D
 from pathfinding3d.finder.a_star import AStarFinder as AStarFinder3D
+from pathfinding3d.finder.dijkstra import DijkstraFinder as DijkstraFinder3D
+from pathfinding3d.finder.ida_star import IDAStarFinder as IDAStarFinder3D
+
 
 from manipulate import consolidate_segments, merge_overlapping_segments
 
@@ -296,7 +299,7 @@ def route_sockets(grid, socket_locations, configuration):
                 
                 # Only use A* for 3D pathfinding, as it takes the direction and cost into the heuristic calculation
                 # Routing diagonally does not work in the current implementation 
-                finder = AStarFinder3D(diagonal_movement=(DiagonalMovement3D.never))
+                finder = AStarFinder3D(diagonal_movement=DiagonalMovement3D.never)
                     
                 start = tunnel_grid.node(start_index[0], start_index[1], 0)
                 end = tunnel_grid.node(end_index[0], end_index[1], 0)
