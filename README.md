@@ -18,11 +18,11 @@ Run the program with `python3 run.py`
 
 ## Editing the data, i.e. configurations, modules, etc.
 
-See the `/test_data` directory
+See the [`/test_data`](./test_data) directory
 
 ## Progress and updates
 
-See [./changelog](./changelog) for latest updates and progress
+See [CHANGELOG](./changelog) for latest updates and progress
 
 ## Idea in progress - JSON store information about each module for MakeDevice
 
