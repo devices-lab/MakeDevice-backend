@@ -1,7 +1,6 @@
 import os
 from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
-from intersect import merge_overlapping_segments, check_net_intersections_by_layer, process_intersections, split_segments
 
 def generate(segments, socket_locations, board_info, configuration, output_dir="./generated"):
     """
@@ -43,43 +42,37 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
     for filename, details in layer_mapping.items():
         for net in details["nets"]:
             net_to_layer_mapping[net] = filename
-            
-    print(net_to_layer_mapping)
-            
+                        
     # Extract the via locations from the socket locations
-    via_locations = []
+    via_locations = set()
     for positions in socket_locations.values():
         for x, y in positions:
-            via_locations.append((x, y))
+            via_locations.add((x, y))
     
+    # Handle "TUNNELS" net separately to add vias only at overlap points
+    if "TUNNELS" in segments:
+        # Collect all points from nets other than "TUNNELS"
+        net_points = set()
+        for net, net_segments in segments.items():
+            if net == "TUNNELS":
+                continue
+            for start, end in net_segments:
+                net_points.add(start)
+                net_points.add(end)
+
+        # Check overlaps for each TUNNEL segment
+        for start, end in segments["TUNNELS"]:
+            if start in net_points:
+                via_locations.add(start)
+            if end in net_points:
+                via_locations.add(end)
     
-    # # Perform modifications to the segments to avoid intersections
-    # merge_overlapping_segments(segments)
-    # intersections = check_net_intersections_by_layer(segments, net_to_layer_mapping)
-    # intersection_details = process_intersections(intersections, intersection_clearance)
-    # split_segments(segments, intersection_details)
-    
-    # # Handle each intersection
-    # for intersection in intersection_details:
-    #     point1 = intersection['point1']
-    #     point2 = intersection['point2']
-
-    #     # Add the two new segments between point1 and point2
-    #     new_segment = (point1, point2)
-    #     if "EMPTY" not in segments:
-    #         segments["EMPTY"] = []
-    #     segments["EMPTY"].append(new_segment)
-
-    #     # Add the two points as vias
-    #     via_locations.append(point1)
-    #     via_locations.append(point2)
-
     plotted_nets = set()
 
     for filename, details in layer_mapping.items():
         for net in details["nets"]:
             if net not in segments:
-                print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router, and will be ignored")
+                print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router")
                 continue
             if net in plotted_nets:
                 print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")

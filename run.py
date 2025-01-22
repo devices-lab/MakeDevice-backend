@@ -25,9 +25,6 @@ def run(file_number):
     
     # Configurations
     configuration = data['configuration']
-    algorithm = configuration['algorithm']
-    allow_diagonal_traces = configuration['allow_diagonal_traces']
-    allow_intersections = configuration['allow_intersections']
     resolution = configuration['resolution']
     gs_layer_name = configuration['gs_layer_name']
     sockets_diameter_mapping = configuration['socket_diameter_mapping']
@@ -58,7 +55,7 @@ def run(file_number):
     print("🟢 Grid created")
 
     # Pass the grid along with the socket locations to the router
-    segments = route_sockets(grid, socket_locations, resolution, algorithm, allow_diagonal_traces, allow_intersections)
+    segments = route_sockets(grid, socket_locations, configuration)
     print("🟢 Routing completed")
 
     # Generate Gerber and Excellon files

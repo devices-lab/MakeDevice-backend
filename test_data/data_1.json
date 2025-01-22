@@ -15,7 +15,6 @@
     "allow_diagonal_traces": 1,
     "allow_intersections": 0,
     "resolution": 1,
-
     "keep_out_zone_aperture_diameter": 0.1,
     "keep_out_zone_margin": 1,
     "gs_layer_name": "GerberSockets.gbr",
@@ -26,16 +25,16 @@
     },
     "layer_mapping": {
       "F_Cu.gtl": {
-        "nets": ["JD_PWR", "JD_DATA", "JD_GND"],
+        "nets": ["JD_PWR", "JD_DATA"],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": [],
+        "nets": ["TUNNELS"],
         "attributes": "Copper,L2,Inner,Signal"
       },
       "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
       "B_Cu.gbl": {
-        "nets": [],
+        "nets": ["JD_GND"],
         "attributes": "Copper,L4,Bottom,Signal"
       }
     },
@@ -50,13 +49,18 @@
   "modules": [
     {
       "name": "20x50-jacdac-MH-0.1",
-      "position": { "x": -10, "y": 30 },
+      "position": { "x": 0, "y": 40 },
       "rotation": 0
     },
     {
       "name": "20x50-jacdac-MH-0.1",
-      "position": { "x": 30, "y": -30 },
+      "position": { "x": 20, "y": -40 },
       "rotation": 90
+    },
+    {
+      "name": "20x50-jacdac-MH-0.1",
+      "position": { "x": -20, "y": -40 },
+      "rotation": 270
     }
   ]
 }

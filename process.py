@@ -105,8 +105,12 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
         fabrication_data_filepaths = merge_directories(output_dir_path, module_path, board_name, module, fabrication_data_filepaths.copy())
         
     # do some bom and pick and place processing here
-    processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
-    processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
+    
+    # BOM AND PICK AND PLACE PROCESSING!!!
+    # processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
+    # processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
+    
+    
     # And lastly, merge with the additional generated files from /generated directory
     merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
 
