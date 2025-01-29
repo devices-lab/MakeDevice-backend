@@ -2,7 +2,7 @@
 
 1. Create a virual environment with `python3 -m venv venv`
 2. Activate it with `source venv/bin/activate`
-3. Install dependencies `pip3 install -r requirements.txt`
+3. Install dependencies `python3 -m pip install -r requirements.txt`
 
 You must use Python version `3.11`, or lower, othewsie it won't work with some outdated dependencies (such as `gerbonara`). To control Python versions you may use the `pyenv` tool.
 
