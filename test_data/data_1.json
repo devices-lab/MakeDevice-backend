@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.2"
     },
-    "size": { "x": 200, "y": 200 },
+    "size": { "x": 150, "y": 150 },
     "origin": { "x": 0, "y": 0 }
   },
 
@@ -48,19 +48,19 @@
 
   "modules": [
     {
-      "name": "20x50-jacdac-MH-0.1",
-      "position": { "x": 0, "y": 40 },
+      "name": "ec30_2x3_l_mh_0.1",
+      "position": { "x": 30, "y": -30 },
       "rotation": 0
     },
     {
-      "name": "20x50-jacdac-MH-0.1",
-      "position": { "x": 20, "y": -40 },
+      "name": "ec30_5x2_lr_mh_0.1",
+      "position": { "x": -55, "y": 5 },
       "rotation": 90
     },
     {
-      "name": "20x50-jacdac-MH-0.1",
-      "position": { "x": -20, "y": -40 },
-      "rotation": 270
+      "name": "ec30_1x7_r6_mh_0.1",
+      "position": { "x": 0, "y": 55 },
+      "rotation": 0
     }
   ]
 }
