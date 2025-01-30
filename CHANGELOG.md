@@ -2,6 +2,7 @@
 
 - [ ] Re-organise the logic for the BOM and CLP logic to run separately from the Gerber generation phase (basically, in its own file and called separately from `run.py`. not mixed in with `generation.py`)
 - [ ] Give full support to grid resolution being 0.1
+- [ ] Implement routing sockets to any point on any path on the same net
 - [ ] Check the correctness and shape of the passed JSON file, and type validity etc.
 - [ ] Implement error handling to send messages back to the frontend
 - [ ] Implement a server endpoint - look at what Kobi did when implemented it with the MakeDevice
@@ -14,8 +15,8 @@
 - [ ] A\* finder with 90-degree bends results in jagged and funky routes - can it get fixed? Perhaps try out some of the other finders
 - [ ] Diagonal pathfinding for tunnels on a 3D grid does not work (currently set to DiagonalMovement3D.never)
 - [ ] When merging overlapping segments, some vias seem to disappear (currently merging overlapping segments is turned off - see the logic in `manipulate.py`)
-- [ ] Currently the tunneling layer does not take into consideration if there are any other traces/obstacles apart from the GerberSockets keep-out zones
-- [ ] Consider other nets on the same layer as the TUNNEL, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
+- [ ] Currently the tunneling layer does not take into consideration if there are any other traces/obstacles apart from the GerberSockets keep-out zones - need to take into consideration previous tunnels and other elemenents on the tunnel layers. 
+- [ ] COnsider other elements on the layer which the TUNNELS go through, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
 - [ ] Do more testing, there are problems that will come up all the time
 
 **Wed 15 Jan, 2025**
@@ -62,3 +63,7 @@
 
 - [x] Experimented once again with stacking 2D grids, but reverted changes back to 3D grids for tunnels
 - [x] Updated `requirements.txt` with the latest packages
+
+**Thursday 30, Jan 2025**
+
+- [x] Fixed an issue where two perpendicular diagonal lines can cross each other even when one of them has been marked of as blocked - now using DiagonalMovement.if_at_most_one_obstacle when there are other nets on the layer.

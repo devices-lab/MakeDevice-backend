@@ -1,22 +1,22 @@
 import math
 import numpy as np
 from collections import defaultdict
-from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.breadth_first import BreadthFirstFinder
-from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
+from pathfinding.core.diagonal_movement import DiagonalMovement
+
 from pathfinding3d.core.grid import Grid as Grid3D
 from pathfinding3d.finder.a_star import AStarFinder as AStarFinder3D
 from pathfinding3d.finder.dijkstra import DijkstraFinder as DijkstraFinder3D
 from pathfinding3d.finder.ida_star import IDAStarFinder as IDAStarFinder3D
-
+from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
 
 from manipulate import consolidate_segments, merge_overlapping_segments
 
 BLOCKED_CELL = 0
 FREE_CELL = 1
-TUNNEL_CELL = 20
+TUNNEL_CELL = 5
 
 def to_grid_indices(x, y, center_x, center_y, resolution):
     """
@@ -257,7 +257,7 @@ def route_sockets(grid, socket_locations, configuration):
         # Iterate over the distances between the sockets, sorted in ascending order
         for dist, loc1, loc2 in distances:
             
-            tunnels_needed = False
+            tunnels_placed = False
             
             # Check if the two locations are already connected in the union-find structure
             if uf.find(tuple(loc1)) == uf.find(tuple(loc2)):
@@ -271,16 +271,22 @@ def route_sockets(grid, socket_locations, configuration):
             net_grid = Grid(matrix=current_matrix, grid_id=0)
 
             if algorithm == "breadth_first":
-                finder = BreadthFirstFinder(diagonal_movement=(DiagonalMovement.always if allow_diagonal_traces else DiagonalMovement.never))
+                    finder = BreadthFirstFinder()
             if algorithm == "a_star":
-                finder = AStarFinder(diagonal_movement=(DiagonalMovement.always if allow_diagonal_traces else DiagonalMovement.never))
-            
-            start = net_grid.node(start_index[0], start_index[1])
-            end = net_grid.node(end_index[0], end_index[1])
-            
+                    finder = AStarFinder()
+        
+            finder.diagonal_movement = (
+                DiagonalMovement.if_at_most_one_obstacle if other_nets_on_layer 
+                else DiagonalMovement.always if allow_diagonal_traces 
+                else DiagonalMovement.never
+            )
+
+            start = net_grid.node(*start_index)
+            end = net_grid.node(*end_index)
             path, runs = finder.find_path(start, end, net_grid)
+
             print(f"🔵 Pathfinding runs: {runs}")
-            
+
             if not path and other_nets_on_layer:
                 
                 print(f"🔵 Making a 3D grid to accomondate routing for {net} on layer {current_layer}")
@@ -288,7 +294,6 @@ def route_sockets(grid, socket_locations, configuration):
                 # Set the weights for the tunnelling matrix
                 tunnel_matrix[tunnel_matrix == FREE_CELL] = TUNNEL_CELL
                 
-                # print_debug_grid(current_matrix, start=start_index, end=end_index)
                 # print_debug_grid(tunnel_matrix, start=start_index, end=end_index)
                             
                 # Create a 3D matrix for the tunneling, transpose to match the grid indices
@@ -307,20 +312,20 @@ def route_sockets(grid, socket_locations, configuration):
                 path, runs = finder.find_path(start, end, tunnel_grid)
                 print(f"🔵 Pathfinding runs: {runs}")
                 
-                tunnels_needed = True
+                tunnels_placed = True
                 
             if path:
-                print(f"🟢 Found path for net {net} between {loc1} and {loc2}")
+                print(f"🟢 Found path for net {net} between {loc1} and {loc2}\n")
                 
-                if tunnels_needed:
+                if tunnels_placed:
                     path_tuples = [(node.x, node.y, node.z) for node in path]
-                    # tunnel_grid.visualize(path=path, start=start, end=end, visualize_weight=True, save_html=True, save_to=f"./path_visualization_{net}.html")
                 else:
                     path_tuples = [(node.x, node.y, 1) for node in path]
                 
-                paths.setdefault(net, []).append(path_tuples) # Add it to our dictionary of paths
+                paths.setdefault(net, []).append(path_tuples) 
+                previous_paths[current_layer].append(path_tuples) 
+
                 uf.union(tuple(loc1), tuple(loc2)) # Union-Find logic for an optimised routing strategy         
-                previous_paths[current_layer].append(path_tuples) # Add path to list of previous paths
                 
             else:
                 print(f"🔴 No path found for net {net} between {loc1} and {loc2}")

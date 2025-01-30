@@ -13,7 +13,6 @@
   "configuration": {
     "algorithm": "breadth_first",
     "allow_diagonal_traces": 1,
-    "allow_intersections": 0,
     "resolution": 1,
     "keep_out_zone_aperture_diameter": 0.1,
     "keep_out_zone_margin": 1,
@@ -25,7 +24,7 @@
     },
     "layer_mapping": {
       "F_Cu.gtl": {
-        "nets": ["JD_PWR", "JD_DATA"],
+        "nets": ["JD_DATA", "JD_PWR"],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
@@ -55,12 +54,12 @@
     {
       "name": "ec30_5x2_lr_mh_0.1",
       "position": { "x": -55, "y": 5 },
-      "rotation": 90
+      "rotation": 270
     },
     {
       "name": "ec30_1x7_r6_mh_0.1",
       "position": { "x": 0, "y": 55 },
-      "rotation": 0
+      "rotation": 180
     }
   ]
 }
