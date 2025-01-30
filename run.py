@@ -9,7 +9,7 @@ def run(file_number):
     
     # Load the JSON configuration from a file (data_#.json)
     try:
-        with open(f"../test_data/data_{file_number}.json", 'r') as file:
+        with open(f"./test_data/data_{file_number}.json", 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
         print(f"🔴 File data_{file_number}.json not found.")

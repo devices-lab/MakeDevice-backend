@@ -140,7 +140,7 @@ def show_grid_segments_sockets(grid, segments, socket_locations, resolution):
     plt.gca().invert_yaxis()  # Invert y-axis to match traditional Cartesian coordinate systems
     plt.show()
     
-def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, output_dir="../output"):
+def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, output_dir="./output"):
     """
     Draws rectangles on a Gerber file for debugging purposes.
 
@@ -180,7 +180,7 @@ def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, out
 
     print(f"Debug Gerber file saved at: {file_path}")
 
-def circle_debug_gerber(points, output_file="debug2.gbr", trace_width=0.5, output_dir="../output"):
+def circle_debug_gerber(points, output_file="debug2.gbr", trace_width=0.5, output_dir="./output"):
     """
     Draws a single point on a Gerber file for debugging purposes.
 

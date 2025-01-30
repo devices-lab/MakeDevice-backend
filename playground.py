@@ -30,7 +30,7 @@ finder = AStarFinder3D(diagonal_movement=DiagonalMovement3D.never)
 path, runs = finder.find_path(start, end, grid)
 
 if path:
-    grid.visualize(path=path, start=start, end=end, visualize_weight=True, save_html=True, save_to="../path_visualization.html")
+    grid.visualize(path=path, start=start, end=end, visualize_weight=True, save_html=True, save_to="path_visualization.html")
     print('operations:', runs, 'path length:', len(path))
 else:
     print('no path')

@@ -2,7 +2,7 @@ import os
 from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 
-def generate(segments, socket_locations, board_info, configuration, output_dir="../generated"):
+def generate(segments, socket_locations, board_info, configuration, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     Parameters:
@@ -100,7 +100,7 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
     generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
     generate_board_outline(board_info)
 
-def generate_excellon(via_locations, drill_size, board_name, output_dir="../generated"):
+def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
     """
     Generates an Excellon drill file for plated through holes (PTH).
     Parameters:
@@ -144,7 +144,7 @@ def generate_excellon(via_locations, drill_size, board_name, output_dir="../gene
         file.write('\n'.join(content))
 
 
-def generate_board_outline(board, output_dir="../output"):
+def generate_board_outline(board, output_dir="./output"):
     """
     Generates a Gerber file for the board outline based on the board size and origin.
     Parameters:

@@ -7,7 +7,7 @@ from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separ
 from cpl import iterate_cpl_files, map_cpl_designators
 from utils import write_csv
 
-def merge_layers(modules, layer_name, board_name, modules_dir='../modules', output_dir='../output'):
+def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output'):
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
     Parameters:
@@ -68,7 +68,7 @@ def merge_layers(modules, layer_name, board_name, modules_dir='../modules', outp
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
                            
-def merge_stacks(modules, board_name, modules_dir='../modules', output_dir='../output', generated_dir='../generated'):
+def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
     Parameters:
@@ -243,7 +243,7 @@ def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
     # Print the mapped BOM list
     # print('CPL list mapped: ', mapped_cpl_list)
             
-def clear_directories(output_dir='../output', generated_dir='../generated'):
+def clear_directories(output_dir='./output', generated_dir='./generated'):
     """
     Remove the specified output and generated directories if they exist.
     Parameters:
@@ -261,7 +261,7 @@ def clear_directories(output_dir='../output', generated_dir='../generated'):
     if generated_dir_path.exists():
         shutil.rmtree(generated_dir_path)
         
-def compress_directory(directory="../output"):
+def compress_directory(directory="./output"):
     """ 
     Compresses the specified directory into a ZIP file.
     Parameters:
