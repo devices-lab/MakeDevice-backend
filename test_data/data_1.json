@@ -48,18 +48,38 @@
   "modules": [
     {
       "name": "ec30_2x3_l_mh_0.1",
-      "position": { "x": 30, "y": -30 },
-      "rotation": 0
+      "position": { "x": 0, "y": -50 },
+      "rotation": 90
     },
     {
       "name": "ec30_5x2_lr_mh_0.1",
-      "position": { "x": -55, "y": 5 },
-      "rotation": 270
+      "position": { "x": 60, "y": 5 },
+      "rotation": 90
+    },
+    {
+      "name": "ec30_5x2_lr_mh_0.1",
+      "position": { "x": 30, "y": 5 },
+      "rotation": 90
+    },
+    {
+      "name": "ec30_5x2_lr_mh_0.1",
+      "position": { "x": 0, "y": 5 },
+      "rotation": 90
+    },
+    {
+      "name": "ec30_5x2_lr_mh_0.1",
+      "position": { "x": -30, "y": 5 },
+      "rotation": 90
+    },
+    {
+      "name": "ec30_5x2_lr_mh_0.1",
+      "position": { "x": -60, "y": 5 },
+      "rotation": 90
     },
     {
       "name": "ec30_1x7_r6_mh_0.1",
       "position": { "x": 0, "y": 55 },
-      "rotation": 180
+      "rotation": 0
     }
   ]
 }

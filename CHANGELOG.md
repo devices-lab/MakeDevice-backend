@@ -18,6 +18,7 @@
 - [ ] Currently the tunneling layer does not take into consideration if there are any other traces/obstacles apart from the GerberSockets keep-out zones - need to take into consideration previous tunnels and other elemenents on the tunnel layers. 
 - [ ] COnsider other elements on the layer which the TUNNELS go through, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
 - [ ] Do more testing, there are problems that will come up all the time
+- [ ] Apply a keep-out zone 1mm around all board edges
 
 **Wed 15 Jan, 2025**
 

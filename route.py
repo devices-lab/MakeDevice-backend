@@ -220,6 +220,9 @@ def route_sockets(grid, socket_locations, configuration):
     resolution = configuration['resolution']
     layer_mapping = configuration['layer_mapping']
     
+    # Net to layer mapping for quicker lookups
+    net_to_layer_mapping = invert_layer_mapping(layer_mapping)
+    
     paths = {} # {net: list of grid indeces (x, y) for path}
     previous_paths = defaultdict(list) # {layer_filename: list of path-indicies}
     
@@ -231,9 +234,13 @@ def route_sockets(grid, socket_locations, configuration):
     grid_width = grid.shape[1]
     center_x, center_y = grid_width // 2, grid_height // 2
     
-    # Net to layer mapping for quicker lookups
-    net_to_layer_mapping = invert_layer_mapping(layer_mapping)
-
+    uf_dict = {}
+    for net, locs in socket_locations.items():
+        all_elements = [tuple(loc) for loc in locs]
+        # Optionally add them as (x, y) or (row, col). But be consistent.
+        uf = UnionFind(all_elements)
+        uf_dict[net] = uf
+        
     for net, distances in net_distances.items():
         # Identify the layer for the current net (if any)
         current_layer = net_to_layer_mapping.get(net, None)
@@ -293,9 +300,7 @@ def route_sockets(grid, socket_locations, configuration):
                 
                 # Set the weights for the tunnelling matrix
                 tunnel_matrix[tunnel_matrix == FREE_CELL] = TUNNEL_CELL
-                
-                # print_debug_grid(tunnel_matrix, start=start_index, end=end_index)
-                            
+                                            
                 # Create a 3D matrix for the tunneling, transpose to match the grid indices
                 combined_matrix = np.stack((tunnel_matrix.T, current_matrix.T), axis=2)
                 
