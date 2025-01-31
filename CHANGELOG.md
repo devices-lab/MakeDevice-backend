@@ -67,4 +67,9 @@
 
 **Thursday 30, Jan 2025**
 
-- [x] Fixed an issue where two perpendicular diagonal lines can cross each other even when one of them has been marked of as blocked - now using DiagonalMovement.if_at_most_one_obstacle when there are other nets on the layer.
+- [x] Fixed an issue where two perpendicular diagonal lines can cross each other even when one of them has been marked of as blocked - now using DiagonalMovement.if_at_most_one_obstacle when there are other nets on the layer
+
+**Friday 31, Jan 2025**
+
+- Looking into an issue where TUNNELS had vias placed where there was elements of a different layer in the same plane. 
+- Add pathfinding to the closest point on any path from the same net (look at GPt query "Routing Path Adjustments")

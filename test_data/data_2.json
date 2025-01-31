@@ -13,7 +13,6 @@
   "configuration": {
     "algorithm": "a_star",
     "allow_diagonal_traces": 1,
-    "allow_intersections": 0,
     "resolution": 1,
     "keep_out_zone_aperture_diameter": 0.1,
     "keep_out_zone_margin": 1,

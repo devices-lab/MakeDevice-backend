@@ -13,6 +13,7 @@ from pathfinding3d.finder.ida_star import IDAStarFinder as IDAStarFinder3D
 from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
 
 from manipulate import consolidate_segments, merge_overlapping_segments
+from debug import plot_debug_gerber
 
 BLOCKED_CELL = 0
 FREE_CELL = 1
@@ -120,17 +121,17 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
     keep_out_cells = int(np.ceil(keep_out_mm / resolution))  # Convert mm to grid cells
 
     # For debugging: list of rectangles for plotting
-    # rectangles = []  
+    rectangles = []  
 
     for net, locations in socket_locations.items():
         for x, y in locations:
             
             # For debugging: add the keep-out zones as rectangle verices tuples to the list
-            # x1 = x - keep_out_mm
-            # x2 = x + keep_out_mm
-            # y1 = y - keep_out_mm
-            # y2 = y + keep_out_mm
-            # rectangles.append(((x1, y1), (x2, y1), (x2, y2), (x1, y2))) # (bottom left, bottom right, top right, top left)
+            x1 = x - keep_out_mm
+            x2 = x + keep_out_mm
+            y1 = y - keep_out_mm
+            y2 = y + keep_out_mm
+            rectangles.append(((x1, y1), (x2, y1), (x2, y2), (x1, y2))) # (bottom left, bottom right, top right, top left)
 
             x_index = int(x / resolution) + grid.shape[1] // 2
             y_index = int(-y / resolution) + grid.shape[0] // 2
@@ -149,7 +150,7 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
                             temp_grid[yi, xi] = FREE_CELL # Mark this position as free
 
     # For debugging: plot the rectangles on debug.gbr
-    # plot_debug_gerber(rectangles, output_file="debug_keepouts.gbr")
+    plot_debug_gerber(rectangles, output_file="debug_keepouts.gbr")
     
     return temp_grid
 
@@ -233,13 +234,6 @@ def route_sockets(grid, socket_locations, configuration):
     grid_height = grid.shape[0]
     grid_width = grid.shape[1]
     center_x, center_y = grid_width // 2, grid_height // 2
-    
-    uf_dict = {}
-    for net, locs in socket_locations.items():
-        all_elements = [tuple(loc) for loc in locs]
-        # Optionally add them as (x, y) or (row, col). But be consistent.
-        uf = UnionFind(all_elements)
-        uf_dict[net] = uf
         
     for net, distances in net_distances.items():
         # Identify the layer for the current net (if any)
