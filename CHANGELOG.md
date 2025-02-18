@@ -10,13 +10,12 @@
 
 **Issues**
 
-- [ ] Finalise the shape of the passed JSON, and draft a shape for the device JSON for MakeDevice
 - [ ] Increasing the margin to a value greater than 1 doesn't allow for routing due to the sockets not being exposed correctly
 - [ ] A\* finder with 90-degree bends results in jagged and funky routes - can it get fixed? Perhaps try out some of the other finders
 - [ ] Diagonal pathfinding for tunnels on a 3D grid does not work (currently set to DiagonalMovement3D.never)
 - [ ] When merging overlapping segments, some vias seem to disappear (currently merging overlapping segments is turned off - see the logic in `manipulate.py`)
 - [ ] Currently the tunneling layer does not take into consideration if there are any other traces/obstacles apart from the GerberSockets keep-out zones - need to take into consideration previous tunnels and other elemenents on the tunnel layers. 
-- [ ] COnsider other elements on the layer which the TUNNELS go through, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
+- [ ] Consider other elements on the layer which the TUNNELS go through, for example,there could be PROG traces, and therefore would need to set priority to other nets, and not TUNNELS, but also then set keep-out zones to those - need more time to think about this to come up with something smarter
 - [ ] Do more testing, there are problems that will come up all the time
 - [ ] Apply a keep-out zone 1mm around all board edges
 
@@ -69,7 +68,10 @@
 
 - [x] Fixed an issue where two perpendicular diagonal lines can cross each other even when one of them has been marked of as blocked - now using DiagonalMovement.if_at_most_one_obstacle when there are other nets on the layer
 
-**Friday 31, Jan 2025**
+**Thursday, 13 Feb 2025**
 
-- Looking into an issue where TUNNELS had vias placed where there was elements of a different layer in the same plane. 
-- Add pathfinding to the closest point on any path from the same net (look at GPt query "Routing Path Adjustments")
+- [x] Added support for rounded corners on the board outline 
+
+**Tuesday, 18 Feb 2025**
+
+- [x] Implented 

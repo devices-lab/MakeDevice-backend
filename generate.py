@@ -21,11 +21,14 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
 
     # Extract configurations from the passed JSON object
     layer_mapping = configuration['layer_mapping']
+    connectors = configuration['connectors']
+    
     gerber_options = configuration['gerber_options']
     trace_width = gerber_options['trace_width']
     via_annular_ring_diameter = gerber_options['via_annular_ring_diameter']
     via_drilled_hole_diameter = gerber_options['via_drilled_hole_diameter']
-    intersection_clearance = gerber_options['intersection_clearance']
+    rounded_corner_radius = gerber_options['rounded_corner_radius']
+
     
     # Set software identification
     set_generation_software(board_info['generation_software']['vendor'], 
@@ -98,7 +101,7 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
             file.write(layer.dumps_gerber())
     
     generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
-    generate_board_outline(board_info)
+    generate_board_outline(board_info, rounded_corner_radius, connectors)
 
 def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
     """
@@ -144,42 +147,86 @@ def generate_excellon(via_locations, drill_size, board_name, output_dir="./gener
         file.write('\n'.join(content))
 
 
-def generate_board_outline(board, output_dir="./output"):
+import os
+from gerber_writer import DataLayer, Path
+
+def generate_board_outline(board, rounding_radius, connectors, output_dir="./output"):
     """
-    Generates a Gerber file for the board outline based on the board size and origin.
+    Generates a Gerber file for the board outline with rounded corners.
+    
+    The arc centers are inset from the board corners by the rounding_radius,
+    so that the arcs replace the sharp corners and bulge outward.
+    
     Parameters:
-        board (dict): Dictionary containing board information with 'name', 'size', and 'origin'.
-        output_dir (str): Directory to store the generated Gerber outline file. Defaults to "./generated".
-    Returns:
-        None
+        board (dict): Contains board info with keys 'name', 'size', and 'origin'.
+        output_dir (str): Directory to store the generated Gerber file.
+        rounding_radius (float): Radius (in mm) for the rounded corners.
     """
-    # Ensure the output directory exists
+    # Ensure the output directory exists.
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract board parameters
+    # Extract board parameters.
     board_name = board['name']
     size_x = board['size']['x']
     size_y = board['size']['y']
     origin_x = board['origin']['x']
     origin_y = board['origin']['y']
+    
+    # Get connector information
+    left_connector = connectors['left']
+    right_connector = connectors['right']
+    connector_width = 16 # Width of the connector in mm
 
-    # Create a DataLayer for the board outline
+    # Calculate the board boundaries.
+    xmin = origin_x - size_x / 2
+    xmax = origin_x + size_x / 2
+    ymin = origin_y - size_y / 2
+    ymax = origin_y + size_y / 2
+
+    # Ensure the rounding radius does not exceed half the board dimensions
+    rounding_radius = min(rounding_radius, size_x / 2, size_y / 2)
+
+    # Create the DataLayer and Path for the board outline
     outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
-
-    # Create a rectangular path for the board outline based on the size and origin
     path = Path()
-    path.moveto((origin_x - size_x/2, origin_y - size_y/2))
-    path.lineto((origin_x + size_x/2, origin_y - size_y/2))
-    path.lineto((origin_x + size_x/2, origin_y + size_y/2))
-    path.lineto((origin_x - size_x/2, origin_y + size_y/2))
-    path.lineto((origin_x - size_x/2, origin_y - size_y/2))
 
-    # Add the outline path to the layer
-    outline_layer.add_traces_path(path, width=0.15, function="Outline")  # 0.15 mm width is common for outline traces
+    # Start on the bottom edge, offset from the left by rounding_radius
+    path.moveto((xmin + rounding_radius, ymin))
+    
+    # Bottom edge
+    path.lineto((xmax - rounding_radius, ymin))
+    # Bottom-right corner
+    if rounding_radius > 0:
+        path.arcto((xmax, ymin + rounding_radius), (xmax - rounding_radius, ymin + rounding_radius), '+')
+    
+    # Right edge
+    if right_connector:
+        path.lineto((xmax, origin_y - connector_width / 2))
+        path.moveto((xmax, origin_y + connector_width / 2))
+    path.lineto((xmax, ymax - rounding_radius))
+    # Top-right corner
+    if rounding_radius > 0:
+        path.arcto((xmax - rounding_radius, ymax), (xmax - rounding_radius, ymax - rounding_radius), '+')
+    
+    # Top edge
+    path.lineto((xmin + rounding_radius, ymax))
+    # Top-left corner
+    if rounding_radius > 0:
+        path.arcto((xmin, ymax - rounding_radius), (xmin + rounding_radius, ymax - rounding_radius), '+')
+    
+    # Left edge
+    if left_connector:
+        path.lineto((xmin, origin_y + connector_width / 2))
+        path.moveto((xmin, origin_y - connector_width / 2))
+    path.lineto((xmin, ymin + rounding_radius))
+    # Bottom-left corner
+    if rounding_radius > 0:
+        path.arcto((xmin + rounding_radius, ymin), (xmin + rounding_radius, ymin + rounding_radius), '+')
+    
+    # Add the constructed path to the layer with a trace width of 0.15 mm
+    outline_layer.add_traces_path(path, 0.15, 'Outline')
 
-    # Generate the filename for the outline Gerber file
+    # Write the Gerber file
     file_path = os.path.join(output_dir, f"{board_name}-Edge_Cuts.gm1")
-
-    # Write the Gerber content to the file
     with open(file_path, 'w') as file:
         file.write(outline_layer.dumps_gerber())

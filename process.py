@@ -133,8 +133,18 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
     # Process each Gerber or Excellon file in the module directory
     for source_file_path in source_dir_path.iterdir():
         
-        # Omit the mechanical layer (".GM1"), as that gets handled separately 
-        if source_file_path.suffix.upper() not in ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']:
+        # Check if the file is a .GM1 file and if "connector" is not in the filename
+        is_board_outline = source_file_path.suffix.upper() == '.GM1'
+        is_connector = 'connector' in source_file_path.name.lower()
+        
+        # Skip .GM1 files only if they're not part of a connector
+        if is_board_outline and not is_connector:
+            print(f"🟠 Skipping mechanical layer file for non-connector: {source_file_path}")
+            continue
+            
+        # Process all other acceptable file types
+        if (not is_board_outline and source_file_path.suffix.upper() not in 
+            ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']):
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
         
