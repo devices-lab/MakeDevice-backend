@@ -212,6 +212,7 @@ class UnionFind:
 def print_debug_grid(matrix, path=None, start=None, end=None):
     debug_grid = Grid(matrix=matrix)
     print(debug_grid.grid_str(path, start, end, show_weight=True))
+
     
 def route_sockets(grid, socket_locations, configuration):
     
@@ -234,7 +235,7 @@ def route_sockets(grid, socket_locations, configuration):
     grid_height = grid.shape[0]
     grid_width = grid.shape[1]
     center_x, center_y = grid_width // 2, grid_height // 2
-        
+            
     for net, distances in net_distances.items():
         # Identify the layer for the current net (if any)
         current_layer = net_to_layer_mapping.get(net, None)

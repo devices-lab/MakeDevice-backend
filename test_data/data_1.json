@@ -28,11 +28,11 @@
     },
     "layer_mapping": {
       "F_Cu.gtl": {
-        "nets": ["JD_DATA", "JD_PWR"],
+        "nets": ["JD_DATA"],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": ["TUNNELS"],
+        "nets": ["JD_PWR"],
         "attributes": "Copper,L2,Inner,Signal"
       },
       "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },

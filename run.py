@@ -5,70 +5,81 @@ from route import create_grid, route_sockets
 from generate import generate
 import warnings
 
-def run(file_number):
-    
-    # Load the JSON configuration from a file (data_#.json)
+from loader import Loader
+from classes import Board
+
+from gerbonara import GerberFile
+
+def run(file_number: int) -> None:
+    """Process a PCB design from a JSON file"""
     try:
-        with open(f"./test_data/data_{file_number}.json", 'r') as file:
-            data = json.load(file)
-    except FileNotFoundError:
-        print(f"🔴 File data_{file_number}.json not found.")
-        return
-    except json.JSONDecodeError:
-        print(f"🔴 File data_{file_number}.json is not a valid JSON.")
-        return
+        # Load PCB data
+        file_path = f"./test_data/data_{file_number}.json"
+        loader = Loader(file_path)
+        board = loader.board
+        
+        
+        print(f"🟢 Loaded board: {board.name} ({loader.board_dimensions[0]}mm × {loader.board_dimensions[1]}mm)")
+        print(f"🟢 Board has {len(board.modules)} modules")
+        
+        # Clear out directories
+        clear_directories()
+        print("🟢 Cleared out /output and /generated directories")
+        
+        # Merge the GerberSockets layers from all individual modules
+        sockets_layer = merge_layers(
+            loader.modules_data, 
+            loader.gs_layer_name, 
+            loader.board_name
+        )
+        print(f"🟢 Merged {loader.gs_layer_name} layers")
 
-    # Board details
-    board_info = data['board_info']
-    board_name = board_info['name']
-    board_size = board_info['size']
-    
-    # Configurations
-    configuration = data['configuration']
-    resolution = configuration['resolution']
-    gs_layer_name = configuration['gs_layer_name']
-    sockets_diameter_mapping = configuration['socket_diameter_mapping']
-    keep_out_zone_aperture_diameter = configuration['keep_out_zone_aperture_diameter']
-    keep_out_zone_margin = configuration['keep_out_zone_margin']
+        # Get the locations of the sockets
+        socket_locations = extract_socket_locations(
+            sockets_layer,
+            loader.socket_diameter_mapping,
+            loader.resolution
+        )
+        print(f"🟢 Socket locations identified for nets: {', '.join(loader.socket_diameter_mapping.keys())}")
 
-    # Modules and positioning
-    modules = data['modules']
-    
-    # Clear out ./output and ./generated directories
-    clear_directories()
-    print("🟢 Cleared out /output and /generated directories")
-    
-    # Merge the GerberSockets layers from all individual modules
-    sockets_layer = merge_layers(modules, gs_layer_name, board_name)
-    print("🟢 Merged", gs_layer_name, "layers")
+        # Get the keep out zones
+        keep_out_zones = extract_keep_out_zones(
+            sockets_layer,
+            loader.keep_out_zone_settings['aperture_diameter'],
+            loader.keep_out_zone_settings['margin'],
+            loader.resolution
+        )
+        print(f"🟢 {len(keep_out_zones)} keep-out zones identified")
 
-    # Get the locations of the sockets
-    socket_locations = extract_socket_locations(sockets_layer, sockets_diameter_mapping, resolution)
-    print("🟢 Socket locations identified")
+        # Create a grid for routing
+        grid = create_grid(loader.board_size, keep_out_zones, loader.resolution)
+        print(f"🟢 Grid created at {loader.resolution}mm resolution")
 
-    # Get the keep out zones 
-    keep_out_zones = extract_keep_out_zones(sockets_layer, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution)
-    print("🟢 Keep out zones identified")
-
-    # Create a grid
-    grid = create_grid(board_size, keep_out_zones, resolution)
-    print("🟢 Grid created")
-
-    # Pass the grid along with the socket locations to the router
-    segments = route_sockets(grid, socket_locations, configuration)
-    print("🟢 Routing completed")
-
-    # Generate Gerber and Excellon files
-    generate(segments, socket_locations, board_info, configuration)
-    print("🟢 Generated Gerber and Excellon files")
-
-    # Merge the Gerber stacks, along with the new generated layers
-    merge_stacks(modules, board_name)
-    print("🟢 Merged all files in the board stack")
-    
-    # Compress the output directory
-    compress_directory("output")
-    print("🟢 Directory compressed")
+        # Route the connections
+        segments = route_sockets(grid, socket_locations, loader.configuration)
+        print(f"🟢 Routing completed using {loader.algorithm} algorithm")
+        
+        # Generate output files
+        generate(
+            segments, 
+            socket_locations, 
+            loader.data['board_info'], 
+            loader.configuration
+        )
+        print(f"🟢 Generated Gerber and Excellon files with {loader.gerber_options['trace_width']}mm trace width")
+        
+        # Merge the stacks
+        merge_stacks(loader.modules_data, loader.board_name)
+        print("🟢 Merged all files in the board stack")
+        
+        # Compress output
+        output_zip = compress_directory("output") 
+        print(f"🟢 Directory compressed to {output_zip}")
+        
+    except (FileNotFoundError, ValueError) as e:
+        print(f"🔴 Error: {e}")
+    except Exception as e:
+        print(f"🔴 Unexpected error: {str(e)}")
     
     
 with warnings.catch_warnings():

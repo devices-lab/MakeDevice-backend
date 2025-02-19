@@ -7,7 +7,7 @@ from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separ
 from cpl import iterate_cpl_files, map_cpl_designators
 from utils import write_csv
 
-def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output'):
+def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output') -> GerberFile | None:
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
     Parameters:

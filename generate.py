@@ -215,7 +215,7 @@ def generate_board_outline(board, rounding_radius, connectors, output_dir="./out
         path.arcto((xmin, ymax - rounding_radius), (xmin + rounding_radius, ymax - rounding_radius), '+')
     
     # Left edge
-    if left_connector:
+    if left_connector: 
         path.lineto((xmin, origin_y + connector_width / 2))
         path.moveto((xmin, origin_y - connector_width / 2))
     path.lineto((xmin, ymin + rounding_radius))
