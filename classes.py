@@ -1,6 +1,8 @@
 from typing import Dict, List, Tuple, Optional, Any
 from typing import TypedDict
 
+from loader import Loader
+
 class Module:
     def __init__(self, name: str, position: Tuple[int, int], rotation: int):
         self.name = name
@@ -19,7 +21,6 @@ class Layer:
 class Stack:
     def __init__(self, dimensions: Tuple[int, int], resolution: float):
         self.layers: Dict[str, Layer] = {}
-        self.dimensions = dimensions
         self.resolution = resolution
         self._net_to_layer: Dict[str, str] = {}
 
@@ -28,23 +29,27 @@ class Stack:
         layer.initialize_matrix(self.dimensions)
         self.layers[name] = layer
 
-class BoardInfo(TypedDict):
+class Metadata(TypedDict):
     vendor: str
     application: str
     version: str
 
 class Board():
-    def __init__(self, name: str, size: Tuple[int, int], resolution: float):
-        self.name = name
-        self.size = size
-        self.resolution = resolution
-        self.modules = List[Module] = []
-        self.board_info: BoardInfo = {}
+    def __init__(self, loader: Loader):
+        self.loader: Loader = loader
+        self.name: str = loader.board_name
+        self.dimensions: Tuple[int, int] = loader.board_dimensions
+        self.resolution: float = loader.resolution
+        self.modules: List[Module] = []
+        self.generation_software: Metadata = loader.generation_software
+        self._create_board()
         
-    def add_module(self, module):
-        self.modules.append(module)
+    def _create_board(self) -> None:
+        """Load information about the board from the loader"""
+        self._add_modules_from_loader()
         
-    def load_modules_from_data(self, modules_data: List[Dict[str, Any]]) -> None:
+
+    def _add_modules_from_loader(self) -> None:
         """
         Load modules from data dictionary structure.
         
@@ -58,13 +63,22 @@ class Board():
             ...
         ]
         """
-        for module_data in modules_data:
+        for module_data in self.loader.modules_data:
+            # Extract the module properties
             name = module_data['name']
             position = (module_data['position']['x'], module_data['position']['y'])
             rotation = module_data.get('rotation', 0)
             
+            # Create and add the module
             module = Module(name=name, position=position, rotation=rotation)
             self.add_module(module)
+            
+    def _add_layers(): 
+        pass
+    
+    def add_module(self, module: Module) -> None:
+        """Add a module to the board"""
+        self.modules.append(module)
             
     def get_module_by_name(self, name: str) -> Optional[Module]:
         """Get a module by its name."""

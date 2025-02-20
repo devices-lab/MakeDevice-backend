@@ -83,7 +83,7 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
     generated_dir_path = Path(generated_dir)
-
+    
     # Initialise a dictionary to store the filepaths for the BOM and CPL files for each module
     fabrication_data_filepaths = {
         "BOM": [],

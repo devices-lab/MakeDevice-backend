@@ -211,7 +211,7 @@ class UnionFind:
 
 def print_debug_grid(matrix, path=None, start=None, end=None):
     debug_grid = Grid(matrix=matrix)
-    print(debug_grid.grid_str(path, start, end, show_weight=True))
+    print(debug_grid.grid_str(path, start, end, show_weight=False))
 
     
 def route_sockets(grid, socket_locations, configuration):
@@ -286,8 +286,9 @@ def route_sockets(grid, socket_locations, configuration):
             start = net_grid.node(*start_index)
             end = net_grid.node(*end_index)
             path, runs = finder.find_path(start, end, net_grid)
-
             print(f"🔵 Pathfinding runs: {runs}")
+            
+            print_debug_grid(current_matrix, path, start_index, end_index)
 
             if not path and other_nets_on_layer:
                 

@@ -1,8 +1,6 @@
 import json
-from typing import Dict, Any, Optional, Union, List, Tuple
+from typing import Dict, Any, Union, List, Tuple
 from pathlib import Path
-
-from classes import Board
 
 
 class Loader:
@@ -15,7 +13,6 @@ class Loader:
         """Initialize with path to JSON file"""
         self.file_path = Path(file_path)
         self.data: Dict[str, Any] = {}
-        self.board: Optional[Board] = None
         self._load()
         
     def _load(self) -> None:
@@ -24,7 +21,6 @@ class Loader:
             with open(self.file_path, 'r') as file:
                 self.data = json.load(file)
             self._validate()
-            self._create_board()
         except FileNotFoundError:
             raise FileNotFoundError(f"File {self.file_path} not found.")
         except json.JSONDecodeError:
@@ -76,42 +72,6 @@ class Loader:
             # Validate position has x and y
             if 'x' not in module['position'] or 'y' not in module['position']:
                 raise ValueError(f"Module at index {i} has invalid position format")
-            
-    def _create_board(self) -> None:
-        """Create the Board object with all components from the JSON data"""
-        board_info = self.data['board_info']
-        config = self.data['configuration']
-        
-        # Create the board
-        self.board = Board(
-            name=board_info['name'],
-            size=board_info['size'],
-            resolution=config['resolution']
-        )
-        
-        # Load modules
-        self.board.load_modules_from_data(self.data['modules'])
-        
-        # Load layer configuration if present
-        if 'layer_mapping' in self.data:
-            self._configure_layers()
-            
-    def _configure_layers(self) -> None:
-        """Configure the PCB stack and layers"""
-        if not self.board or 'layer_mapping' not in self.data:
-            return
-            
-        for layer_name, info in self.data['layer_mapping'].items():
-            z_index = info.get('z_index', 0)
-            is_ground = info.get('is_ground_plane', False)
-            
-            # Add layer to stack
-            self.board.stack.add_layer(layer_name, z_index, is_ground)
-            
-            # Assign nets to layer
-            for net in info.get('nets', []):
-                if net:  # Skip empty nets
-                    self.board.stack.assign_net_to_layer(net, layer_name)
     
     @property
     def board_name(self) -> str:

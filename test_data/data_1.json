@@ -4,22 +4,24 @@
     "generation_software": {
       "vendor": "Devices-Lab",
       "application": "MakeDevice",
-      "version": "0.2"
+      "version": "0.1"
     },
-    "size": { "x": 150, "y": 150 },
+    "size": { "x": 102, "y": 108 },
     "origin": { "x": 0, "y": 0 }
   },
 
   "configuration": {
     "algorithm": "a_star",
-    "allow_diagonal_traces": 1,
+    "allow_diagonal_traces": 0,
     "resolution": 1,
     "connectors": {
       "left": false,
-      "right": false
+      "right": false,
+      "top": false,
+      "bottom": false
     },
     "keep_out_zone_aperture_diameter": 0.1,
-    "keep_out_zone_margin": 1,
+    "keep_out_zone_margin": 0,
     "gs_layer_name": "GerberSockets.gbr",
     "socket_diameter_mapping": {
       "JD_PWR": 0.11,
@@ -52,33 +54,33 @@
   "modules": [
     {
       "name": "ec30_1x7_r6_mh_0.1",
-      "position": { "x": 0, "y": 58 },
+      "position": { "x": 0, "y": 35 },
       "rotation": 0
     },
     {
       "name": "ec30_5x2_lr_mh_0.1",
-      "position": { "x": -30, "y": 0 },
+      "position": { "x": -16, "y": 2 },
       "rotation": 0
+    },
+    {
+      "name": "ec30_2x2_lr_mh_0.1",
+      "position": { "x": 31, "y": 2 },
+      "rotation": 0
+    },
+    {
+      "name": "ec30_3x2_lr_mh_0.1",
+      "position": { "x": -35, "y": -33 },
+      "rotation": 270
     },
     {
       "name": "ec30_3x3_l_mh_0.1",
-      "position": { "x": 0, "y": -50 },
-      "rotation": 0
+      "position": { "x": 0, "y": -33 },
+      "rotation": 270
     },
     {
       "name": "ec30_3x2_lr_mh_0.1",
-      "position": { "x": -50, "y": -50 },
-      "rotation": 90
-    },
-    {
-      "name": "ec30_3x2_lr_mh_0.1",
-      "position": { "x": 50, "y": -50 },
-      "rotation": 90
-    },
-    {
-      "name": "ec30_4x4_jacplane_0.1",
-      "position": { "x": 30, "y": 0 },
-      "rotation": 90
+      "position": { "x": 35, "y": -33 },
+      "rotation": 270
     }
   ]
 }

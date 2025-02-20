@@ -19,7 +19,7 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract configurations from the passed JSON object
+     # Extract configurations from the passed JSON object
     layer_mapping = configuration['layer_mapping']
     connectors = configuration['connectors']
     
@@ -28,79 +28,80 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
     via_annular_ring_diameter = gerber_options['via_annular_ring_diameter']
     via_drilled_hole_diameter = gerber_options['via_drilled_hole_diameter']
     rounded_corner_radius = gerber_options['rounded_corner_radius']
+        
+    if segments:
+        # Set software identification
+        set_generation_software(board_info['generation_software']['vendor'], 
+                                board_info['generation_software']['application'], 
+                                board_info['generation_software']['version'])
+        
+        # Set up the Gerber layers
+        layers = {}
+        for filename, details in layer_mapping.items():
+            layers[filename] = DataLayer(details["attributes"], negative=False)
+        
+        # Reverse map layer_mappings to specify which net is on which layer
+        net_to_layer_mapping = {}
+        for filename, details in layer_mapping.items():
+            for net in details["nets"]:
+                net_to_layer_mapping[net] = filename
+                            
+        # Extract the via locations from the socket locations
+        via_locations = set()
+        for positions in socket_locations.values():
+            for x, y in positions:
+                via_locations.add((x, y))
+        
+        # Handle "TUNNELS" net separately to add vias only at overlap points
+        if "TUNNELS" in segments:
+            # Collect all points from nets other than "TUNNELS"
+            net_points = set()
+            for net, net_segments in segments.items():
+                if net == "TUNNELS":
+                    continue
+                for start, end in net_segments:
+                    net_points.add(start)
+                    net_points.add(end)
 
-    
-    # Set software identification
-    set_generation_software(board_info['generation_software']['vendor'], 
-                            board_info['generation_software']['application'], 
-                            board_info['generation_software']['version'])
-    
-    # Set up the Gerber layers
-    layers = {}
-    for filename, details in layer_mapping.items():
-        layers[filename] = DataLayer(details["attributes"], negative=False)
-    
-    # Reverse map layer_mappings to specify which net is on which layer
-    net_to_layer_mapping = {}
-    for filename, details in layer_mapping.items():
-        for net in details["nets"]:
-            net_to_layer_mapping[net] = filename
-                        
-    # Extract the via locations from the socket locations
-    via_locations = set()
-    for positions in socket_locations.values():
-        for x, y in positions:
-            via_locations.add((x, y))
-    
-    # Handle "TUNNELS" net separately to add vias only at overlap points
-    if "TUNNELS" in segments:
-        # Collect all points from nets other than "TUNNELS"
-        net_points = set()
-        for net, net_segments in segments.items():
-            if net == "TUNNELS":
-                continue
-            for start, end in net_segments:
-                net_points.add(start)
-                net_points.add(end)
+            # Check overlaps for each TUNNEL segment
+            for start, end in segments["TUNNELS"]:
+                if start in net_points:
+                    via_locations.add(start)
+                if end in net_points:
+                    via_locations.add(end)
+        
+        plotted_nets = set()
 
-        # Check overlaps for each TUNNEL segment
-        for start, end in segments["TUNNELS"]:
-            if start in net_points:
-                via_locations.add(start)
-            if end in net_points:
-                via_locations.add(end)
+        for filename, details in layer_mapping.items():
+            for net in details["nets"]:
+                if net not in segments:
+                    print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router")
+                    continue
+                if net in plotted_nets:
+                    print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")
+                    continue
+                for start, end in segments[net]:
+                    # Turn the segment into a path to the Gerber layer
+                    path = Path()
+                    path.moveto(start)
+                    path.lineto(end)
+                    layers[filename].add_traces_path(path, trace_width, 'Conductor')
+                plotted_nets.add(net) # Mark the net as plotted to avoid duplicates
+
+        # Add vias to all layers for each socket location across all net types
+        for x, y in via_locations:
+            via_pad = Circle(via_annular_ring_diameter, 'ViaPad', negative=False)  # Via specifications
+            for layer in layers.values():
+                layer.add_pad(via_pad, (x, y), 0)
+
+        # Save Gerber file for each layer
+        for filename, layer in layers.items():
+            file_path = os.path.join(output_dir, board_info["name"] + "-" + filename)
+            with open(file_path, 'w') as file:
+                file.write(layer.dumps_gerber())
     
-    plotted_nets = set()
-
-    for filename, details in layer_mapping.items():
-        for net in details["nets"]:
-            if net not in segments:
-                print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router")
-                continue
-            if net in plotted_nets:
-                print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")
-                continue
-            for start, end in segments[net]:
-                # Turn the segment into a path to the Gerber layer
-                path = Path()
-                path.moveto(start)
-                path.lineto(end)
-                layers[filename].add_traces_path(path, trace_width, 'Conductor')
-            plotted_nets.add(net) # Mark the net as plotted to avoid duplicates
-
-    # Add vias to all layers for each socket location across all net types
-    for x, y in via_locations:
-        via_pad = Circle(via_annular_ring_diameter, 'ViaPad', negative=False)  # Via specifications
-        for layer in layers.values():
-            layer.add_pad(via_pad, (x, y), 0)
-
-    # Save Gerber file for each layer
-    for filename, layer in layers.items():
-        file_path = os.path.join(output_dir, board_info["name"] + "-" + filename)
-        with open(file_path, 'w') as file:
-            file.write(layer.dumps_gerber())
-    
-    generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
+        generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
+        
     generate_board_outline(board_info, rounded_corner_radius, connectors)
 
 def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
@@ -175,6 +176,8 @@ def generate_board_outline(board, rounding_radius, connectors, output_dir="./out
     # Get connector information
     left_connector = connectors['left']
     right_connector = connectors['right']
+    bottom_connector = connectors['bottom']
+    top_connector = connectors['top']
     connector_width = 16 # Width of the connector in mm
 
     # Calculate the board boundaries.
@@ -194,6 +197,9 @@ def generate_board_outline(board, rounding_radius, connectors, output_dir="./out
     path.moveto((xmin + rounding_radius, ymin))
     
     # Bottom edge
+    if bottom_connector:
+        path.lineto((origin_x - connector_width / 2, ymin))
+        path.moveto((origin_x + connector_width / 2, ymin))
     path.lineto((xmax - rounding_radius, ymin))
     # Bottom-right corner
     if rounding_radius > 0:
@@ -209,6 +215,9 @@ def generate_board_outline(board, rounding_radius, connectors, output_dir="./out
         path.arcto((xmax - rounding_radius, ymax), (xmax - rounding_radius, ymax - rounding_radius), '+')
     
     # Top edge
+    if top_connector:
+        path.lineto((origin_x + connector_width / 2, ymax))
+        path.moveto((origin_x - connector_width / 2, ymax))
     path.lineto((xmin + rounding_radius, ymax))
     # Top-left corner
     if rounding_radius > 0:
