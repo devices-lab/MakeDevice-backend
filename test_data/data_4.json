@@ -4,9 +4,9 @@
     "generation_software": {
       "vendor": "Devices-Lab",
       "application": "MakeDevice",
-      "version": "0.2"
+      "version": "0.1"
     },
-    "size": { "x": 150, "y": 150 },
+    "size": { "x": 120, "y": 40 },
     "origin": { "x": 0, "y": 0 }
   },
 
@@ -15,11 +15,13 @@
     "allow_diagonal_traces": 1,
     "resolution": 1,
     "connectors": {
-      "left": false,
-      "right": false
+      "left": true,
+      "right": true,
+      "bottom": false,
+      "top": false
     },
     "keep_out_zone_aperture_diameter": 0.1,
-    "keep_out_zone_margin": 1,
+    "keep_out_zone_margin": 0,
     "gs_layer_name": "GerberSockets.gbr",
     "socket_diameter_mapping": {
       "JD_PWR": 0.11,
@@ -28,11 +30,11 @@
     },
     "layer_mapping": {
       "F_Cu.gtl": {
-        "nets": ["JD_DATA", "JD_PWR"],
+        "nets": ["JD_DATA"],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": ["TUNNELS"],
+        "nets": ["JD_PWR"],
         "attributes": "Copper,L2,Inner,Signal"
       },
       "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
@@ -52,43 +54,38 @@
   "modules": [
     {
       "name": "ec30_1x7_r6_mh_0.1",
-      "position": { "x": 0, "y": 58 },
+      "position": { "x": 0, "y": -3  },
       "rotation": 0
     },
     {
-      "name": "ec30_5x2_lr_mh_0.1",
-      "position": { "x": -30, "y": 0 },
+      "name": "jacdac_data_mh_0.1",
+      "position": { "x": -55, "y": 15 },
       "rotation": 0
     },
     {
-      "name": "ec30_3x3_l_mh_0.1",
-      "position": { "x": 0, "y": -50 },
+      "name": "jacdac_power_mh_0.1",
+      "position": { "x": -55, "y": -15 },
       "rotation": 0
     },
     {
-      "name": "ec30_3x2_lr_mh_0.1",
-      "position": { "x": -50, "y": -50 },
-      "rotation": 90
+      "name": "jacdac_ground_mh_0.1",
+      "position": { "x": 55, "y": 15 },
+      "rotation": 0
     },
     {
-      "name": "ec30_3x2_lr_mh_0.1",
-      "position": { "x": 50, "y": -50 },
-      "rotation": 90
-    },
-    {
-      "name": "ec30_4x4_jacplane_0.1",
-      "position": { "x": 30, "y": 0 },
+      "name": "jacdac_ground_mh_0.1", 
+      "position": { "x": 55, "y": -15 },
       "rotation": 90
     },
     {
       "name": "jacdac_connector_0.1",
-      "position": { "x": -75, "y": 0 },
-      "rotation": -90
+      "position": { "x": 60, "y": 0 },
+      "rotation": 90
     },
     {
       "name": "jacdac_connector_0.1",
-      "position": { "x": 75, "y": 0 },
-      "rotation": 90
+      "position": { "x": -60, "y": 0 },
+      "rotation": 270
     }
   ]
 }
