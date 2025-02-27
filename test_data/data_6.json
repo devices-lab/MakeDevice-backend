@@ -1,0 +1,106 @@
+{
+  "board_info": {
+    "name": "MakeDevice",
+    "generation_software": {
+      "vendor": "Devices-Lab",
+      "application": "MakeDevice",
+      "version": "0.1"
+    },
+    "size": { "x": 150, "y": 156 },
+    "origin": { "x": 0, "y": 0 }
+  },
+
+  "configuration": {
+    "algorithm": "a_star",
+    "allow_diagonal_traces": 1,
+    "resolution": 1,
+    "connectors": {
+      "left": false,
+      "right": false,
+      "bottom": false,
+      "top": false
+    },
+    "keep_out_zone_aperture_diameter": 0.1,
+    "keep_out_zone_margin": 0,
+    "gs_layer_name": "GerberSockets.gbr",
+    "socket_diameter_mapping": {
+      "JD_PWR": 0.11,
+      "JD_GND": 0.12,
+      "JD_DATA": 0.13
+    },
+    "layer_mapping": {
+      "F_Cu.gtl": {
+        "nets": ["JD_DATA"],
+        "attributes": "Copper,L1,Top,Signal"
+      },
+      "In1_Cu.g2": {
+        "nets": ["JD_PWR"],
+        "attributes": "Copper,L2,Inner,Signal"
+      },
+      "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
+      "B_Cu.gbl": {
+        "nets": ["JD_GND"],
+        "attributes": "Copper,L4,Bottom,Signal"
+      }
+    },
+    "gerber_options": {
+      "trace_width": 0.25,
+      "via_annular_ring_diameter": 0.6,
+      "via_drilled_hole_diameter": 0.3,
+      "rounded_corner_radius": 4
+    }
+  },
+
+  "modules": [
+    {
+      "name": "ec30_1x7_r6_mh_0.1",
+      "position": { "x": -10, "y": 60 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.1",
+      "position": { "x": -10, "y": 32 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.1",
+      "position": { "x": -10, "y": 12 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.1",
+      "position": { "x": -10, "y": -8 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.1",
+      "position": { "x": -10, "y": -28 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.1",
+      "position": { "x": -10, "y": -48 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_0.1",
+      "position": { "x": -10, "y": -68 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_0.1",
+      "position": { "x": 65, "y": -8 },
+      "rotation": 90
+    },
+    {
+      "name": "ec30_3x2_l_mh_0.1",
+      "position": { "x": 54, "y": 60 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_rgb_led_0.1",
+      "position": { "x": -62, "y": 60 },
+      "rotation": 0
+    }
+  ]
+}
