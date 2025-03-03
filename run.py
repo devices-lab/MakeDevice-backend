@@ -59,8 +59,8 @@ def run(file_number):
     print("🟢 Grid created")
 
     # Pass the grid along with the socket locations to the router
-    # segments = route_sockets(grid, socket_locations, configuration)
-    segments = None
+    segments = route_sockets(grid, socket_locations, configuration)
+    # segments = None
     print("🟢 Routing completed")
 
     # Generate Gerber and Excellon files
@@ -78,4 +78,4 @@ def run(file_number):
     
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
-    run(6)
+    run(5)

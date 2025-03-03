@@ -258,11 +258,12 @@ def route_sockets(grid, socket_locations, configuration):
 
         # Iterate over the distances between the sockets, sorted in ascending order
         for dist, loc1, loc2 in distances:
-            
+            print(loc1, loc2)
             tunnels_placed = False
             
             # Check if the two locations are already connected in the union-find structure
             if uf.find(tuple(loc1)) == uf.find(tuple(loc2)):
+                print(f"🟡 {loc1} and {loc2} are already connected")
                 continue  # already connected, skip
                 
             # Convert the start and end coordinates to grid indices
@@ -283,6 +284,9 @@ def route_sockets(grid, socket_locations, configuration):
                 else DiagonalMovement.never
             )
 
+            print(net_grid)
+            
+            print(f"Start index {start_index[0], start_index[1]}, and end index {end_index[0], end_index[1]}")
             start = net_grid.node(*start_index)
             end = net_grid.node(*end_index)
             path, runs = finder.find_path(start, end, net_grid)
