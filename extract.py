@@ -42,7 +42,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
     
     return socket_locations
 
-def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution, debug=False):
+def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution, debug=True):
     """
     Extracts and returns a list of rectangles representing the keep-out zones from the given Gerber object.
     

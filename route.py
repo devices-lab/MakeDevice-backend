@@ -21,7 +21,7 @@ TUNNEL_CELL = 5
 
 def to_grid_indices(x, y, center_x, center_y, resolution):
     """
-    Converts Cartesian coordinates (x, y) to grid indices (row, col) based on the given center and resolution.
+    Converts Cartesian coordinates (x, y) to grid indices (column, row) based on the given center and resolution.
 
     Parameters:
         x (int): The x-coordinate in Cartesian space.
@@ -31,11 +31,11 @@ def to_grid_indices(x, y, center_x, center_y, resolution):
         resolution (int): The resolution of the grid.
 
     Returns:
-        tuple: A tuple (row, col) representing the grid indices.
+        tuple: A tuple (collumn, row) representing the grid indices.
     """
+    column = int(center_x + (x / resolution))
     row = int(center_y - (y / resolution))
-    col = int(center_x + (x / resolution))
-    return row, col
+    return column, row
 
 def invert_layer_mapping(layer_mapping):
     """
@@ -87,17 +87,17 @@ def create_grid(dimensions, keep_out_zones, resolution):
         bottom_left, top_left, top_right, bottom_right = zone
         
         # Convert coordinates to grid indices
-        y1, x1 = to_grid_indices(*top_left, center_x, center_y, resolution)
-        y2, x2 = to_grid_indices(*bottom_right, center_x, center_y, resolution)
+        top_left_column_index, top_left_row_index = to_grid_indices(*top_left, center_x, center_y, resolution)
+        bottom_right_column_index, bottom_right_row_index = to_grid_indices(*bottom_right, center_x, center_y, resolution)
         
         # Ensure bounds are within grid limits
-        x1 = max(0, min(grid_width - 1, x1))
-        x2 = max(0, min(grid_width - 1, x2))
-        y1 = max(0, min(grid_height - 1, y1))
-        y2 = max(0, min(grid_height - 1, y2))
+        top_left_column_index = max(0, min(grid_width - 1, top_left_column_index))
+        bottom_right_column_index = max(0, min(grid_width - 1, bottom_right_column_index))
+        top_left_row_index = max(0, min(grid_height - 1, top_left_row_index))
+        bottom_right_row_index = max(0, min(grid_height - 1, bottom_right_row_index))
         
         # Mark cells in the rectangle as blocked
-        grid[y1+1:y2, x1+1:x2] = BLOCKED_CELL 
+        grid[top_left_row_index+1:bottom_right_row_index, top_left_column_index+1:bottom_right_column_index] = BLOCKED_CELL 
 
     return grid
 
@@ -237,6 +237,7 @@ def route_sockets(grid, socket_locations, configuration):
     center_x, center_y = grid_width // 2, grid_height // 2
             
     for net, distances in net_distances.items():
+        print(f"🟠 Routing net {net}")
         # Identify the layer for the current net (if any)
         current_layer = net_to_layer_mapping.get(net, None)
         other_nets_on_layer = False
@@ -258,18 +259,18 @@ def route_sockets(grid, socket_locations, configuration):
 
         # Iterate over the distances between the sockets, sorted in ascending order
         for dist, loc1, loc2 in distances:
-            print(loc1, loc2)
+            print(f"🔵 Routing between {loc1} and {loc2}")
             tunnels_placed = False
             
             # Check if the two locations are already connected in the union-find structure
             if uf.find(tuple(loc1)) == uf.find(tuple(loc2)):
-                print(f"🟡 {loc1} and {loc2} are already connected")
+                print(f"🟢 {loc1} and {loc2} are already connected")
                 continue  # already connected, skip
                 
             # Convert the start and end coordinates to grid indices
-            start_index = to_grid_indices(-loc1[1], -loc1[0], center_x, center_y, resolution)
-            end_index = to_grid_indices(-loc2[1], -loc2[0], center_x, center_y, resolution)
-            
+            start_index = to_grid_indices(loc1[0], loc1[1], center_x, center_y, resolution)
+            end_index = to_grid_indices(loc2[0], loc2[1], center_x, center_y, resolution)
+
             # Create a 2D grid for the pathfinding
             net_grid = Grid(matrix=current_matrix, grid_id=0)
 
@@ -283,17 +284,12 @@ def route_sockets(grid, socket_locations, configuration):
                 else DiagonalMovement.always if allow_diagonal_traces 
                 else DiagonalMovement.never
             )
-
-            print(net_grid)
             
-            print(f"Start index {start_index[0], start_index[1]}, and end index {end_index[0], end_index[1]}")
             start = net_grid.node(*start_index)
             end = net_grid.node(*end_index)
             path, runs = finder.find_path(start, end, net_grid)
             print(f"🔵 Pathfinding runs: {runs}")
             
-            print_debug_grid(current_matrix, path, start_index, end_index)
-
             if not path and other_nets_on_layer:
                 
                 print(f"🔵 Making a 3D grid to accomondate routing for {net} on layer {current_layer}")
@@ -320,7 +316,7 @@ def route_sockets(grid, socket_locations, configuration):
                 tunnels_placed = True
                 
             if path:
-                print(f"🟢 Found path for net {net} between {loc1} and {loc2}\n")
+                print(f"🟢 Found path for net {net} between {loc1} and {loc2}")
                 
                 if tunnels_placed:
                     path_tuples = [(node.x, node.y, node.z) for node in path]
@@ -334,10 +330,6 @@ def route_sockets(grid, socket_locations, configuration):
                 
             else:
                 print(f"🔴 No path found for net {net} between {loc1} and {loc2}")
-                
-    # Get the centers of the grid for translating the indices
-    center_x = grid.shape[0] // 2
-    center_y = grid.shape[1] // 2
     
     # Consolidate the the list of grid indices into line segments on the coordinate plane
     segments = consolidate_segments(paths, resolution, center_x, center_y)

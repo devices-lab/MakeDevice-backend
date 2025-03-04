@@ -23,10 +23,6 @@ def run(file_number):
     board_info = data['board_info']
     board_name = board_info['name']
     board_size = board_info['size']
-    # Board details
-    board_info = data['board_info']
-    board_name = board_info['name']
-    board_size = board_info['size']
     
     # Configurations
     configuration = data['configuration']
@@ -35,6 +31,7 @@ def run(file_number):
     sockets_diameter_mapping = configuration['socket_diameter_mapping']
     keep_out_zone_aperture_diameter = configuration['keep_out_zone_aperture_diameter']
     keep_out_zone_margin = configuration['keep_out_zone_margin']
+    
     # Modules and positioning
     modules = data['modules']
     
@@ -49,18 +46,17 @@ def run(file_number):
     # Get the locations of the sockets
     socket_locations = extract_socket_locations(sockets_layer, sockets_diameter_mapping, resolution)
     print("🟢 Socket locations identified")
-
+    
     # Get the keep out zones 
     keep_out_zones = extract_keep_out_zones(sockets_layer, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution)
     print("🟢 Keep out zones identified")
-
+    
     # Create a grid
     grid = create_grid(board_size, keep_out_zones, resolution)
-    print("🟢 Grid created")
+    print("🟢 Grid created") 
 
     # Pass the grid along with the socket locations to the router
     segments = route_sockets(grid, socket_locations, configuration)
-    # segments = None
     print("🟢 Routing completed")
 
     # Generate Gerber and Excellon files
