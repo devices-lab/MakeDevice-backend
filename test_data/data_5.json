@@ -1,40 +1,40 @@
 {
-  "board_info": {
+  "board": {
     "name": "MakeDevice",
     "generation_software": {
       "vendor": "Devices-Lab",
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 122, "y": 42 },
-    "origin": { "x": 0, "y": 0 }
+    "size": { "x": 130, "y": 42 },
+    "origin": { "x": 0, "y": 0 },
+    "debug": true
   },
 
   "configuration": {
-    "algorithm": "a_star",
-    "allow_diagonal_traces": 1,
-    "resolution": 1,
-    "connectors": {
-      "left": false,
-      "right": false,
-      "bottom": false,
-      "top": false
+    "routing_options": {
+      "resolution": 0.125,
+      "constrained_routing": true,
+      "allow_diagonal_traces": false,
+      "algorithm": "a_star"
     },
-    "keep_out_zone_aperture_diameter": 0.1,
-    "keep_out_zone_margin": 0,
-    "gs_layer_name": "GerberSockets.gbr",
-    "socket_diameter_mapping": {
-      "JD_PWR": 0.11,
-      "JD_GND": 0.12,
-      "JD_DATA": 0.13
+    "gerbersockets_options": {
+      "layer_name": "GerberSockets.gbr",
+      "keep_out_zone_aperture_diameter": 0.1,
+      "net_diameter_map": {
+        "JD_PWR": 0.11,
+        "JD_GND": 0.12,
+        "JD_DATA": 0.13
+      },
+      "legacy_sockets": true
     },
-    "layer_mapping": {
+    "layer_map": {
       "F_Cu.gtl": {
-        "nets": ["JD_DATA"],
+        "nets": ["JD_DATA", "JD_PWR"],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": ["JD_PWR"],
+        "nets": [],
         "attributes": "Copper,L2,Inner,Signal"
       },
       "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
@@ -43,24 +43,33 @@
         "attributes": "Copper,L4,Bottom,Signal"
       }
     },
-    "gerber_options": {
-      "trace_width": 0.25,
-      "via_annular_ring_diameter": 0.6,
-      "via_drilled_hole_diameter": 0.3,
-      "rounded_corner_radius": 4
+    "fabrication_options": {
+      "module_margin": 0,
+      "bus_width": 0.25,
+      "track_width": 0.125,
+      "gap_width": 0.125,
+      "via_diameter": 0.6,
+      "via_hole_diameter": 0.3,
+      "rounded_corner_radius": 4,
+      "connectors": {
+        "left": false,
+        "right": false,
+        "bottom": false,
+        "top": false
+      }
     }
   },
 
   "modules": [
     {
       "name": "ec30_1x7_r6_mh_0.1",
-      "position": { "x": -20, "y": 0 },
+      "position": { "x": -20, "y": 0.125 },
       "rotation": 0
     },
     {
       "name": "ec30_3x3_l_mh_0.1",
-      "position": { "x": 40, "y": 0 },
-      "rotation": 270
+      "position": { "x": 40, "y": 45.375 },
+      "rotation": 90
     }
   ]
 }

@@ -1,12 +1,12 @@
 import json
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
-from route import create_grid, route_sockets
+from free_route import create_grid, route_sockets
 from generate import generate
 import warnings
 
 from loader import Loader
-from classes import Board
+from board import Board
 
 from gerbonara import GerberFile
 

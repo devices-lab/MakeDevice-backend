@@ -13,7 +13,7 @@ from pathfinding3d.finder.ida_star import IDAStarFinder as IDAStarFinder3D
 from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
 
 from manipulate import consolidate_segments, merge_overlapping_segments
-from debug import plot_debug_gerber
+from debug import plot_zones
 
 BLOCKED_CELL = 0
 FREE_CELL = 1
@@ -150,7 +150,7 @@ def apply_socket_keep_out_zones(grid, socket_locations, current_net, resolution,
                             temp_grid[yi, xi] = FREE_CELL # Mark this position as free
 
     # For debugging: plot the rectangles on debug.gbr
-    plot_debug_gerber(rectangles, output_file="debug_keepouts.gbr")
+    plot_zones(rectangles, output_file="debug_keepouts.gbr")
     
     return temp_grid
 

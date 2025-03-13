@@ -2,6 +2,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from gerber_writer import DataLayer, Path
+from pathlib import Path as PathLib
+from typing import Dict, List, Tuple, Union
 
 
 def generate_test_grid(dimensions):
@@ -140,7 +142,7 @@ def show_grid_segments_sockets(grid, segments, socket_locations, resolution):
     plt.gca().invert_yaxis()  # Invert y-axis to match traditional Cartesian coordinate systems
     plt.show()
     
-def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, output_dir="./output"):
+def plot_zones(zones, output_file="debug_zones.gbr", trace_width=0.1, output_dir="./output"):
     """
     Draws rectangles on a Gerber file for debugging purposes.
 
@@ -160,13 +162,13 @@ def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, out
     debug_layer = DataLayer("Debug,Rectangles", negative=False)
 
     # Loop through the rectangles and draw them
-    for rectangle in rectangles:
+    for zone in zones:
         # Create a path for each rectangle
         path = Path()
-        path.moveto(rectangle[0])  # Move to the first point
-        for point in rectangle[1:]:
+        path.moveto(zone[0])  # Move to the first point
+        for point in zone[1:]:
             path.lineto(point)  # Draw lines to subsequent points
-        path.lineto(rectangle[0])  # Close the rectangle by connecting back to the first point
+        path.lineto(zone[0])  # Close the rectangle by connecting back to the first point
 
         # Add the rectangle path to the layer
         debug_layer.add_traces_path(path, trace_width, "DebugRectangle")
@@ -180,35 +182,53 @@ def plot_debug_gerber(rectangles, output_file="debug1.gbr", trace_width=0.1, out
 
     print(f"Debug Gerber file saved at: {file_path}")
 
-def circle_debug_gerber(points, output_file="debug2.gbr", trace_width=0.5, output_dir="./output"):
+def plot_sockets(socket_locations: Union[Dict[str, List[Tuple[float, float]]], List[Tuple[float, float]]],
+                output_file: Union[str, PathLib] = "debug_sockets.gbr", 
+                tool_diameter: float = 0.5, 
+                output_dir: Union[str, PathLib] = "./output"):
     """
-    Draws a single point on a Gerber file for debugging purposes.
+    Draws socket points on a Gerber file for debugging purposes.
 
     Args:
-        points (list): List of points as a tuple (x, y).
-        output_file (str): Name of the output Gerber file. Defaults to "debug2.gbr".
-        trace_width (float): Diameter of the circle mm. Defaults to 0.5mm.
-        output_dir (str): Directory to store the generated Gerber file. Defaults to "./output".
+        socket_locations: Either:
+            - Dictionary with net names as keys and lists of (x, y) coordinates as values
+            - List of (x, y) coordinates
+        output_file (str or Path): Name of the output Gerber file. Defaults to "debug_sockets.gbr".
+        tool_diameter (float): Diameter of the circle in mm. Defaults to 0.5mm.
+        output_dir (str or Path): Directory to store the generated Gerber file. Defaults to "./output".
 
     Returns:
         None
     """
+    # Convert paths to strings if necessary
+    output_dir = PathLib(output_dir)
+    
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
     # Create a DataLayer for the debug circles (points)
     debug_layer = DataLayer("Debug,Circles", negative=False)
 
-    # Loop through the points and draw them
-    for point in points:
-        path = Path()
-        path.moveto(point)  # Move to the location of the point
-        path.lineto(point)  # Draw a single line
-        # Add the point to the layer
-        debug_layer.add_traces_path(path, trace_width, "DebugCircle")
+    # Process points based on input type
+    if isinstance(socket_locations, dict):
+        # Handle dictionary of points by net
+        for net_name, points in socket_locations.items():
+            for point in points:
+                path = Path()
+                path.moveto(point)  # Move to the location of the point
+                path.lineto(point)  # Draw a single line
+                # Add the point to the layer
+                debug_layer.add_traces_path(path, tool_diameter, f"DebugCircle_{net_name}")
+    else:
+        # Handle list of points directly
+        for point in socket_locations:
+            path = Path()
+            path.moveto(point)
+            path.lineto(point)
+            debug_layer.add_traces_path(path, tool_diameter, "DebugCircle")
 
     # Generate the output file path
-    file_path = os.path.join(output_dir, output_file)
+    file_path = output_dir / output_file
 
     # Write the Gerber content to the file
     with open(file_path, 'w') as file:

@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 from gerbonara import GerberFile, ExcellonFile
 from numpy import pi
+from typing import Union
 
 from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separate_unique_and_duplicates, shake_designators
 from cpl import iterate_cpl_files, map_cpl_designators
@@ -17,10 +18,10 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
             - 'position' (dict): A dictionary with 'x' and 'y' keys for the position offset.
         layer_name (str): The name of the layer to merge.
         board_name (str): The name of the output board.
-        modules_dir (str, optional): The directory containing module subdirectories. Defaults to './modules'.
+        modules_dir (str, optional): The directory containing module subdirectories, i.e. Gerber fabrication files for all modules. Defaults to './modules'.
         output_dir (str, optional): The directory to save the merged Gerber file. Defaults to './output'.
     Returns:
-        GerberFile: The merged Gerber file if any files were processed, otherwise None.
+        GerberFile: A combined GerberFile object from Gerbonara if any files were processed, otherwise None.
     """
     # Define the directories for input and output
     modules_dir_path = Path(modules_dir)
@@ -253,17 +254,21 @@ def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
     # Print the mapped BOM list
     # print('CPL list mapped: ', mapped_cpl_list)
             
-def clear_directories(output_dir='./output', generated_dir='./generated'):
+def clear_directories(output_directory: Union[str, Path] = './output', 
+                     generated_directory: Union[str, Path] = './generated'):
     """
     Remove the specified output and generated directories if they exist.
+    
     Parameters:
-        output_dir (str): The path to the output directory to be cleared. Defaults to './output'.
-        generated_dir (str): The path to the generated directory to be cleared. Defaults to './generated'.
+        output_dir (str or Path): The path to the output directory to be cleared. 
+                                 Defaults to './output'.
+        generated_dir (str or Path): The path to the generated directory to be cleared. 
+                                    Defaults to './generated'.
     Returns:
         None
     """
-    output_dir_path = Path(output_dir)
-    generated_dir_path = Path(generated_dir)
+    output_dir_path = Path(output_directory)
+    generated_dir_path = Path(generated_directory)
    
     if output_dir_path.exists():
         shutil.rmtree(output_dir_path)
@@ -271,12 +276,15 @@ def clear_directories(output_dir='./output', generated_dir='./generated'):
     if generated_dir_path.exists():
         shutil.rmtree(generated_dir_path)
         
-def compress_directory(directory="./output"):
+def compress_directory(directory: Union[str, Path] = "./output"):
     """ 
     Compresses the specified directory into a ZIP file.
+    
     Parameters:
-        directory (str): The path to the directory to be compressed, and name given to the zip file.
+        directory (str or Path): The path to the directory to be compressed, 
+                               and name given to the zip file.
     Returns:
         None
     """
-    shutil.make_archive(directory, 'zip', directory)
+    directory_path = Path(directory)
+    shutil.make_archive(str(directory_path), 'zip', str(directory_path))

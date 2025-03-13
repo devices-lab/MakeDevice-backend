@@ -1,12 +1,12 @@
 from gerbonara.graphic_objects import Line
 from gerbonara.apertures import CircleAperture
-from debug import plot_debug_gerber
+from debug import plot_zones
 
 def round_to_resolution(value, resolution):
     """Rounds a value to the nearest multiple of the resolution."""
     return round(value / resolution) * resolution
 
-def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
+def extract_socket_locations(gerber, net_diameter_mapping, resolution, legacy_sockets=False):
     """
     Extracts the locations of the Gerber Sockets from a Gerber file.
 
@@ -22,7 +22,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
             Each socket location is represented as a tuple of (x, y) coordinates.
     """
 
-    diameter_to_net = {value: key for key, value in sockets_diameter_mapping.items()}
+    diameter_to_net = {value: key for key, value in net_diameter_mapping.items()}
     socket_locations = {}
 
     if not gerber.objects:
@@ -42,7 +42,7 @@ def extract_socket_locations(gerber, sockets_diameter_mapping, resolution):
     
     return socket_locations
 
-def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, keep_out_zone_margin, resolution, debug=True):
+def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, module_margin, resolution, debug=True):
     """
     Extracts and returns a list of rectangles representing the keep-out zones from the given Gerber object.
     
@@ -98,16 +98,16 @@ def extract_keep_out_zones(gerber, keep_out_zone_aperture_diameter, keep_out_zon
                         for p in points
                     }
                     sorted_points = sorted(rounded_points, key=lambda p: (p[0], p[1]))  # Sort primarily by x, secondarily by y
-                    bottom_left = sorted_points[0][0] - keep_out_zone_margin, sorted_points[0][1] - keep_out_zone_margin
-                    top_left = sorted_points[1][0] - keep_out_zone_margin, sorted_points[1][1] + keep_out_zone_margin
-                    top_right = sorted_points[3][0] + keep_out_zone_margin, sorted_points[3][1] + keep_out_zone_margin
-                    bottom_right = sorted_points[2][0] + keep_out_zone_margin, sorted_points[2][1] - keep_out_zone_margin
+                    bottom_left = sorted_points[0][0] - module_margin, sorted_points[0][1] - module_margin
+                    top_left = sorted_points[1][0] - module_margin, sorted_points[1][1] + module_margin
+                    top_right = sorted_points[3][0] + module_margin, sorted_points[3][1] + module_margin
+                    bottom_right = sorted_points[2][0] + module_margin, sorted_points[2][1] - module_margin
                     
                     rectangles.append((bottom_left, top_left, top_right, bottom_right))
                     used_indices.update(rectangle_indices)
 
             if debug:
-                plot_debug_gerber(rectangles, output_file="debug_margin.gbr")
+                plot_zones(rectangles, output_file="debug_margin.gbr")
         
     return rectangles
 
