@@ -1,5 +1,7 @@
 import math
 
+
+
 def consolidate_segments(routes, resolution, center_x, center_y):
     """
     Extends your existing segment-consolidation logic to also detect changes in z-coordinate.

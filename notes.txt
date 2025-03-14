@@ -1,0 +1,20 @@
+board should be the centerpiece of where everything is stored
+
+
+DO NOT OVEROPTIMISE!!! make something work, come back later and optimise, can use AI for that
+
+keep gerbersocket logic separate - might be made to be reusable in the future 
+
+
+Zones object
+Sockets object
+-> both extracted in a separate logic
+
+
+
+class Board
+-> center point of everything
+
+
+class Router
+-takes in the Zones, Sockets, 

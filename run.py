@@ -1,10 +1,10 @@
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
-from constrained_route import create_grid
 from generate import generate
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
 from board import Board
+from router import Router
 
 import warnings
 
@@ -13,7 +13,7 @@ def run(file_number: int):
     loader = Loader(f"./test_data/data_{file_number}.json")
     if loader.debug:
         print("⚪️ Running in debug mode")
-            
+
     # Clear out ./output and ./generated directories
     clear_directories()
     print("🟢 Cleared out `/output` and `/generated` directories")
@@ -47,31 +47,21 @@ def run(file_number: int):
 
     # Create a PCB
     board = Board(loader, sockets, zones)
+    board._merge_stacks()
     
+    router = Router(board)
+    segments = router.route()
+    # segments = None
     
-    print(board.generation_software)
+    # print(segments)
     
-    
-    
-    # grid = create_grid(zones, loader)
-    # print("🟢 Grid created") 
-
-    # # Pass the grid along with the socket locations to the router
-    # segments = route_sockets(grid, socket_locations, configuration)
-    # print("🟢 Routing completed")
-    
-    # # Generate Gerber and Excellon files
-    # generate(segments, socket_locations, board., configuration)
-    # print("🟢 Generated Gerber and Excellon files")
-
-    # # Merge the Gerber stacks, along with the new generated layers
-    # merge_stacks(modules, board_name)
-    # print("🟢 Merged all files in the board stack")
+    # Generate Gerber and Excellon files
+    generate(segments, board)
+    print("🟢 Generated Gerber and Excellon files")
     
     # Compress the output directory
     compress_directory("output")
     print("🟢 Directory compressed")
-    
     
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 

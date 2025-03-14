@@ -2,13 +2,15 @@ import shutil
 from pathlib import Path
 from gerbonara import GerberFile, ExcellonFile
 from numpy import pi
-from typing import Union
+from typing import Union, List, Tuple, Optional
 
 from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separate_unique_and_duplicates, shake_designators
 from cpl import iterate_cpl_files, map_cpl_designators
 from utils import write_csv
 
-def merge_layers(modules, layer_name, board_name, modules_dir='./modules', output_dir='./output') -> GerberFile | None:
+from module import Module
+
+def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./modules', output_dir='./output') -> GerberFile | None:
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
     Parameters:
@@ -36,7 +38,7 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
     # Process each module
     for module in modules:
         # Path to the module's directory within the /gerbers directory
-        module_path = modules_dir_path / module['name']
+        module_path = modules_dir_path / module.name
 
         # Check if the directory exists
         if not module_path.exists() or not module_path.is_dir():
@@ -50,9 +52,9 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
             current_file = GerberFile.open(file_path)
             
             # Apply transformations 
-            rotation_radians = module['rotation'] * (pi / 180)
+            rotation_radians = module.rotation * (pi / 180)
             current_file.rotate(angle=rotation_radians)
-            current_file.offset(dx=module['position']['x'], dy=module['position']['y'])
+            current_file.offset(dx=module.position.x, dy=module.position.y)
 
             # If there's no merged Gerber yet, use the current one
             if merged_file is None:
@@ -68,12 +70,12 @@ def merge_layers(modules, layer_name, board_name, modules_dir='./modules', outpu
     else:
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
-                           
-def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
+                   
+def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
     Parameters:
-        modules (list): A list of dictionaries, each containing information about a module.
+        modules (list): A list of Module objects.
         board_name (str): The name of the board to be used in the merging process.
         modules_dir (str, optional): The directory where the module directories are located. Defaults to './modules'.
         output_dir (str, optional): The directory where the merged output will be stored. Defaults to './output'.
@@ -81,6 +83,8 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     Returns:
         None
     """
+    
+    # Path objects
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
     generated_dir_path = Path(generated_dir)
@@ -93,8 +97,9 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
 
     # Ensure the directory exists
     output_dir_path.mkdir(parents=True, exist_ok=True)
-    for module in modules:  
-        module_path = modules_dir_path / module['name']
+
+    for module in modules:
+        module_path = modules_dir_path / module.name
 
         if not module_path.exists() or not module_path.is_dir():
             print(f"🔴 Module not found: '{module_path}'")
@@ -115,7 +120,7 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     # And lastly, merge with the additional generated files from /generated directory
     merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
 
-def merge_directories(target_dir_path, source_dir_path, board_name, module=None, fabrication_data_filepaths=None):
+def merge_directories(target_dir_path, source_dir_path, board_name, module=Optional[Module], fabrication_data_filepaths=None):
     """
     Merges entire directories of Gerber and Excellon files from a source directory into a 
     target directory, applying optional transformations if the module information is provided.
@@ -161,9 +166,9 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
             
             # The the modules information is provided, apply the rotation and offset
             if module: 
-                rotation_radians = module['rotation'] * (pi / 180)
-                offset_x = module['position']['x']
-                offset_y = module['position']['y']
+                rotation_radians = module.rotation * (pi / 180)
+                offset_x = module.position.x
+                offset_y = module.position.y
                 source_file.rotate(angle=rotation_radians)
                 source_file.offset(x=offset_x, y=offset_y)
             
@@ -190,9 +195,9 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=None,
             
             # The the modules information is provided, apply the rotation and offset
             if module:
-                rotation_radians = module['rotation'] * (pi / 180)
-                offset_x = module['position']['x']
-                offset_y = module['position']['y']
+                rotation_radians = module.rotation * (pi / 180)
+                offset_x = module.position.x
+                offset_y = module.position.y
                 source_file.rotate(angle=rotation_radians)
                 source_file.offset(dx=offset_x, dy=offset_y)
 

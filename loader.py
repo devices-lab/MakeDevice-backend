@@ -2,6 +2,8 @@ import json
 from typing import Dict, Any, Union, List, Tuple
 from pathlib import Path
 
+from module import Module
+
 class Loader:
     """
     Handles loading and validating PCB data from JSON files.
@@ -12,6 +14,7 @@ class Loader:
         """Initialize with path to JSON file"""
         self.file_path = Path(file_path)
         self.data: Dict[str, Any] = {}
+        self._module_objects = None  # Cache for module objects
         self._load()
         
     def _load(self) -> None:
@@ -24,7 +27,7 @@ class Loader:
             raise FileNotFoundError(f"File {self.file_path} not found.")
         except json.JSONDecodeError:
             raise ValueError(f"File {self.file_path} is not a valid JSON.")
-    
+        
     @property
     def board(self) -> List[Dict[str, Any]]:
         """Get board information"""
@@ -130,9 +133,31 @@ class Loader:
     # ----------------------------------------------------------
 
     @property
-    def modules(self) -> List[Dict[str, Any]]:
-        """Get the raw modules data"""
-        return self.data['modules']
+    def modules(self) -> List[Module]:
+        """
+        Get modules as a list of Module objects
+        
+        Returns:
+            List[Module]: List of Module objects with data from the JSON file
+        """
+        # Use cached module objects if available
+        if self._module_objects is not None:
+            return self._module_objects
+        
+        # Create Module objects from raw data
+        self._module_objects = []
+        for module_data in self.data['modules']:
+            name = module_data['name']
+            # Extract position as a tuple
+            position = (module_data['position']['x'], module_data['position']['y'])
+            # Get rotation (default to 0 if not present)
+            rotation = module_data.get('rotation', 0)
+            
+            # Create Module object
+            module = Module(name=name, position=position, rotation=rotation)
+            self._module_objects.append(module)
+            
+        return self._module_objects
     
     @property
     def module_count(self) -> int:

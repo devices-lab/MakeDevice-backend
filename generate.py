@@ -2,17 +2,14 @@ import os
 from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 
-def generate(segments, socket_locations, board_info, configuration, output_dir="./generated"):
+from board import Board
+from router import RoutingResult
+
+def generate(segments: RoutingResult, board: Board, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
     Parameters:
-        segments (dict): Dictionary with net names as keys and lists of line segments,
-                         where each segment is a tuple of start and end coordinate tuples.
-        socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as socket locations.
-        trace_width (float): Width of the traces in mm.
-        via_diameter (float): Diameter of the vias in mm.
-        output_dir (str): Directory to store the generated Gerber files. Defaults to "./output".
-        intersection_distance (float): Distance of the via placement from the intersection point. Defaults to 1.0 mm.
+        TODO
     Returns:
         None
     """
@@ -20,20 +17,20 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
     os.makedirs(output_dir, exist_ok=True)
 
      # Extract configurations from the passed JSON object
-    layer_mapping = configuration['layer_mapping']
-    connectors = configuration['connectors']
+    layer_mapping = board.loader.layer_map
+    connectors = board.loader.connectors
+    gerber_options = board.loader.fabrication_options
     
-    gerber_options = configuration['gerber_options']
-    trace_width = gerber_options['trace_width']
-    via_annular_ring_diameter = gerber_options['via_annular_ring_diameter']
-    via_drilled_hole_diameter = gerber_options['via_drilled_hole_diameter']
+    trace_width = gerber_options['track_width']
+    via_diameter = gerber_options['via_diameter']
+    via_hole_diameter = gerber_options['via_hole_diameter']
     rounded_corner_radius = gerber_options['rounded_corner_radius']
-        
+     
     if segments:
         # Set software identification
-        set_generation_software(board_info['generation_software']['vendor'], 
-                                board_info['generation_software']['application'], 
-                                board_info['generation_software']['version'])
+        set_generation_software(board.generation_software['vendor'], 
+                                board.generation_software['application'], 
+                                board.generation_software['version'])
         
         # Set up the Gerber layers
         layers = {}
@@ -48,7 +45,7 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
                             
         # Extract the via locations from the socket locations
         via_locations = set()
-        for positions in socket_locations.values():
+        for positions in board.sockets.extract_socket_locations().values(): # TODO: check if this line is OK
             for x, y in positions:
                 via_locations.add((x, y))
         
@@ -80,7 +77,7 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
                 if net in plotted_nets:
                     print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")
                     continue
-                for start, end in segments[net]:
+                for start, end in segments.get_net(net): # TODO: pick up from here next time I am working
                     # Turn the segment into a path to the Gerber layer
                     path = Path()
                     path.moveto(start)
@@ -90,19 +87,19 @@ def generate(segments, socket_locations, board_info, configuration, output_dir="
 
         # Add vias to all layers for each socket location across all net types
         for x, y in via_locations:
-            via_pad = Circle(via_annular_ring_diameter, 'ViaPad', negative=False)  # Via specifications
+            via_pad = Circle(via_diameter, 'ViaPad', negative=False)  # Via specifications
             for layer in layers.values():
                 layer.add_pad(via_pad, (x, y), 0)
 
         # Save Gerber file for each layer
         for filename, layer in layers.items():
-            file_path = os.path.join(output_dir, board_info["name"] + "-" + filename)
+            file_path = os.path.join(output_dir, board.name + "-" + filename)
             with open(file_path, 'w') as file:
                 file.write(layer.dumps_gerber())
     
-        generate_excellon(via_locations, drill_size=via_drilled_hole_diameter, board_name=board_info['name'])
+        generate_excellon(via_locations, drill_size=via_hole_diameter, board_name=board.name)
         
-    generate_board_outline(board_info, rounded_corner_radius, connectors)
+    generate_board_outline(board)
 
 def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
     """
@@ -147,11 +144,7 @@ def generate_excellon(via_locations, drill_size, board_name, output_dir="./gener
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
-
-import os
-from gerber_writer import DataLayer, Path
-
-def generate_board_outline(board, rounding_radius, connectors, output_dir="./output"):
+def generate_board_outline(board: Board, output_dir="./output"):
     """
     Generates a Gerber file for the board outline with rounded corners.
     
@@ -167,17 +160,18 @@ def generate_board_outline(board, rounding_radius, connectors, output_dir="./out
     os.makedirs(output_dir, exist_ok=True)
 
     # Extract board parameters.
-    board_name = board['name']
-    size_x = board['size']['x']
-    size_y = board['size']['y']
-    origin_x = board['origin']['x']
-    origin_y = board['origin']['y']
+    board_name = board.name
+    size_x = board.width
+    size_y = board.height
+    origin_x = board.origin['x']
+    origin_y = board.origin['y']
+    rounding_radius = board.loader.fabrication_options['rounded_corner_radius']
     
     # Get connector information
-    left_connector = connectors['left']
-    right_connector = connectors['right']
-    bottom_connector = connectors['bottom']
-    top_connector = connectors['top']
+    left_connector = board.loader.connectors['left']
+    right_connector = board.loader.connectors['right']
+    bottom_connector = board.loader.connectors['bottom']
+    top_connector = board.loader.connectors['top']
     connector_width = 16 # Width of the connector in mm
 
     # Calculate the board boundaries.

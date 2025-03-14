@@ -6,6 +6,12 @@ from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.breadth_first import BreadthFirstFinder
 from pathfinding.core.diagonal_movement import DiagonalMovement
 
+from pathfinding3d.core.grid import Grid as Grid3D
+from pathfinding3d.finder.a_star import AStarFinder as AStarFinder3D
+from pathfinding3d.finder.dijkstra import DijkstraFinder as DijkstraFinder3D
+from pathfinding3d.finder.ida_star import IDAStarFinder as IDAStarFinder3D
+from pathfinding3d.core.diagonal_movement import DiagonalMovement as DiagonalMovement3D
+
 from manipulate import consolidate_segments, merge_overlapping_segments
 from debug import plot_zones
 
@@ -283,6 +289,31 @@ def route_sockets(grid, socket_locations, configuration):
             end = net_grid.node(*end_index)
             path, runs = finder.find_path(start, end, net_grid)
             print(f"🔵 Pathfinding runs: {runs}")
+            
+            if not path and other_nets_on_layer:
+                
+                print(f"🔵 Making a 3D grid to accomondate routing for {net} on layer {current_layer}")
+                
+                # Set the weights for the tunnelling matrix
+                tunnel_matrix[tunnel_matrix == FREE_CELL] = TUNNEL_CELL
+                                            
+                # Create a 3D matrix for the tunneling, transpose to match the grid indices
+                combined_matrix = np.stack((tunnel_matrix.T, current_matrix.T), axis=2)
+                
+                # Create a 3D grid for the pathfinding
+                tunnel_grid = Grid3D(matrix=combined_matrix)
+                
+                # Only use A* for 3D pathfinding, as it takes the direction and cost into the heuristic calculation
+                # Routing diagonally does not work in the current implementation 
+                finder = AStarFinder3D(diagonal_movement=DiagonalMovement3D.never)
+                    
+                start = tunnel_grid.node(start_index[0], start_index[1], 0)
+                end = tunnel_grid.node(end_index[0], end_index[1], 0)
+                
+                path, runs = finder.find_path(start, end, tunnel_grid)
+                print(f"🔵 Pathfinding runs: {runs}")
+                
+                tunnels_placed = True
                 
             if path:
                 print(f"🟢 Found path for net {net} between {loc1} and {loc2}")
