@@ -2,7 +2,7 @@ import json
 from extract import extract_socket_locations, extract_keep_out_zones
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
 from free_route import create_grid, route_sockets
-from generate import generate
+from generate import generate_gerber
 import warnings
 
 from loader import Loader
@@ -64,7 +64,7 @@ def run(file_number: int) -> None:
         print(f"🟢 Routing completed using {loader.algorithm} algorithm")
         
         # Generate output files
-        generate(
+        generate_gerber(
             segments, 
             socket_locations, 
             loader.data['board_info'], 

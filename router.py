@@ -12,9 +12,6 @@ from board import Board
 # Constants for grid cells
 FREE_CELL = 1
 BLOCKED_CELL = 0
-SOCKET_CELL = 2
-MODULE_CELL = 3
-TUNNEL_CELL = 5
 
 class Point:
     """Represents a point in 2D space with x and y coordinates."""
@@ -153,12 +150,18 @@ class Router:
         self.allow_diagonal_traces = board.allow_diagonal_traces
         self.algorithm = board.algorithm
         self.dimensions = board.dimensions
+        self.height = board.height
+        self.width = board.width
+        self.grid_height = math.ceil(self.height / self.resolution)
+        self.grid_width = math.ceil(self.width / self.resolution)
+        self.grid_center_x = self.grid_width // 2
+        self.grid_center_y = self.grid_height // 2
         self.sockets = board.sockets
         self.zones = board.zones
         
         # Will be populated during routing
-        self.paths = {}  # {net: list of grid indices (x, y) for path}
-        self.previous_paths = defaultdict(list)  # {layer_filename: list of path-indices}
+        self.paths = {} 
+        self.previous_paths = defaultdict(list)  
         self.result = RoutingResult()
         
         # Create the base grid
@@ -171,15 +174,9 @@ class Router:
         """Create the base grid for the entire board."""
         if not self.zones:
             raise ValueError("Cannot create grid without zones")
-            
-        # Calculate grid dimensions
-        width, height = self.dimensions
-        grid_width = math.ceil(width / self.resolution)
-        grid_height = math.ceil(height / self.resolution)
-        center_x, center_y = grid_width // 2, grid_height // 2
         
         # Initialize grid with free cells
-        grid = np.full((grid_height, grid_width), FREE_CELL, dtype=int)
+        grid = np.full((self.grid_height, self.grid_width), FREE_CELL, dtype=int)
         
         # Mark keep-out zones in the grid
         for zone in self.zones.get_zone_rectangles():
@@ -217,25 +214,19 @@ class Router:
     
     def _to_grid_indices(self, x: float, y: float) -> Tuple[int, int]:
         """Convert board coordinates to grid indices."""
-        grid_width = self.board.width
-        grid_height = self.board.height
-        center_x, center_y = grid_width // 2, grid_height // 2
         
-        column = int(center_x + round(x / self.resolution))
-        row = int(center_y - round(y / self.resolution))  # Y-axis is inverted in grid
+        column = int(self.grid_center_x + round(x / self.resolution))
+        row = int(self.grid_center_y - round(y / self.resolution)) # Previously this had a minus
         return column, row
     
     def _from_grid_indices(self, column: int, row: int) -> Point:
         """Convert grid indices to board coordinates as a Point."""
-        grid_width = self.board.width
-        grid_height = self.board.height
-        center_x, center_y = grid_width // 2, grid_height // 2
-        
-        x = (column - center_x) * self.resolution
-        y = (center_y - row) * self.resolution
+                
+        x = (column - self.grid_center_x) * self.resolution
+        y = (self.grid_center_y - row) * self.resolution
         return Point(x, y)
     
-    def _apply_socket_keep_out_zones(self, grid: np.ndarray, current_net: str, keep_out_mm: float = 1.0) -> np.ndarray:
+    def _apply_socket_margin(self, grid: np.ndarray, current_net: str, keep_out_mm: float = 1.0) -> np.ndarray:
         """Apply keep-out zones around sockets of other nets."""
         if not self.sockets:
             return grid
@@ -244,9 +235,9 @@ class Router:
         keep_out_cells = int(np.ceil(keep_out_mm / self.resolution))
         socket_locations = self.sockets.get_socket_locations()
         
-        grid_width = grid.shape[1]
         grid_height = grid.shape[0]
-        
+        grid_width = grid.shape[1]
+
         for net, locations in socket_locations.items():
             for x, y in locations:
                 x_index, y_index = self._to_grid_indices(x, y)
@@ -367,7 +358,7 @@ class Router:
             other_nets_on_layer = False
             
             # Apply socket keep-out zones
-            current_matrix = self._apply_socket_keep_out_zones(self.base_grid, net)
+            current_matrix = self._apply_socket_margin(self.base_grid, net)
             
             # Block previously routed paths on this layer
             if self.previous_paths[current_layer]:
@@ -403,9 +394,7 @@ class Router:
                     finder = AStarFinder()
                 
                 # Configure diagonal movement
-                if other_nets_on_layer:
-                    finder.diagonal_movement = DiagonalMovement.if_at_most_one_obstacle
-                elif self.allow_diagonal_traces:
+                if self.allow_diagonal_traces:
                     finder.diagonal_movement = DiagonalMovement.always
                 else:
                     finder.diagonal_movement = DiagonalMovement.never
@@ -433,7 +422,7 @@ class Router:
         
         # Convert paths to segments
         self._consolidate_segments()
-        
+    
         return self.result
     
     def get_routing_result(self) -> RoutingResult:

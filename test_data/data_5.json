@@ -6,16 +6,16 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 130, "y": 42 },
+    "size": { "x": 200, "y": 150 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
 
   "configuration": {
     "routing_options": {
-      "resolution": 0.125,
+      "resolution": 1,
       "constrained_routing": true,
-      "allow_diagonal_traces": false,
+      "allow_diagonal_traces": true,
       "algorithm": "a_star"
     },
     "gerbersockets_options": {
@@ -23,7 +23,7 @@
       "keep_out_zone_aperture_diameter": 0.1,
       "net_diameter_map": {
         "JD_PWR": 0.11,
-        "JD_GND": 0.12,
+        "GND": 0.12,
         "JD_DATA": 0.13
       },
       "legacy_sockets": true
@@ -39,7 +39,7 @@
       },
       "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
       "B_Cu.gbl": {
-        "nets": ["JD_GND"],
+        "nets": ["GND"],
         "attributes": "Copper,L4,Bottom,Signal"
       }
     },
@@ -48,8 +48,8 @@
       "bus_width": 0.25,
       "track_width": 0.125,
       "gap_width": 0.125,
-      "via_diameter": 0.6,
-      "via_hole_diameter": 0.3,
+      "via_diameter": 0.35,
+      "via_hole_diameter": 0.2,
       "rounded_corner_radius": 4,
       "connectors": {
         "left": false,
@@ -63,12 +63,12 @@
   "modules": [
     {
       "name": "ec30_1x7_r6_mh_0.1",
-      "position": { "x": -20, "y": 0.125 },
+      "position": { "x": 0, "y": 30 },
       "rotation": 0
     },
     {
       "name": "ec30_3x3_l_mh_0.1",
-      "position": { "x": 40, "y": 0 },
+      "position": { "x": 60, "y": 0 },
       "rotation": 270
     }
   ]

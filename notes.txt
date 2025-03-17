@@ -18,3 +18,22 @@ class Board
 
 class Router
 -takes in the Zones, Sockets, 
+
+
+today
+
+implement resolutions everywhere 
+ - [ ] routing  
+ - [ ] board size
+ - [ ] module positioning
+
+
+ todo today
+
+
+1. work through to make routing reliable with the new method
+2. new object for buses, and tracks, with size properties
+3. support the bus on the right side as well 
+3. no routing in the corners (determined by the radius)
+2. ensure the board can be resizable
+

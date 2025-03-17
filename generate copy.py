@@ -5,78 +5,85 @@ from datetime import datetime
 from board import Board
 from router import RoutingResult
 
-
-def generate_gerber(board: Board, routing_result: RoutingResult, output_dir="./generated"):
+def generate(segments: RoutingResult, board: Board, output_dir="./generated"):
     """
     Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
-    
     Parameters:
-        board: The PCB board with module, socket, and zone data
-        routing_result: The routing result containing segments organized by net
-        output_dir: Directory to store the generated Gerber files
-        
+        TODO
     Returns:
         None
     """
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract configurations from the passed JSON object
-    layer_map = board.loader.layer_map
-    fabrication_options = board.loader.fabrication_options
-    trace_width = fabrication_options['track_width']
-    via_diameter = fabrication_options['via_diameter']
+     # Extract configurations from the passed JSON object
+    layer_mapping = board.loader.layer_map
+    connectors = board.loader.connectors
+    gerber_options = board.loader.fabrication_options
+    
+    trace_width = gerber_options['track_width']
+    via_diameter = gerber_options['via_diameter']
+    via_hole_diameter = gerber_options['via_hole_diameter']
+    rounded_corner_radius = gerber_options['rounded_corner_radius']
      
-    if routing_result and routing_result.total_segments_count() > 0:
+    if segments:
         # Set software identification
         set_generation_software(board.generation_software['vendor'], 
-                              board.generation_software['application'], 
-                              board.generation_software['version'])
+                                board.generation_software['application'], 
+                                board.generation_software['version'])
         
         # Set up the Gerber layers
         layers = {}
-        for filename, details in layer_map.items():
+        for filename, details in layer_mapping.items():
             layers[filename] = DataLayer(details["attributes"], negative=False)
         
         # Reverse map layer_mappings to specify which net is on which layer
-        net_to_layer_map = {}
-        for filename, details in layer_map.items():
+        net_to_layer_mapping = {}
+        for filename, details in layer_mapping.items():
             for net in details["nets"]:
-                net_to_layer_map[net] = filename
+                net_to_layer_mapping[net] = filename
                             
         # Extract the via locations from the socket locations
         via_locations = set()
-        if board.sockets:
-            for net, positions in board.sockets.get_socket_locations().items():
-                for x, y in positions:
-                    via_locations.add((x, y))
-    
+        for positions in board.sockets.extract_socket_locations().values():
+            for x, y in positions:
+                via_locations.add((x, y))
+        
+        # Handle "TUNNELS" net separately to add vias only at overlap points
+        if "TUNNELS" in segments:
+            # Collect all points from nets other than "TUNNELS"
+            net_points = set()
+            for net, net_segments in segments.items():
+                if net == "TUNNELS":
+                    continue
+                for start, end in net_segments:
+                    net_points.add(start)
+                    net_points.add(end)
+
+            # Check overlaps for each TUNNEL segment
+            for start, end in segments["TUNNELS"]:
+                if start in net_points:
+                    via_locations.add(start)
+                if end in net_points:
+                    via_locations.add(end)
+        
         plotted_nets = set()
 
-        for filename, details in layer_map.items():
-            for net_name in details["nets"]:
-                if net_name not in routing_result:
-                    print(f"🔴 Net '{net_name}' from layer_mappings not found in routing result")
+        for filename, details in layer_mapping.items():
+            for net in details["nets"]:
+                if net not in segments:
+                    print(f"🔴 Net '{net}' from layer_mappings not found in segments returned from the router")
                     continue
-                if net_name in plotted_nets:
-                    print(f"🔴 Net '{net_name}' has already been plotted on a layer and will be skipped")
+                if net in plotted_nets:
+                    print(f"🔴 Net '{net}' has already been plotted on a layer and will be skipped")
                     continue
-                
-                print(f"🟢 Plotting net '{net_name}' on layer '{filename}'")
-                net_segments = routing_result[net_name]
-                
-                for segment in net_segments:
-                    # Get start and end points from the Segment object
-                    start_point = segment.start.as_tuple()
-                    end_point = segment.end.as_tuple()
-                    
+                for start, end in segments.get_net(net): # TODO: pick up from here next time I am working
                     # Turn the segment into a path to the Gerber layer
                     path = Path()
-                    path.moveto(start_point)
-                    path.lineto(end_point)
+                    path.moveto(start)
+                    path.lineto(end)
                     layers[filename].add_traces_path(path, trace_width, 'Conductor')
-                
-                plotted_nets.add(net_name)  # Mark the net as plotted to avoid duplicates
+                plotted_nets.add(net) # Mark the net as plotted to avoid duplicates
 
         # Add vias to all layers for each socket location across all net types
         for x, y in via_locations:
@@ -90,11 +97,11 @@ def generate_gerber(board: Board, routing_result: RoutingResult, output_dir="./g
             with open(file_path, 'w') as file:
                 file.write(layer.dumps_gerber())
     
-        generate_drill(board, via_locations)
+        generate_excellon(via_locations, drill_size=via_hole_diameter, board_name=board.name)
         
-    generate_outline(board)
+    generate_board_outline(board)
 
-def generate_drill(board: Board, via_locations, output_dir="./generated"):
+def generate_excellon(via_locations, drill_size, board_name, output_dir="./generated"):
     """
     Generates an Excellon drill file for plated through holes (PTH).
     Parameters:
@@ -104,10 +111,6 @@ def generate_drill(board: Board, via_locations, output_dir="./generated"):
     Returns:
         None
     """
-    
-    board_name = board.name
-    via_hole_diameter = board.loader.fabrication_options['via_hole_diameter']    
-    
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
@@ -123,7 +126,7 @@ def generate_drill(board: Board, via_locations, output_dir="./generated"):
         "FMAT,2",
         "METRIC",
         "; #@! TA.AperFunction,Plated,PTH,ViaDrill",
-        f"T1C{via_hole_diameter:.3f}",
+        f"T1C{drill_size:.3f}",
         "%",
         "G90",
         "G05",
@@ -141,7 +144,7 @@ def generate_drill(board: Board, via_locations, output_dir="./generated"):
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
-def generate_outline(board: Board, output_dir="./output"):
+def generate_board_outline(board: Board, output_dir="./output"):
     """
     Generates a Gerber file for the board outline with rounded corners.
     

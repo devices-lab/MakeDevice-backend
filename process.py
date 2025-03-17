@@ -71,7 +71,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./mo
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
                    
-def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
+def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
     Parameters:
@@ -83,6 +83,9 @@ def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules'
     Returns:
         None
     """
+    
+    modules: List[Module] = modules
+    board_name: str = board_name
     
     # Path objects
     modules_dir_path = Path(modules_dir)

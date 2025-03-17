@@ -1,10 +1,10 @@
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
-from generate import generate
+from generate import generate_gerber
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
 from board import Board
-from router import Router
+from busrouter import BusRouter as Router
 
 import warnings
 
@@ -28,11 +28,15 @@ def run(file_number: int):
         print("🔴 No sockets found")
         return
     
+    print(f"Sockets: {sockets.get_socket_locations()}")
+    
     # Get the keep out zones 
     zones = Zones(loader, gerbersockets_layer)
     if zones.get_zone_count() == 0:
         print("🔴 No keep-out zones found")
         return
+    
+    print(f"Zones: {zones.get_zone_rectangles()}")
     
     if loader.debug:
         sockets.save_to_file(f"./{loader.name}_sockets.json")
@@ -45,23 +49,17 @@ def run(file_number: int):
         
     print("🟢 Extracted sockets and keep-out zones")
 
-    # Create a PCB
     board = Board(loader, sockets, zones)
-    board._merge_stacks()
     
     router = Router(board)
-    segments = router.route()
-    # segments = None
+    result = router.route()
     
-    # print(segments)
     
-    # Generate Gerber and Excellon files
-    generate(segments, board)
-    print("🟢 Generated Gerber and Excellon files")
-    
-    # Compress the output directory
+    print(Board.get_layers(board))
+
+    generate_gerber(board, result)
+    merge_stacks(board.modules, board.name)
     compress_directory("output")
-    print("🟢 Directory compressed")
     
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 

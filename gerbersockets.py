@@ -342,7 +342,7 @@ class Zones(Object):
         lines = [obj for obj in self.gerber.objects if isinstance(obj, Line) and 
              isinstance(obj.aperture, CircleAperture) and 
              abs(obj.aperture.diameter - keep_out_zone_aperture_diameter) < 0.0001]
-        
+
         self.zone_rectangles = []
         used_indices = set()
         alignment_errors = []
@@ -403,8 +403,8 @@ class Zones(Object):
                         # Apply margin to create the keep-out zone
                         bottom_left = (sorted_points[0][0] - module_margin, sorted_points[0][1] - module_margin)
                         top_left = (sorted_points[1][0] - module_margin, sorted_points[1][1] + module_margin)
-                        top_right = (sorted_points[3][0] + module_margin, sorted_points[3][1] + module_margin)
                         bottom_right = (sorted_points[2][0] + module_margin, sorted_points[2][1] - module_margin)
+                        top_right = (sorted_points[3][0] + module_margin, sorted_points[3][1] + module_margin)
                         
                         self.zone_rectangles.append((bottom_left, top_left, top_right, bottom_right))
                         used_indices.update(rectangle_indices)
@@ -415,10 +415,6 @@ class Zones(Object):
             for point, res in alignment_errors:
                 error_msg += f"  Point: {point}, Resolution: {res}\n"
             raise ValueError(error_msg)
-            
-        # TODO: If debug is True, implement plotting functionality
-        if debug:
-            pass  # Implement debug plotting functionality
             
         return self.zone_rectangles
     

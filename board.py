@@ -27,8 +27,8 @@ class Board:
         self.loader: Loader = loader
         self.name: str = loader.name
         self.dimensions: Tuple[float, float] = (loader.size['x'], loader.size['y'])
-        self.width: int = loader.size['x']
-        self.height: int = loader.size['y']
+        self.width: float = self.dimensions[0]
+        self.height: float = self.dimensions[1]
         self.resolution: float = loader.resolution
         self.origin: Dict[str, float] = loader.origin
         self.modules: List[Module] = []
