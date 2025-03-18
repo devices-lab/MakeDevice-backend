@@ -41,7 +41,7 @@ class BusRouter:
         
         # Will be populated during routing
         self.trace_indexes: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
-        self.via_indexes: List[Tuple[int, int]] = []
+        self.via_indexes: DefaultDict[str, List[Tuple[int, int]]] = defaultdict(list)
         self.buses = Dict[str, Segment]
         
         # Track routed nets by layer
@@ -186,6 +186,15 @@ class BusRouter:
         print(f"🟢 Created {len(bus_segments)} bus segments")
         return bus_segments
     
+    def _add_via(self, net_name: str, point: Tuple[int, int]) -> None:
+        """Add a via to the via indexes."""
+        # First check if the via is already places at that location
+        if point in self.via_indexes[net_name]:
+            print(f"⚠️ Via already exists at {point}")
+            return
+        
+        self.via_indexes[net_name].append(point)
+
     def _find_nearest_point_on_bus(self, socket_pos: Tuple[float, float], bus: Segment) -> Point:
         """
         Find the nearest point on a vertical bus to a socket.
@@ -254,12 +263,12 @@ class BusRouter:
                 for x, y, _ in path:
                     if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
                         temp_grid[y, x] = BLOCKED_CELL
-                        
-            # Mark the area around vias as obstacles
-            for x, y in self.via_indexes:
+            
+            # Mark all vias for this other net as obstacles
+            for via_index in self.via_indexes.get(other_net, []):
                 for dx in range(-1, 2):
                     for dy in range(-1, 2):
-                        nx, ny = x + dx, y + dy
+                        nx, ny = via_index[0] + dx, via_index[1] + dy
                         if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
                             temp_grid[ny, nx] = BLOCKED_CELL
         
@@ -372,30 +381,14 @@ class BusRouter:
                     if abs(last_node.x - bus_col) <= 1 and abs(last_node.y - bus_row) <= 1:
                         chopped_path.append(bus_node)
                 
-                # If we successfully reached the bus, add a via at the connection point
+                # If successfully reached the bus, add a via at the connection point
                 if bus_crossed:
                     # Get the last point in the path (where it connects to the bus)
-                    connection_point = chopped_path[-1]
-                    # Add this point as a via location
-                    self.via_indexes.append((connection_point.x, connection_point.y))
-                    print(f"🟢 Added via at bus connection point ({connection_point.x}, {connection_point.y})")
+                    connection_index = chopped_path[-1]                    
+                    self._add_via(net_name, (connection_index.x, connection_index.y))
                     
-                # Get the layer for this net
-                layer_idx = 0 
-                layer = self.net_to_layer_map.get(net_name)
-                
-                if layer:
-                    # Layer name to index map
-                    layer_indices = {
-                        "F_Cu.gtl": 1,  # Top layer
-                        "In1_Cu.g2": 2,  # Inner layer 1
-                        "In2_Cu.g3": 3,  # Inner layer 2
-                        "B_Cu.gbl": 4,  # Bottom layer
-                    }
-                    layer_idx = layer_indices.get(layer, 0)
-                
                 # Convert path to tuples with layer information
-                path_tuples = [(node.x, node.y, layer_idx) for node in chopped_path]
+                path_tuples = [(node.x, node.y, -1) for node in chopped_path]
                 return path_tuples
             else:
                 print(f"🔴 No path found between socket at {socket_pos} and target")
@@ -473,16 +466,17 @@ class BusRouter:
         if not self.front_layer or not self.back_layer:
             print("⚠️ Front or back layer not found for via placement")
         
-        for col, row in self.via_indexes:
-            via_point = self._from_grid_indices(col, row)
+        for net_name, via_positions in self.via_indexes.items():
+            for x, y in via_positions:
+                via_point = self._from_grid_indices(x, y)
             
-            # Add annular rings front and back layers
-            if self.front_layer and self.back_layer:
-                self.front_layer.add_annular_ring(via_point)
-                self.back_layer.add_annular_ring(via_point)
-            
-            # Add drill hole to the board
-            self.board.add_drill_hole(via_point)
+                # Add annular rings front and back layers
+                if self.front_layer and self.back_layer:
+                    self.front_layer.add_annular_ring(via_point)
+                    self.back_layer.add_annular_ring(via_point)
+                
+                # Add drill hole to the board
+                self.board.add_drill_hole(via_point)
                
     def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
         """

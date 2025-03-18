@@ -1,5 +1,14 @@
 DO NOT OVEROPTIMISE!
 
-- support the bus on the right side as well 
-- no routing in the corners (determined by the radius)
+fixes needed
+
+- ensure no routing in the corners (determined by the radius)
 - ensure the board can be resizable
+- sometimes vias get placed close to existing traces - maybe place a horizontal margin length of 3 grids by bus wide span after a bus location is found?
+
+
+imrovements preferable
+
+- support the bus on the right side as well 
+- diagonal traces do not work - check out other types of contraints in the pathfinder
+- shorten the buses to a minimum?

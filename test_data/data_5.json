@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 200, "y": 150 },
+    "size": { "x": 230, "y": 150 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -66,13 +66,63 @@
 
   "modules": [
     {
-      "name": "ec30_1x7_r6_mh_0.1",
-      "position": { "x": 0, "y": 30 },
-      "rotation": 0
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -70, "y": 50 },
+      "rotation": 270
     },
     {
       "name": "ec30_3x3_l_mh_0.1",
-      "position": { "x": 60, "y": 0 },
+      "position": { "x": -70, "y": 0 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -70, "y": -50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": 50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": 0 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": -50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": 50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": 0 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": -50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": 50 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": 0 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": -50 },
       "rotation": 270
     }
   ]
