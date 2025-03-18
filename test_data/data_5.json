@@ -13,9 +13,9 @@
 
   "configuration": {
     "routing_options": {
-      "resolution": 1,
+      "resolution": 0.25,
       "constrained_routing": true,
-      "allow_diagonal_traces": true,
+      "allow_diagonal_traces": false,
       "algorithm": "a_star"
     },
     "gerbersockets_options": {
@@ -30,14 +30,17 @@
     },
     "layer_map": {
       "F_Cu.gtl": {
-        "nets": ["JD_DATA", "JD_PWR"],
+        "nets": [],
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
         "nets": [],
         "attributes": "Copper,L2,Inner,Signal"
       },
-      "In2_Cu.g3": { "nets": [], "attributes": "Copper,L3,Inner,Signal" },
+      "In2_Cu.g3": {
+        "nets": [],
+        "attributes": "Copper,L3,Inner,Signal"
+      },
       "B_Cu.gbl": {
         "nets": ["GND"],
         "attributes": "Copper,L4,Bottom,Signal"
@@ -46,8 +49,9 @@
     "fabrication_options": {
       "module_margin": 0,
       "bus_width": 0.25,
+      "bus_spacing": 0.5,
+      "bus_margin": 0.5,
       "track_width": 0.125,
-      "gap_width": 0.125,
       "via_diameter": 0.35,
       "via_hole_diameter": 0.2,
       "rounded_corner_radius": 4,

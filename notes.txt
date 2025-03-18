@@ -1,39 +1,5 @@
-board should be the centerpiece of where everything is stored
+DO NOT OVEROPTIMISE!
 
-
-DO NOT OVEROPTIMISE!!! make something work, come back later and optimise, can use AI for that
-
-keep gerbersocket logic separate - might be made to be reusable in the future 
-
-
-Zones object
-Sockets object
--> both extracted in a separate logic
-
-
-
-class Board
--> center point of everything
-
-
-class Router
--takes in the Zones, Sockets, 
-
-
-today
-
-implement resolutions everywhere 
- - [ ] routing  
- - [ ] board size
- - [ ] module positioning
-
-
- todo today
-
-
-1. work through to make routing reliable with the new method
-2. new object for buses, and tracks, with size properties
-3. support the bus on the right side as well 
-3. no routing in the corners (determined by the radius)
-2. ensure the board can be resizable
-
+- support the bus on the right side as well 
+- no routing in the corners (determined by the radius)
+- ensure the board can be resizable

@@ -71,22 +71,21 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./mo
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
                    
-def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./output', generated_dir='./generated'):
+def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output', generated_dir='./generated') -> None:
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
+    
     Parameters:
-        modules (list): A list of Module objects.
+        modules (List[Module]): A list of Module objects.
         board_name (str): The name of the board to be used in the merging process.
         modules_dir (str, optional): The directory where the module directories are located. Defaults to './modules'.
         output_dir (str, optional): The directory where the merged output will be stored. Defaults to './output'.
         generated_dir (str, optional): The directory containing additional generated files to be merged. Defaults to './generated'.
+        
     Returns:
         None
     """
-    
-    modules: List[Module] = modules
-    board_name: str = board_name
-    
+        
     # Path objects
     modules_dir_path = Path(modules_dir)
     output_dir_path = Path(output_dir)
@@ -102,28 +101,21 @@ def merge_stacks(modules, board_name, modules_dir='./modules', output_dir='./out
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     for module in modules:
-        module_path = modules_dir_path / module.name
+        module_dir_path = modules_dir_path / module.name
 
-        if not module_path.exists() or not module_path.is_dir():
-            print(f"🔴 Module not found: '{module_path}'")
+        if not module_dir_path.exists() or not module_dir_path.is_dir():
+            print(f"🔴 Module not found: '{module_dir_path}'")
             continue
         
         # Merge each module's Gerber or fabrication files into the output directory, and apply transformations 
         # by passing the information from each modules 
         # Along the way collect the filepaths for the CPL and BOM files for each module...
-        fabrication_data_filepaths = merge_directories(output_dir_path, module_path, board_name, module, fabrication_data_filepaths.copy())
-        
-    # do some bom and pick and place processing here
-    
-    # BOM AND PICK AND PLACE PROCESSING!!!
-    # processed_BOM = process_BOM(fabrication_data_filepaths['BOM'], output_dir_path) 
-    # processed_CPL = process_CPL(modules, fabrication_data_filepaths['CPL'], processed_BOM, output_dir_path)
-    
-    
+        merge_directories(output_dir_path, module_dir_path, board_name, module)
+            
     # And lastly, merge with the additional generated files from /generated directory
-    merge_directories(output_dir_path, generated_dir_path, board_name, module=None, fabrication_data_filepaths=None)
+    merge_directories(output_dir_path, generated_dir_path, board_name, None)
 
-def merge_directories(target_dir_path, source_dir_path, board_name, module=Optional[Module], fabrication_data_filepaths=None):
+def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: str, module=Optional[Module]) -> None:
     """
     Merges entire directories of Gerber and Excellon files from a source directory into a 
     target directory, applying optional transformations if the module information is provided.
@@ -131,9 +123,7 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=Optio
         target_dir_path (Path): The path to the target directory where merged files will be saved.
         source_dir_path (Path): The path to the source directory containing files to be merged.
         board_name (str): The name of the board to be used in the new filenames.
-        module (dict, optional): A dictionary containing module information for transformations. 
-                                Expected keys are 'rotation' (in degrees) and 'position' 
-                                (a dictionary with 'x' and 'y' coordinates).
+        module 
         fabrication_data_filepaths (dict, optional): A dictionary containing lists of filepaths for BOM and CPL files.
     Returns:
         None
@@ -145,9 +135,10 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=Optio
         # Check if the file is a .GM1 file and if "connector" is not in the filename
         is_board_outline = source_file_path.suffix.upper() == '.GM1'
         is_connector = 'connector' in source_file_path.name.lower()
-        
+            
+
         # Skip .GM1 files only if they're not part of a connector
-        if is_board_outline and not is_connector:
+        if module and is_board_outline and not is_connector:
             print(f"🟠 Skipping mechanical layer file for non-connector: {source_file_path}")
             continue
             
@@ -175,23 +166,6 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=Optio
                 source_file.rotate(angle=rotation_radians)
                 source_file.offset(x=offset_x, y=offset_y)
             
-        elif source_file_path.suffix.upper() == '.CSV':
-            
-            # Check if file contains 'CPL' or 'PNP', which would indicate it's a pick and place file
-            if 'CPL' in source_file_path.name.upper() or 'PNP' in source_file_path.name.upper():
-                print(f"📍Found a pick and place (CPL/PNP) file {source_file_path}")
-                if (fabrication_data_filepaths != None):
-                    fabrication_data_filepaths['CPL'].append(source_file_path)
-                
-                continue
-
-            # Check if file contains 'BOM', which would indicate it's a bill of materials file
-            elif 'BOM' in source_file_path.name.upper():
-                print(f"💣 Found a bill of materials (BOM) file {source_file_path}")
-                if (fabrication_data_filepaths != None):
-                    fabrication_data_filepaths['BOM'].append(source_file_path)
-
-                continue
         else:
             source_file = GerberFile.open(source_file_path)
             target_file = GerberFile.open(target_file_path) if target_file_path.exists() else None
@@ -212,10 +186,6 @@ def merge_directories(target_dir_path, source_dir_path, board_name, module=Optio
         else:
             # Save the transformed source file directly if no target file exists
             source_file.save(target_file_path)
-
-        
-    if (fabrication_data_filepaths != None):
-        return fabrication_data_filepaths
     
 def process_BOM(bom_filepaths, target_dir):
     bom_items = iterate_bom_files(bom_filepaths)

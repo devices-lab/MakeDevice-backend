@@ -1,4 +1,5 @@
 from typing import List, Tuple, Optional
+
 class Point:
     """Represents a point in 2D space with x and y coordinates."""
     def __init__(self, x: float, y: float):
@@ -15,8 +16,27 @@ class Point:
         return cls(point_tuple[0], point_tuple[1])
     
     def __repr__(self) -> str:
-        return f"Point(x={self.x:.3f}, y={self.y:.3f})"
+        return f"Point(x={self.x}, y={self.y})"
 
+class Via: 
+    """Not in use currently"""
+    def __init__ (self, point: Point):
+        self.point = point
+        
+    @property 
+    def x(self) -> float:
+        return self.point.x
+    
+    @property
+    def y(self) -> float:
+        return self.point.y
+    
+    def as_tuple(self) -> Tuple[float, float]:
+        """Return the via location as a tuple (x, y)"""
+        return self.point.as_tuple()
+
+    def __repr__(self) -> str:
+        return f"Via(point={self.point}, diameter={self.diameter}, drill={self.drill_diameter})"
 
 class Segment:
     """

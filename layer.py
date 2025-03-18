@@ -1,12 +1,13 @@
 from typing import List
-from segment import Segment
+from objects import Point, Segment
 
 class Layer:
     def __init__(self, name: str, attributes: str = None):
         self.name = name
         self.attributes = attributes
         self.nets: List[str] = []
-        self.segments: List[Segment] = []  # Add a list to store segments
+        self.segments: List[Segment] = []
+        self.annular_rings: List[Point] = []
 
     def add_net(self, net: str) -> None:
         """Add a net to the layer if it's not already present"""
@@ -16,6 +17,10 @@ class Layer:
     def add_segment(self, segment: Segment) -> None:
         """Add a segment to the layer"""
         self.segments.append(segment)
+        
+    def add_annular_ring(self, point: Point) -> None:
+        """Add an annular ring to the layer"""
+        self.annular_rings.append(point)
     
     def get_segments_for_net(self, net_name: str) -> List[Segment]:
         """Get all segments for a specific net on this layer"""

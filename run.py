@@ -1,5 +1,5 @@
 from process import merge_layers, merge_stacks, clear_directories, compress_directory
-from generate import generate_gerber
+from generate import generate
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
@@ -28,36 +28,18 @@ def run(file_number: int):
         print("🔴 No sockets found")
         return
     
-    print(f"Sockets: {sockets.get_socket_locations()}")
-    
     # Get the keep out zones 
     zones = Zones(loader, gerbersockets_layer)
     if zones.get_zone_count() == 0:
         print("🔴 No keep-out zones found")
         return
-    
-    print(f"Zones: {zones.get_zone_rectangles()}")
-    
-    if loader.debug:
-        sockets.save_to_file(f"./{loader.name}_sockets.json")
-        sockets.plot_extracted_sockets(f"GerberSockets-sockets.gbr")
-        
-        zones.save_to_file(f"./{loader.name}_zones.json")
-        zones.plot_extracted_zones(f"GerberSockets-zones.gbr")
-
-        print("⚪️ Saved sockets and zones to files")
-        
-    print("🟢 Extracted sockets and keep-out zones")
 
     board = Board(loader, sockets, zones)
-    
+        
     router = Router(board)
-    result = router.route()
-    
-    
-    print(Board.get_layers(board))
+    router.route()
 
-    generate_gerber(board, result)
+    generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
     

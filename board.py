@@ -6,6 +6,7 @@ from loader import Loader
 from gerbersockets import Sockets, Zones
 from module import Module
 from layer import Layer
+from objects import Point
 
 from process import merge_stacks
 
@@ -42,6 +43,7 @@ class Board:
         # Add sockets and zones if provided
         self._sockets: Optional[Sockets] = sockets
         self._zones: Optional[Zones] = zones
+        self._drill_holes: List[Point] = []
         
         # Track warnings
         self.warnings: List[str] = []
@@ -67,8 +69,9 @@ class Board:
             
     def _add_layers_from_loader(self) -> None:
         """
-        Load layers from loader data structure
+        Load layers from loader data structure and add unspecified nets from sockets to the top layer.
         """
+        # First pass: Create layers and add explicitly assigned nets
         for layer_name, layer_data in self.loader.layer_map.items():
             # Create the layer
             layer = Layer(name=layer_name, attributes=layer_data.get('attributes'))
@@ -79,6 +82,26 @@ class Board:
                 
             # Add the layer to the board
             self.layers[layer_name] = layer
+        
+        # Second pass: find unassigned nets from sockets and add them to the top layer by default
+        if self._sockets:
+            # Get all socket nets
+            all_socket_nets = set(self._sockets.get_nets())
+            
+            # Find which nets are already assigned to layers
+            assigned_nets = set()
+            for layer in self.layers.values():
+                assigned_nets.update(layer.nets)
+            
+            # Find unassigned nets
+            unassigned_nets = all_socket_nets - assigned_nets
+            
+            # Add unassigned nets to the top layer (F_Cu.gtl)
+            top_layer = self.layers.get("F_Cu.gtl")
+            if top_layer and unassigned_nets:
+                print(f"🟢 Adding {len(unassigned_nets)} unassigned nets to top layer: {unassigned_nets}")
+                for net in unassigned_nets:
+                    top_layer.add_net(net)
     
     def _check_module_positions(self) -> None:
         """
@@ -239,16 +262,7 @@ class Board:
         
         if not generated_dir.exists():
             generated_dir.mkdir()
-            
-    # def _create_grids(self) -> None:
-    #     """Create a pathfinding grid for each layer"""
-    #     if not self._zones:
-    #         raise ValueError("Cannot create grids without zones")
-            
-    #     for layer in self.layers.values():
-    #         layer.create_grid(self._zones, self.dimensions, self.resolution)
-    
-    
+        
     def _merge_stacks(self) -> None:
         """Merge all generated Gerber files with Gerber files from the modules"""
         merge_stacks(self.modules, self.name)
@@ -266,6 +280,10 @@ class Board:
     def get_modules_by_name(self, name: str) -> List[Module]:
         """Get all modules by a specific name"""
         return [module for module in self.modules if module.name == name]
+    
+    def add_drill_hole(self, position: Point) -> None:
+        """Add a drill hole to the board"""
+        self._drill_holes.append(position)
     
     def get_nets(self) -> Set[str]:
         """Get all nets used on the board"""
@@ -318,6 +336,11 @@ class Board:
     def sockets(self) -> Optional[Sockets]:
         """Get the sockets for the board"""
         return self._sockets
+    
+    @property 
+    def drill_holes(self) -> List[Tuple[float, float]]:
+        """Get the drill holes for the board"""
+        return self._drill_holes
     
     def __repr__(self) -> str:
         socket_count = self._sockets.get_socket_count() if self._sockets else 0

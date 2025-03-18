@@ -3,16 +3,18 @@ from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 
 from board import Board
-from router import RoutingResult
 
-
-def generate_gerber(board: Board, routing_result: RoutingResult, output_dir="./generated"):
+def generate(board: Board, output_dir="./generated"):
+    _generate_graphics(board, output_dir)
+    _generate_drill(board, output_dir)
+    _generate_outline(board, output_dir)
+    
+def _generate_graphics(board: Board, output_dir) -> None:
     """
-    Converts line segments into separate Gerber files for each net type and adds vias on all layers for each socket location.
+    Takes traces and annular rings from the board object, and generates Gerber graphical objects.  
     
     Parameters:
-        board: The PCB board with module, socket, and zone data
-        routing_result: The routing result containing segments organized by net
+        board: The PCB board with module, socket, zone and segment data
         output_dir: Directory to store the generated Gerber files
         
     Returns:
@@ -21,91 +23,53 @@ def generate_gerber(board: Board, routing_result: RoutingResult, output_dir="./g
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract configurations from the passed JSON object
-    layer_map = board.loader.layer_map
-    fabrication_options = board.loader.fabrication_options
-    trace_width = fabrication_options['track_width']
-    via_diameter = fabrication_options['via_diameter']
-     
-    if routing_result and routing_result.total_segments_count() > 0:
-        # Set software identification
-        set_generation_software(board.generation_software['vendor'], 
-                              board.generation_software['application'], 
-                              board.generation_software['version'])
-        
-        # Set up the Gerber layers
-        layers = {}
-        for filename, details in layer_map.items():
-            layers[filename] = DataLayer(details["attributes"], negative=False)
-        
-        # Reverse map layer_mappings to specify which net is on which layer
-        net_to_layer_map = {}
-        for filename, details in layer_map.items():
-            for net in details["nets"]:
-                net_to_layer_map[net] = filename
-                            
-        # Extract the via locations from the socket locations
-        via_locations = set()
-        if board.sockets:
-            for net, positions in board.sockets.get_socket_locations().items():
-                for x, y in positions:
-                    via_locations.add((x, y))
+    # Set software identification
+    set_generation_software(board.generation_software['vendor'], 
+                            board.generation_software['application'], 
+                            board.generation_software['version'])
     
-        plotted_nets = set()
+    via_diameter = board.loader.fabrication_options['via_diameter']
 
-        for filename, details in layer_map.items():
-            for net_name in details["nets"]:
-                if net_name not in routing_result:
-                    print(f"🔴 Net '{net_name}' from layer_mappings not found in routing result")
-                    continue
-                if net_name in plotted_nets:
-                    print(f"🔴 Net '{net_name}' has already been plotted on a layer and will be skipped")
-                    continue
-                
-                print(f"🟢 Plotting net '{net_name}' on layer '{filename}'")
-                net_segments = routing_result[net_name]
-                
-                for segment in net_segments:
-                    # Get start and end points from the Segment object
-                    start_point = segment.start.as_tuple()
-                    end_point = segment.end.as_tuple()
-                    
-                    # Turn the segment into a path to the Gerber layer
-                    path = Path()
-                    path.moveto(start_point)
-                    path.lineto(end_point)
-                    layers[filename].add_traces_path(path, trace_width, 'Conductor')
-                
-                plotted_nets.add(net_name)  # Mark the net as plotted to avoid duplicates
-
-        # Add vias to all layers for each socket location across all net types
-        for x, y in via_locations:
-            via_pad = Circle(via_diameter, 'ViaPad', negative=False)  # Via specifications
-            for layer in layers.values():
-                layer.add_pad(via_pad, (x, y), 0)
-
-        # Save Gerber file for each layer
-        for filename, layer in layers.items():
-            file_path = os.path.join(output_dir, board.name + "-" + filename)
-            with open(file_path, 'w') as file:
-                file.write(layer.dumps_gerber())
-    
-        generate_drill(board, via_locations)
+    # Process segments and annular rings for each layer
+    for layer_name, layer in board.layers.items():
         
-    generate_outline(board)
+        # Get the corresponding gerber layer
+        gerber = DataLayer(layer.attributes, negative=False)
 
-def generate_drill(board: Board, via_locations, output_dir="./generated"):
+        # Add segments for the current layer
+        for segment in layer.segments:
+            # Get start and end points from the Segment object
+            start_point = segment.start.as_tuple()
+            end_point = segment.end.as_tuple()
+            
+            # Turn the segment into a path to the Gerber layer
+            path = Path()
+            path.moveto(start_point)
+            path.lineto(end_point)
+            gerber.add_traces_path(path, segment.width, 'Conductor')
+            
+        # Add annular rings to the current layer
+        for annular_ring in layer.annular_rings:
+            pad = Circle(via_diameter, 'ViaPad', negative=False)
+            gerber.add_pad(pad, annular_ring.as_tuple(), 0)
+        
+        # Save Gerber file
+        file_path = os.path.join(output_dir, board.name + "-" + layer_name)
+        with open(file_path, 'w') as file:
+            file.write(gerber.dumps_gerber())
+    
+def _generate_drill(board: Board, output_dir="./generated") -> None:
     """
     Generates an Excellon drill file for plated through holes (PTH).
+    
     Parameters:
-        socket_locations (dict): Dictionary with net names as keys and lists of tuples (x, y) as drill locations.
-        drill_size (float): Diameter of the drill holes in mm.
+        board: The PCB board with module, socket, zone and segment data
         output_dir (str): Directory to store the generated drill file. Defaults to "./generated".
+    
     Returns:
         None
     """
     
-    board_name = board.name
     via_hole_diameter = board.loader.fabrication_options['via_hole_diameter']    
     
     # Ensure the output directory exists
@@ -115,7 +79,7 @@ def generate_drill(board: Board, via_locations, output_dir="./generated"):
     timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
     content = [
         "M48",
-        f"; DRILL file {{MakeDevice v0.1}} date {timestamp}",
+        f"; DRILL file {board.name} date {timestamp}",
         "; FORMAT={-:-/ absolute / metric / decimal}",
         f"; #@! TF.CreationDate,{timestamp}",
         "; #@! TF.GenerationSoftware,Kicad,Pcbnew,8.0.2-1",
@@ -131,17 +95,18 @@ def generate_drill(board: Board, via_locations, output_dir="./generated"):
     ]
 
     # Adding drill locations from socket_locations
-    for x, y in via_locations:
+    for drill_hole in board._drill_holes:
+        x, y = drill_hole.as_tuple()
         content.append(f"X{x:.2f}Y{y:.2f}")
     
-    content.append("M30")  # End of program
+    content.append("M30") # End of program
 
     # Save drill file
-    file_path = os.path.join(output_dir, board_name + "-" + "PTH.drl")
+    file_path = os.path.join(output_dir, board.name + "-" + "PTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
-def generate_outline(board: Board, output_dir="./output"):
+def _generate_outline(board: Board, output_dir="./output"):
     """
     Generates a Gerber file for the board outline with rounded corners.
     
@@ -156,12 +121,11 @@ def generate_outline(board: Board, output_dir="./output"):
     # Ensure the output directory exists.
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract board parameters.
-    board_name = board.name
-    size_x = board.width
-    size_y = board.height
+    # Extract board origins
     origin_x = board.origin['x']
     origin_y = board.origin['y']
+    
+    # Get the rounding radius
     rounding_radius = board.loader.fabrication_options['rounded_corner_radius']
     
     # Get connector information
@@ -169,16 +133,16 @@ def generate_outline(board: Board, output_dir="./output"):
     right_connector = board.loader.connectors['right']
     bottom_connector = board.loader.connectors['bottom']
     top_connector = board.loader.connectors['top']
-    connector_width = 16 # Width of the connector in mm
+    connector_width = 16 # Width of the connector in mm - hardcoded for now
 
     # Calculate the board boundaries.
-    xmin = origin_x - size_x / 2
-    xmax = origin_x + size_x / 2
-    ymin = origin_y - size_y / 2
-    ymax = origin_y + size_y / 2
+    xmin = origin_x - board.width / 2
+    xmax = origin_x + board.width / 2
+    ymin = origin_y - board.height / 2
+    ymax = origin_y + board.height / 2
 
     # Ensure the rounding radius does not exceed half the board dimensions
-    rounding_radius = min(rounding_radius, size_x / 2, size_y / 2)
+    rounding_radius = min(rounding_radius, board.width / 2, board.height / 2)
 
     # Create the DataLayer and Path for the board outline
     outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
@@ -192,6 +156,7 @@ def generate_outline(board: Board, output_dir="./output"):
         path.lineto((origin_x - connector_width / 2, ymin))
         path.moveto((origin_x + connector_width / 2, ymin))
     path.lineto((xmax - rounding_radius, ymin))
+    
     # Bottom-right corner
     if rounding_radius > 0:
         path.arcto((xmax, ymin + rounding_radius), (xmax - rounding_radius, ymin + rounding_radius), '+')
@@ -201,6 +166,7 @@ def generate_outline(board: Board, output_dir="./output"):
         path.lineto((xmax, origin_y - connector_width / 2))
         path.moveto((xmax, origin_y + connector_width / 2))
     path.lineto((xmax, ymax - rounding_radius))
+    
     # Top-right corner
     if rounding_radius > 0:
         path.arcto((xmax - rounding_radius, ymax), (xmax - rounding_radius, ymax - rounding_radius), '+')
@@ -210,6 +176,7 @@ def generate_outline(board: Board, output_dir="./output"):
         path.lineto((origin_x + connector_width / 2, ymax))
         path.moveto((origin_x - connector_width / 2, ymax))
     path.lineto((xmin + rounding_radius, ymax))
+    
     # Top-left corner
     if rounding_radius > 0:
         path.arcto((xmin, ymax - rounding_radius), (xmin + rounding_radius, ymax - rounding_radius), '+')
@@ -219,6 +186,7 @@ def generate_outline(board: Board, output_dir="./output"):
         path.lineto((xmin, origin_y + connector_width / 2))
         path.moveto((xmin, origin_y - connector_width / 2))
     path.lineto((xmin, ymin + rounding_radius))
+    
     # Bottom-left corner
     if rounding_radius > 0:
         path.arcto((xmin + rounding_radius, ymin), (xmin + rounding_radius, ymin + rounding_radius), '+')
@@ -227,6 +195,6 @@ def generate_outline(board: Board, output_dir="./output"):
     outline_layer.add_traces_path(path, 0.15, 'Outline')
 
     # Write the Gerber file
-    file_path = os.path.join(output_dir, f"{board_name}-Edge_Cuts.gm1")
+    file_path = os.path.join(output_dir, f"{board.name}-Edge_Cuts.gm1")
     with open(file_path, 'w') as file:
         file.write(outline_layer.dumps_gerber())
