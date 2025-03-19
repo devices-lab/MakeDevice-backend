@@ -10,7 +10,6 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 
 from board import Board
 from objects import Point, Segment
-from layer import Layer
 
 # Constants for grid cells
 FREE_CELL = 1

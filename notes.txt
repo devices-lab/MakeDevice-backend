@@ -11,4 +11,6 @@ imrovements preferable
 
 - support the bus on the right side as well 
 - diagonal traces do not work - check out other types of contraints in the pathfinder
-- shorten the buses to a minimum?
+- shorten the buses to a minimum after all connections are placed?
+- implent so that any layer can be a plane?
+- make it configurable to set which nets are to be routed with buses, and which to be routed with normal routing
