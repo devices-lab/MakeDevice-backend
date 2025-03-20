@@ -37,6 +37,7 @@ def run(file_number: int):
     board = Board(loader, sockets, zones)
         
     router = Router(board)
+    
     router.route()
 
     generate(board)

@@ -2,9 +2,10 @@ from typing import List
 from objects import Point, Segment
 
 class Layer:
-    def __init__(self, name: str, attributes: str = None):
+    def __init__(self, name: str, fill: bool, attributes: str = None):
         self.name = name
         self.attributes = attributes
+        self.fill = fill
         self.nets: List[str] = []
         self.segments: List[Segment] = []
         self.annular_rings: List[Point] = []

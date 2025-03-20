@@ -29,13 +29,44 @@ def _generate_graphics(board: Board, output_dir) -> None:
                             board.generation_software['version'])
     
     via_diameter = board.loader.fabrication_options['via_diameter']
-
+    edge_clearance = board.loader.fabrication_options['edge_clearance']
+    bus_clearance = board.bus_clearance
+    o_x = board.origin['x']
+    o_y = board.origin['y']
+    
     # Process segments and annular rings for each layer
     for layer_name, layer in board.layers.items():
         
         # Get the corresponding gerber layer
         gerber = DataLayer(layer.attributes, negative=False)
 
+        # Add fills if selected for the current layer
+        if layer.fill:
+            # First, create a path of the entire board outline, taking into consideration the bus_clearance
+            bottom_left = ((o_x - board.width / 2) + bus_clearance, o_y - board.height / 2 + edge_clearance)
+            top_left = ((o_x - board.width / 2) + bus_clearance, o_y + board.height / 2 - edge_clearance)
+            top_right = (o_x + board.width / 2 - edge_clearance, o_y + board.height / 2 - edge_clearance)
+            bottom_right = (o_x + board.width / 2 - edge_clearance, o_y - board.height / 2 + edge_clearance)
+
+            outline = Path()
+            outline.moveto(bottom_left)
+            outline.lineto(top_left)
+            outline.lineto(top_right)
+            outline.lineto(bottom_right)
+            outline.lineto(bottom_left)
+            gerber.add_region(outline, "GND,Copper,Fill", negative=False)
+            
+            # # Now for each zone, add a cutout (negative region)
+            zones = board._zones.get_data()
+            for zone in zones:
+                cutout = Path()
+                cutout.moveto(zone[0])
+                cutout.lineto(zone[1])
+                cutout.lineto(zone[2])
+                cutout.lineto(zone[3])
+                cutout.lineto(zone[0])
+                gerber.add_region(cutout, "GND,Copper,Fill", negative=True)
+                
         # Add segments for the current layer
         for segment in layer.segments:
             # Get start and end points from the Segment object
@@ -52,6 +83,8 @@ def _generate_graphics(board: Board, output_dir) -> None:
         for annular_ring in layer.annular_rings:
             pad = Circle(via_diameter, 'ViaPad', negative=False)
             gerber.add_pad(pad, annular_ring.as_tuple(), 0)
+        
+
         
         # Save Gerber file
         file_path = os.path.join(output_dir, board.name + "-" + layer_name)

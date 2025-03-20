@@ -2,15 +2,65 @@ DO NOT OVEROPTIMISE!
 
 fixes needed
 
-- ensure no routing in the corners (determined by the radius)
 - ensure the board can be resizable
-- sometimes vias get placed close to existing traces - maybe place a horizontal margin length of 3 grids by bus wide span after a bus location is found?
+- via for grounf plane, and zone
+- vias from the same net could have drill hole to close to each other on the same bus connection 
+- move the corner zone logic to the board, instead of the busrouter
 
 
 imrovements preferable
 
+- merge/consolidate overlapping segments - hard to do properly!
 - support the bus on the right side as well 
 - diagonal traces do not work - check out other types of contraints in the pathfinder
 - shorten the buses to a minimum after all connections are placed?
 - implent so that any layer can be a plane?
 - make it configurable to set which nets are to be routed with buses, and which to be routed with normal routing
+
+
+
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": 50.75 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": 0.75 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": -20, "y": -50.25 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": 50.25 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": 0.5 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 30, "y": -50.75 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": 50.25 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": 0 },
+      "rotation": 270
+    },
+    {
+      "name": "ec30_3x3_l_mh_0.1",
+      "position": { "x": 80, "y": -50.25 },
+      "rotation": 270
+    }

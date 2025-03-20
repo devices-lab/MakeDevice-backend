@@ -30,6 +30,7 @@ class BusRouter:
         self.board = board
         self.resolution = board.resolution
         self.allow_diagonal_traces = board.allow_diagonal_traces
+        self.allow_overlap = board.allow_overlap
         self.algorithm = board.algorithm
         self.grid_height = self._to_grid_resolution(board.height)
         self.grid_width = self._to_grid_resolution(board.width)
@@ -37,6 +38,7 @@ class BusRouter:
         self.grid_center_y = self.grid_height // 2
         self.sockets = board.sockets
         self.zones = board.zones
+        self.bus_clearance = board.bus_clearance
         
         # Will be populated during routing
         self.trace_indexes: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
@@ -50,7 +52,7 @@ class BusRouter:
         self.trace_width = board.loader.fabrication_options['track_width']
         self.bus_width = board.loader.fabrication_options['bus_width']
         self.bus_spacing = board.loader.fabrication_options['bus_spacing']
-        self.bus_margin = board.loader.fabrication_options['bus_margin']
+        self.edge_clearance = board.loader.fabrication_options['edge_clearance']
         
         # Create net to layer mapping
         self.net_to_layer_map = self._invert_layer_map()
@@ -62,6 +64,9 @@ class BusRouter:
         if not self.front_layer or not self.back_layer:
             raise ValueError("🔴 Front or back layer not found in board")
        
+        # Add corner keep-out zones to prevent traces from crossing rounded corners
+        self._add_corner_keep_out_zones()
+        
         # Create the base grid
         self.base_grid = self._create_base_grid()
                          
@@ -136,11 +141,14 @@ class BusRouter:
         corner_radius = self.board.loader.fabrication_options['rounded_corner_radius']
         
         # Start position for first bus
-        leftmost_bus_x = (-self.board.width / 2) + self.bus_margin
+        leftmost_bus_x: float = (-self.board.width / 2) + self.edge_clearance
+                
+        # Vertical offset for buses
+        offset = corner_radius if corner_radius > 0 else self.edge_clearance
         
         # Calculate the y extents for buses
-        bus_upper_y = (self.board.height / 2) - corner_radius
-        bus_lower_y = (-self.board.height / 2) + corner_radius
+        bus_upper_y = (self.board.height / 2) - offset
+        bus_lower_y = (-self.board.height / 2) + offset
         
         # Create result dictionary for bus segments
         bus_segments = {}
@@ -152,10 +160,9 @@ class BusRouter:
             if layer_name:
                 nets_by_layer[layer_name].append(net_name)
         
-        print(f"🔵 Nets by layer: {nets_by_layer}")
-        
         # Calculate positions and create segments for each net
-        current_x = leftmost_bus_x
+        current_x: float = leftmost_bus_x
+        
         for layer_name, layer_nets in nets_by_layer.items():
             for net_name in layer_nets:
                 # Calculate bus position
@@ -181,6 +188,9 @@ class BusRouter:
                 
                 # Move to the next x position
                 current_x += self.bus_spacing
+        
+        # Store clearance needed for the buses
+        self.board.bus_clearance = current_x + (self.board.width / 2)
         
         print(f"🟢 Created {len(bus_segments)} bus segments")
         return bus_segments
@@ -216,6 +226,146 @@ class BusRouter:
         
         return Point(bus_x, clamped_y)
     
+    def _block_elements_on_grid(self, grid: np.ndarray, net_name: str) -> np.ndarray:
+        """Mark traces from other nets on the same layer as obstacles."""
+        temp_grid = np.copy(grid)
+        
+        # Find the layer for this net
+        current_layer_name = self.net_to_layer_map.get(net_name)
+        if not current_layer_name:
+            return temp_grid
+        
+        # Get all nets on the same layer from the board structure
+        nets_on_current_layer = self._get_nets_for_layer(current_layer_name)
+        
+        # Find other nets on the same layer
+        for other_net in nets_on_current_layer:
+            if other_net == net_name and self.allow_overlap:
+                continue  # Skip the current net, allow elements to short
+            
+            # Mark all paths for this other net as obstacles
+            for path in self.trace_indexes.get(other_net, []):
+                for x, y, _ in path:
+                    if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
+                        temp_grid[y, x] = BLOCKED_CELL
+            
+            # Mark all vias for this other net as obstacles
+            for via_index in self.via_indexes.get(other_net, []):
+                for dx in range(-2, 3): # 2 extra grid cells of keep out on left and right
+                    for dy in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
+                        nx, ny = via_index[0] + dx, via_index[1] + dy
+                        if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
+                            temp_grid[ny, nx] = BLOCKED_CELL
+        
+        # Ensure the first column is always free
+        for y in range(self.grid_height):
+            temp_grid[y, 0] = FREE_CELL
+            
+        return temp_grid
+    
+    def _add_corner_keep_out_zones(self) -> None:
+        """
+        Apply keep-out zones to each corner of the board with dimensions based on corner radius.
+        This prevents routing traces through the rounded corners of the board.
+        """
+        # Skip if zones are not available
+        if not self.zones:
+            print("⚠️ Cannot add corner keep-out zones: zones object not initialized")
+            return
+        
+        # Get corner radius from board fabrication options
+        corner_radius = self.board.loader.fabrication_options.get('rounded_corner_radius', 0)
+        
+        # If corner radius is zero or not set, no need to add corner keep-out zones
+        if corner_radius <= 0:
+            print("🟠 No corner radius defined, skipping corner keep-out zones")
+            return
+        
+        # Get board dimensions and origin
+        width = self.board.width
+        height = self.board.height
+        origin_x = self.board.origin['x']
+        origin_y = self.board.origin['y']
+        
+        # Calculate the board boundaries
+        xmin = origin_x - width / 2
+        xmax = origin_x + width / 2
+        ymin = origin_y - height / 2
+        ymax = origin_y + height / 2
+        
+        # Create square keep-out zones for each corner, with size equal to corner radius
+        # Bottom-left corner
+        bottom_left_zone = (
+            (xmin, ymin),                          # bottom-left
+            (xmin, ymin + corner_radius),          # top-left
+            (xmin + corner_radius, ymin + corner_radius),  # top-right
+            (xmin + corner_radius, ymin)           # bottom-right
+        )
+        
+        # Bottom-right corner
+        bottom_right_zone = (
+            (xmax - corner_radius, ymin),          # bottom-left
+            (xmax - corner_radius, ymin + corner_radius),  # top-left
+            (xmax, ymin + corner_radius),          # top-right
+            (xmax, ymin)                           # bottom-right
+        )
+        
+        # Top-left corner
+        top_left_zone = (
+            (xmin, ymax - corner_radius),          # bottom-left
+            (xmin, ymax),                          # top-left
+            (xmin + corner_radius, ymax),          # top-right
+            (xmin + corner_radius, ymax - corner_radius)   # bottom-right
+        )
+        
+        # Top-right corner
+        top_right_zone = (
+            (xmax - corner_radius, ymax - corner_radius),  # bottom-left
+            (xmax - corner_radius, ymax),          # top-left
+            (xmax, ymax),                          # top-right
+            (xmax, ymax - corner_radius)           # bottom-right
+        )
+        
+        # Add these zones to the board's zones
+        # You may need to adjust how you add zones based on your Zones class implementation
+        corner_zones = [bottom_left_zone, bottom_right_zone, top_left_zone, top_right_zone]
+        
+        print(f"🟢 Adding {len(corner_zones)} corner keep-out zones with size {corner_radius}mm")
+        
+        # Add zones to the grid
+        for zone in corner_zones:
+            self.zones.add_zone(zone)
+
+    def _apply_socket_margin(self, grid: np.ndarray, socket_pos: Tuple[float, float], 
+                             keep_out_mm: float = 1.0) -> np.ndarray:
+        """
+        Apply a keep-out zone around a specific socket.
+        
+        Parameters:
+            grid: The routing grid
+            socket_pos: (x, y) position of the socket
+            keep_out_mm: Radius of keep-out zone in mm
+            
+        Returns:
+            Updated grid with socket keep-out applied
+        """
+        temp_grid = np.copy(grid)
+        keep_out_cells = int(np.ceil(keep_out_mm / self.resolution))
+        
+        x_index, y_index = self._to_grid_indices(socket_pos[0], socket_pos[1])
+        
+        # Apply keep-out zone around the socket
+        for i in range(-keep_out_cells+1, keep_out_cells):
+            for j in range(-keep_out_cells+1, keep_out_cells):
+                xi = x_index + i
+                yi = y_index + j
+                
+                # Check if within grid boundaries
+                if 0 <= xi < self.grid_width and 0 <= yi < self.grid_height:
+                    temp_grid[yi, xi] = FREE_CELL  # Ensure socket areas are free
+        
+        return temp_grid
+    
     def _identify_key_points(self, points: List[Point]) -> List[int]:
         """Identify key points in a path (start, direction changes, end)."""
         key_points = [0]  # Start with the first point index
@@ -240,42 +390,138 @@ class BusRouter:
         
         return key_points
 
-    def _block_other_net_elements(self, grid: np.ndarray, net_name: str) -> np.ndarray:
-        """Mark traces from other nets on the same layer as obstacles."""
-        temp_grid = np.copy(grid)
+    def _consolidate_trace_indexes(self) -> Dict[str, List[List[Tuple[int, int, int]]]]:
+        """
+        Consolidate trace indexes to eliminate duplicate grid points or segments.
+        Returns a clean version of trace_indexes with no duplicates.
+        """
+        consolidated_indexes = {}
         
-        # Find the layer for this net
-        current_layer_name = self.net_to_layer_map.get(net_name)
-        if not current_layer_name:
-            return temp_grid
-        
-        # Get all nets on the same layer from the board structure
-        nets_on_current_layer = self._get_nets_for_layer(current_layer_name)
-        
-        # Find other nets on the same layer
-        for other_net in nets_on_current_layer:
-            if other_net == net_name:
-                continue  # Skip the current net
+        for net_name, paths in self.trace_indexes.items():
+            # Set of unique grid segments for this net
+            unique_segments = set()
+            consolidated_paths = []
             
-            # Mark all paths for this other net as obstacles
-            for path in self.trace_indexes.get(other_net, []):
-                for x, y, _ in path:
-                    if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
-                        temp_grid[y, x] = BLOCKED_CELL
+            for path in paths:
+                # Skip paths with fewer than 2 points
+                if len(path) < 2:
+                    continue
+                    
+                # Create a new path with unique segments
+                consolidated_path = []
+                
+                # Add the first point
+                consolidated_path.append(path[0])
+                
+                # Process each segment in the path
+                for i in range(1, len(path)):
+                    # Create a canonical representation of this grid segment
+                    p1 = path[i-1][:2]  # Just x,y coords
+                    p2 = path[i][:2]
+                    segment_key = tuple(sorted([p1, p2]))  # Order doesn't matter for uniqueness
+                    
+                    # Only add if we haven't seen this grid segment before
+                    if segment_key not in unique_segments:
+                        unique_segments.add(segment_key)
+                        consolidated_path.append(path[i])
+                
+                # Only add the path if it still has at least 2 points
+                if len(consolidated_path) >= 2:
+                    consolidated_paths.append(consolidated_path)
             
-            # Mark all vias for this other net as obstacles
-            for via_index in self.via_indexes.get(other_net, []):
-                for dx in range(-1, 2):
-                    for dy in range(-1, 2):
-                        nx, ny = via_index[0] + dx, via_index[1] + dy
-                        if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
-                            temp_grid[ny, nx] = BLOCKED_CELL
+            # Store this net's consolidated paths
+            if consolidated_paths:
+                consolidated_indexes[net_name] = consolidated_paths
+                
+            print(f"🟢 Net '{net_name}': Found {len(unique_segments)} unique grid segments across {len(consolidated_paths)} paths")
+                
+        return consolidated_indexes
+
+    def _convert_trace_indexes_to_segments(self) -> None:
+        """
+        Convert grid paths to physical line segments and assign them to board layers directly.
+        """
+        # First consolidate trace indexes to eliminate duplicates
+        # consolidated_indexes = self._consolidate_trace_indexes()
         
-        # Ensure the first column is always free
-        for y in range(self.grid_height):
-            temp_grid[y, 0] = FREE_CELL
+        for net_name, grid_paths in self.trace_indexes.items():
+            # Get the layer for this net
+            layer_name = self.net_to_layer_map.get(net_name)
+            layer = self.board.layers.get(layer_name)
+            if not layer:
+                print(f"🔴 Layer {layer_name} not found in board")
+                continue
             
-        return temp_grid
+            for path in grid_paths:
+                # Convert grid points to board coordinates
+                points = [self._from_grid_indices(x, y) for x, y, _ in path]
+                key_points = self._identify_key_points(points)
+                
+                # Create segments between consecutive key points
+                for i in range(len(key_points) - 1):
+                    start_idx = key_points[i]
+                    end_idx = key_points[i + 1]
+                    
+                    # Create a segment connecting the key points
+                    segment = Segment(points[start_idx], points[end_idx], layer=layer_name, width=self.trace_width)
+                    segment.net_name = net_name
+                    
+                    # Add directly to the board layer
+                    layer.add_segment(segment)
+    
+    def _convert_via_indexes_to_points(self) -> None:
+        """Convert via grid indices to board coordinate points and add to layers."""
+        if not self.front_layer or not self.back_layer:
+            print("⚠️ Front or back layer not found for via placement")
+        
+        for net_name, via_positions in self.via_indexes.items():
+            for x, y in via_positions:
+                via_point = self._from_grid_indices(x, y)
+            
+                # Add annular rings front and back layers
+                if self.front_layer and self.back_layer:
+                    self.front_layer.add_annular_ring(via_point)
+                    self.back_layer.add_annular_ring(via_point)
+                
+                # Add drill hole to the board
+                self.board.add_drill_hole(via_point)
+               
+    def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
+        """
+        Sort ALL sockets from all nets by proximity to their respective buses.
+        
+        Parameters:
+            socket_locations: Dictionary mapping net names to lists of socket positions
+            
+        Returns:
+            List of (net_name, socket_position) tuples sorted by proximity to buses
+        """
+        all_sockets_with_distance = []
+        
+        for net_name, locations in socket_locations.items():
+            # Get the bus for this net
+            bus = self.buses.get(net_name)
+            if not bus:
+                continue
+                
+            bus_x = bus.start.x
+            
+            # Calculate horizontal distances from sockets to their bus
+            for socket_pos in locations:
+                socket_x, socket_y = socket_pos
+                
+                # Horizontal distance to bus
+                horizontal_distance = abs(socket_x - bus_x)
+                
+                # Store (net_name, socket_pos) with distance and y-coordinate
+                all_sockets_with_distance.append(
+                    ((net_name, socket_pos), horizontal_distance, -socket_y)  # Negative y for top-to-bottom
+                )
+        
+        # Sort by distance (ascending) and then by y-coordinate (descending)
+        sorted_sockets = [(net, socket) for (net, socket), _, _ in sorted(all_sockets_with_distance, key=lambda x: (x[1], x[2]))]
+        
+        return sorted_sockets
     
     def _route_socket_to_bus(self, grid: np.ndarray, socket_pos: Tuple[float, float], 
                                     bus_point: Point, net_name: str) -> List[Tuple[int, int, int]]:
@@ -293,7 +539,7 @@ class BusRouter:
             List of grid indices representing the path up to the bus
         """
         # Apply obstacles from other nets on the same layer
-        current_grid = self._block_other_net_elements(grid, net_name)
+        current_grid = self._block_elements_on_grid(grid, net_name)
         
         # Apply socket margin to ensure the socket is routable
         current_grid = self._apply_socket_margin(current_grid, socket_pos)
@@ -322,7 +568,7 @@ class BusRouter:
         
         # Configure diagonal movement
         if self.allow_diagonal_traces:
-            finder.diagonal_movement = DiagonalMovement.always
+            finder.diagonal_movement = DiagonalMovement.only_when_no_obstacle
         else:
             finder.diagonal_movement = DiagonalMovement.never
         
@@ -396,124 +642,6 @@ class BusRouter:
             print(f"🔴 Error in pathfinding: {e}")
             return []
 
-    def _apply_socket_margin(self, grid: np.ndarray, socket_pos: Tuple[float, float], 
-                             keep_out_mm: float = 1.0) -> np.ndarray:
-        """
-        Apply a keep-out zone around a specific socket.
-        
-        Parameters:
-            grid: The routing grid
-            socket_pos: (x, y) position of the socket
-            keep_out_mm: Radius of keep-out zone in mm
-            
-        Returns:
-            Updated grid with socket keep-out applied
-        """
-        temp_grid = np.copy(grid)
-        keep_out_cells = int(np.ceil(keep_out_mm / self.resolution))
-        
-        x_index, y_index = self._to_grid_indices(socket_pos[0], socket_pos[1])
-        
-        # Apply keep-out zone around the socket
-        for i in range(-keep_out_cells+1, keep_out_cells):
-            for j in range(-keep_out_cells+1, keep_out_cells):
-                xi = x_index + i
-                yi = y_index + j
-                
-                # Check if within grid boundaries
-                if 0 <= xi < self.grid_width and 0 <= yi < self.grid_height:
-                    temp_grid[yi, xi] = FREE_CELL  # Ensure socket areas are free
-        
-        return temp_grid
-        
-    def _convert_path_indexes_to_segments(self) -> None:
-        """
-        Convert grid paths to physical line segments and assign them to board layers directly.
-        """
-        
-        for net_name, grid_paths in self.trace_indexes.items():
-            
-            # Get the layer for this net
-            layer_name = self.net_to_layer_map.get(net_name)
-            layer = self.board.layers.get(layer_name)
-            if not layer:
-                print(f"🔴 Layer {layer_name} not found in board")
-                continue
-            
-            for path in grid_paths:
-                # Skip paths with fewer than 2 points - it would be just a single segment
-                if len(path) < 2:
-                    continue
-                
-                # Convert grid points to board coordinates and find key points
-                points = [self._from_grid_indices(x, y) for x, y, _ in path]
-                key_points = self._identify_key_points(points)
-                
-                # Create segments between consecutive key points
-                for i in range(len(key_points) - 1):
-                    start_idx = key_points[i]
-                    end_idx = key_points[i + 1]
-                    
-                    # Create a segment connecting the key points
-                    segment = Segment(points[start_idx], points[end_idx], layer=layer_name, width=self.trace_width)
-                                        
-                    # Add directly to the board layer
-                    layer.add_segment(segment)
-    
-    def _convert_via_indexes_to_points(self) -> None:
-        """Convert via grid indices to board coordinate points and add to layers."""
-        if not self.front_layer or not self.back_layer:
-            print("⚠️ Front or back layer not found for via placement")
-        
-        for net_name, via_positions in self.via_indexes.items():
-            for x, y in via_positions:
-                via_point = self._from_grid_indices(x, y)
-            
-                # Add annular rings front and back layers
-                if self.front_layer and self.back_layer:
-                    self.front_layer.add_annular_ring(via_point)
-                    self.back_layer.add_annular_ring(via_point)
-                
-                # Add drill hole to the board
-                self.board.add_drill_hole(via_point)
-               
-    def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
-        """
-        Sort ALL sockets from all nets by proximity to their respective buses.
-        
-        Parameters:
-            socket_locations: Dictionary mapping net names to lists of socket positions
-            
-        Returns:
-            List of (net_name, socket_position) tuples sorted by proximity to buses
-        """
-        all_sockets_with_distance = []
-        
-        for net_name, locations in socket_locations.items():
-            # Get the bus for this net
-            bus = self.buses.get(net_name)
-            if not bus:
-                continue
-                
-            bus_x = bus.start.x
-            
-            # Calculate horizontal distances from sockets to their bus
-            for socket_pos in locations:
-                socket_x, socket_y = socket_pos
-                
-                # Horizontal distance to bus
-                horizontal_distance = abs(socket_x - bus_x)
-                
-                # Store (net_name, socket_pos) with distance and y-coordinate
-                all_sockets_with_distance.append(
-                    ((net_name, socket_pos), horizontal_distance, -socket_y)  # Negative y for top-to-bottom
-                )
-        
-        # Sort by distance (ascending) and then by y-coordinate (descending)
-        sorted_sockets = [(net, socket) for (net, socket), _, _ in sorted(all_sockets_with_distance, key=lambda x: (x[1], x[2]))]
-        
-        return sorted_sockets
-   
     def route(self) -> None:
         """
         Route sockets to buses for all nets, prioritizing by proximity.
@@ -535,11 +663,16 @@ class BusRouter:
         # Sort ALL sockets from all nets by proximity to their buses
         all_sockets_sorted = self._sort_all_sockets_by_proximity(socket_locations)
         
-        print(f"🟣 Routing {len(all_sockets_sorted)} sockets in proximity order")
-        
         # Route each socket in order of proximity
         for i, (net_name, socket_pos) in enumerate(all_sockets_sorted):
             print(f"🟠 Routing socket {i+1}/{len(all_sockets_sorted)} for net {net_name}")
+            
+            # If the net is on the back layer, place a via for it on the socket, 
+            # and skip routing (will be included in the zone)
+            if self.net_to_layer_map.get(net_name) == self.back_layer.name:
+                print(f"🟠 Placing a via for GND net at {socket_pos}")
+                self._add_via(net_name, self._to_grid_indices(socket_pos[0], socket_pos[1]))
+                continue
             
             # Get the bus for this net
             bus = self.buses.get(net_name)
@@ -561,7 +694,7 @@ class BusRouter:
                 print(f"🔴 No path found for socket at {socket_pos} to bus")
         
         # Consolidate grid paths to segments (also adds to board layers)
-        self._convert_path_indexes_to_segments()
+        self._convert_trace_indexes_to_segments()
         
         # Convert via indexes to points (also adds to board layers)
         self._convert_via_indexes_to_points()

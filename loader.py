@@ -86,9 +86,9 @@ class Loader:
         return self.data['configuration']['routing_options']['resolution']
     
     @property
-    def constrained_routing(self) -> bool:
-        """Get whether constrained routing is enabled"""
-        return bool(self.data['configuration']['routing_options'].get('constrained_routing', False))
+    def allow_overlap(self) -> bool:
+        """Get whether trace overlap for the same net is allowed"""
+        return bool(self.data['configuration']['routing_options'].get('allow_overlap', False))
     
     @property
     def connectors(self) -> Dict[str, bool]:

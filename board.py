@@ -35,10 +35,11 @@ class Board:
         self.modules: List[Module] = []
         self.layers: Dict[str, Layer] = {}
         self.generation_software: Metadata = loader.generation_software
-        self.constrained_routing: bool = loader.constrained_routing
+        self.allow_overlap: bool = loader.allow_overlap
         self.allow_diagonal_traces: bool = loader.allow_diagonal_traces
         self.algorithm: str = loader.algorithm
         self.include_GerberSockets: bool = False
+        
         
         # Add sockets and zones if provided
         self._sockets: Optional[Sockets] = sockets
@@ -48,6 +49,9 @@ class Board:
         # Track warnings
         self.warnings: List[str] = []
         
+        # Calculations from routing 
+        self.bus_clearance: float = 0.0
+
         # Initialize the board
         self._create_board()
     
@@ -74,7 +78,7 @@ class Board:
         # First pass: Create layers and add explicitly assigned nets
         for layer_name, layer_data in self.loader.layer_map.items():
             # Create the layer
-            layer = Layer(name=layer_name, attributes=layer_data.get('attributes'))
+            layer = Layer(name=layer_name, fill=layer_data.get('fill'), attributes=layer_data.get('attributes'))
             
             # Add nets to the layer
             for net in layer_data.get('nets', []):
