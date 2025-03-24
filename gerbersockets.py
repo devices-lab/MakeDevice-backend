@@ -223,6 +223,10 @@ class Sockets(Object):
             return {net_name: self.socket_locations.get(net_name, [])}
         return self.socket_locations
     
+    def get_all_positions(self) -> List[Tuple[float, float]]:
+        """ Get all raw positions for all sockets """
+        return [pos for net in self.socket_locations.values() for pos in net]
+    
     def get_data(self) -> Dict[str, List[Tuple[float, float]]]:
         """
         Get data representation of the socket locations.
@@ -353,8 +357,8 @@ class Zones(Object):
             for index, line in enumerate(lines):
                 if index not in used_indices and index != current_index:
                     # Check connection
-                    if (abs(line.x1 - x2) < 1e-10 and abs(line.y1 - y2) < 1e-10) or \
-                       (abs(line.x2 - x2) < 1e-10 and abs(line.y2 - y2) < 1e-10):
+                    if (abs(line.x1 - x2) < 1e-5 and abs(line.y1 - y2) < 1e-5) or \
+                       (abs(line.x2 - x2) < 1e-5 and abs(line.y2 - y2) < 1e-5):
                         return index
             return None
 
@@ -376,8 +380,8 @@ class Zones(Object):
             if len(rectangle_indices) == 4:
                 rectangle_lines = [lines[i] for i in rectangle_indices]
                 # Check if the rectangle is closed
-                if (abs(rectangle_lines[0].x1 - rectangle_lines[-1].x2) < 1e-10 and 
-                    abs(rectangle_lines[0].y1 - rectangle_lines[-1].y2) < 1e-10):
+                if (abs(rectangle_lines[0].x1 - rectangle_lines[-1].x2) < 1e-5 and 
+                    abs(rectangle_lines[0].y1 - rectangle_lines[-1].y2) < 1e-5):
                     
                     # Collect all corner points
                     points = set((line.x1, line.y1) for line in rectangle_lines) | \

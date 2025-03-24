@@ -249,7 +249,7 @@ class BusRouter:
                     if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
                         temp_grid[y, x] = BLOCKED_CELL
             
-            # Mark all vias for this other net as obstacles
+            # Mark all vias on the bus as obstacles
             for via_index in self.via_indexes.get(other_net, []):
                 for dx in range(-2, 3): # 2 extra grid cells of keep out on left and right
                     for dy in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
@@ -336,8 +336,8 @@ class BusRouter:
         for zone in corner_zones:
             self.zones.add_zone(zone)
 
-    def _apply_socket_margin(self, grid: np.ndarray, socket_pos: Tuple[float, float], 
-                             keep_out_mm: float = 1.0) -> np.ndarray:
+    def _apply_socket_margins(self, grid: np.ndarray, socket_position: Tuple[float, float], 
+                             keep_out_mm: float = 0.5) -> np.ndarray:
         """
         Apply a keep-out zone around a specific socket.
         
@@ -352,9 +352,20 @@ class BusRouter:
         temp_grid = np.copy(grid)
         keep_out_cells = int(np.ceil(keep_out_mm / self.resolution))
         
-        x_index, y_index = self._to_grid_indices(socket_pos[0], socket_pos[1])
+        x_index, y_index = self._to_grid_indices(socket_position[0], socket_position[1])
         
-        # Apply keep-out zone around the socket
+        # Mark all sockets for this other net as obstacles
+        for position in self.sockets.get_all_positions():
+            x, y = self._to_grid_indices(position[0], position[1])                
+            for i in range(-keep_out_cells+1, keep_out_cells):
+                for j in range(-keep_out_cells+1, keep_out_cells):
+                    dx = x + i
+                    dy = y + j
+                    # Check if within grid boundaries
+                    if 0 <= dx < self.grid_width and 0 <= dy < self.grid_height:
+                        temp_grid[dy, dx] = BLOCKED_CELL
+                        
+        # # Apply keep-out zone around the socket
         for i in range(-keep_out_cells+1, keep_out_cells):
             for j in range(-keep_out_cells+1, keep_out_cells):
                 xi = x_index + i
@@ -542,7 +553,7 @@ class BusRouter:
         current_grid = self._block_elements_on_grid(grid, net_name)
         
         # Apply socket margin to ensure the socket is routable
-        current_grid = self._apply_socket_margin(current_grid, socket_pos)
+        current_grid = self._apply_socket_margins(current_grid, socket_pos)
         
         # Convert to grid indices
         socket_col, socket_row = self._to_grid_indices(socket_pos[0], socket_pos[1])

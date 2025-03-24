@@ -6,6 +6,13 @@ fixes needed
 - via for grounf plane, and zone
 - vias from the same net could have drill hole to close to each other on the same bus connection 
 - move the corner zone logic to the board, instead of the busrouter
+- zone positioning rouding errors Point: (45.0, 34.000001), Resolution: 0.25
+
+- keep out zones of the Jacdac holes cannot overlap with the buses - shoves the routing around, and causes clearance issues 
+        -> make the keep-out zones as small as possible on the to ensure no overlap
+        -> make a keep out zone for the bus
+        -> throw an error message when a keepout zone overlaps with the bus
+
 
 
 imrovements preferable
