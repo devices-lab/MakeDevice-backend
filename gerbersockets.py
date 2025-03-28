@@ -54,7 +54,7 @@ class Object:
             
         # Account for floating point precision issues
         remainder = abs(value) % resolution
-        epsilon = 1e-10  # Small tolerance for floating point comparisons
+        epsilon = 1e-4  # Small tolerance for floating point comparisons
         
         return remainder < epsilon or abs(remainder - resolution) < epsilon
     
@@ -345,7 +345,7 @@ class Zones(Object):
         # Extract Line objects with the specified aperture diameter
         lines = [obj for obj in self.gerber.objects if isinstance(obj, Line) and 
              isinstance(obj.aperture, CircleAperture) and 
-             abs(obj.aperture.diameter - keep_out_zone_aperture_diameter) < 0.0001]
+             abs(obj.aperture.diameter - keep_out_zone_aperture_diameter) < 1e-4]
 
         self.zone_rectangles = []
         used_indices = set()
@@ -357,8 +357,8 @@ class Zones(Object):
             for index, line in enumerate(lines):
                 if index not in used_indices and index != current_index:
                     # Check connection
-                    if (abs(line.x1 - x2) < 1e-5 and abs(line.y1 - y2) < 1e-5) or \
-                       (abs(line.x2 - x2) < 1e-5 and abs(line.y2 - y2) < 1e-5):
+                    if (abs(line.x1 - x2) < 1e-4 and abs(line.y1 - y2) < 1e-4) or \
+                       (abs(line.x2 - x2) < 1e-4 and abs(line.y2 - y2) < 1e-4):
                         return index
             return None
 
@@ -380,8 +380,8 @@ class Zones(Object):
             if len(rectangle_indices) == 4:
                 rectangle_lines = [lines[i] for i in rectangle_indices]
                 # Check if the rectangle is closed
-                if (abs(rectangle_lines[0].x1 - rectangle_lines[-1].x2) < 1e-5 and 
-                    abs(rectangle_lines[0].y1 - rectangle_lines[-1].y2) < 1e-5):
+                if (abs(rectangle_lines[0].x1 - rectangle_lines[-1].x2) < 1e-4 and 
+                    abs(rectangle_lines[0].y1 - rectangle_lines[-1].y2) < 1e-4):
                     
                     # Collect all corner points
                     points = set((line.x1, line.y1) for line in rectangle_lines) | \
