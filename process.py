@@ -144,7 +144,7 @@ def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: 
             
         # Process all other acceptable file types
         if (not is_board_outline and source_file_path.suffix.upper() not in 
-            ['.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP', '.CSV']):
+            ['.GBR', '.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP']):
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
         

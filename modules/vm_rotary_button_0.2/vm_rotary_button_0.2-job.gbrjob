@@ -5,17 +5,17 @@
       "Application": "Pcbnew",
       "Version": "9.0.0"
     },
-    "CreationDate": "2025-03-28T13:43:48+00:00"
+    "CreationDate": "2025-03-28T14:33:02+00:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
-      "Name": "vm_rgb_ring_0.2",
-      "GUID": "766d5f72-6762-45f7-9269-6e675f302e32",
+      "Name": "vm_rotary_button_0.2",
+      "GUID": "766d5f72-6f74-4617-9279-5f627574746f",
       "Revision": "v0.2"
     },
     "Size": {
-      "X": 31.05,
-      "Y": 31.05
+      "X": 27.05,
+      "Y": 17.55
     },
     "LayerNumber": 2,
     "BoardThickness": 1.6,
@@ -34,62 +34,62 @@
   ],
   "FilesAttributes": [
     {
-      "Path": "vm_rgb_ring_0.2-F_Cu.gtl",
+      "Path": "vm_rotary_button_0.2-F_Cu.gtl",
       "FileFunction": "Copper,L1,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-B_Cu.gbl",
+      "Path": "vm_rotary_button_0.2-B_Cu.gbl",
       "FileFunction": "Copper,L2,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-F_Paste.gtp",
+      "Path": "vm_rotary_button_0.2-F_Paste.gtp",
       "FileFunction": "SolderPaste,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-B_Paste.gbp",
+      "Path": "vm_rotary_button_0.2-B_Paste.gbp",
       "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-F_Silkscreen.gto",
+      "Path": "vm_rotary_button_0.2-F_Silkscreen.gto",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-B_Silkscreen.gbo",
+      "Path": "vm_rotary_button_0.2-B_Silkscreen.gbo",
       "FileFunction": "Legend,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-F_Mask.gts",
+      "Path": "vm_rotary_button_0.2-F_Mask.gts",
       "FileFunction": "SolderMask,Top",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "vm_rgb_ring_0.2-B_Mask.gbs",
+      "Path": "vm_rotary_button_0.2-B_Mask.gbs",
       "FileFunction": "SolderMask,Bot",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "vm_rgb_ring_0.2-Edge_Cuts.gm1",
+      "Path": "vm_rotary_button_0.2-Edge_Cuts.gm1",
       "FileFunction": "Profile",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-F_Fab.gbr",
+      "Path": "vm_rotary_button_0.2-F_Fab.gbr",
       "FileFunction": "AssemblyDrawing,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-B_Fab.gbr",
+      "Path": "vm_rotary_button_0.2-B_Fab.gbr",
       "FileFunction": "AssemblyDrawing,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rgb_ring_0.2-GerberSockets.gbr",
+      "Path": "vm_rotary_button_0.2-GerberSockets.gbr",
       "FileFunction": "Other,User",
       "FilePolarity": "Positive"
     }
