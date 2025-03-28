@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 120, "y": 40 },
+    "size": { "x": 60, "y": 40 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -14,7 +14,7 @@
   "configuration": {
     "routing_options": {
       "resolution": 0.25,
-      "allow_diagonal_traces": false,
+      "allow_diagonal_traces": true,
       "allow_overlap": false,
       "algorithm": "a_star"
     },
@@ -67,7 +67,7 @@
       "rounded_corner_radius": 5,
       "connectors": {
         "left": false,
-        "right": true,
+        "right": false,
         "bottom": false,
         "top": false
       }
@@ -75,34 +75,9 @@
   },
   "modules": [
     {
-      "name": "ec30_1x7_r6_mh_0.1",
+      "name": "vm_rgb_ring_0.2",
       "position": { "x": 0, "y": 0  },
       "rotation": 0
-    },
-    {
-      "name": "jacdac_data_mh_0.1",
-      "position": { "x": -55, "y": 15 },
-      "rotation": 0
-    },
-    {
-      "name": "jacdac_power_mh_0.1",
-      "position": { "x": -55, "y": -15 },
-      "rotation": 0
-    },
-    {
-      "name": "jacdac_ground_mh_0.1",
-      "position": { "x": 55, "y": 15 },
-      "rotation": 0
-    },
-    {
-      "name": "jacdac_ground_mh_0.1", 
-      "position": { "x": 55, "y": -15 },
-      "rotation": 90
-    },
-    {
-      "name": "jacdac_connector_0.1",
-      "position": { "x": 60, "y": 0 },
-      "rotation": 90
     }
   ]
 }

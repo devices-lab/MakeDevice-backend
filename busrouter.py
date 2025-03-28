@@ -204,7 +204,7 @@ class BusRouter:
         
         self.via_indexes[net_name].append(point)
 
-    def _find_nearest_point_on_bus(self, socket_pos: Tuple[float, float], bus: Segment) -> Point:
+    def _find_point_on_bus(self, socket_pos: Tuple[float, float], bus: Segment) -> Point:
         """
         Find the nearest point on a vertical bus to a socket.
         
@@ -216,15 +216,17 @@ class BusRouter:
             Point: The nearest point on the bus
         """
         # For vertical buses, the x-coordinate is fixed, and we clamp the y-coordinate
-        socket_x, socket_y = socket_pos
-        bus_x = bus.start.x
+        # socket_x, socket_y = socket_pos
+        x_position = bus.start.x
         
         # Clamp the y-coordinate to the bus extent
-        bus_y_min = min(bus.start.y, bus.end.y)
-        bus_y_max = max(bus.start.y, bus.end.y)
-        clamped_y = max(bus_y_min, min(socket_y, bus_y_max))
+        # bus_y_min = min(bus.start.y, bus.end.y)
+        # bus_y_max = max(bus.start.y, bus.end.y)
+        # clamped_y = max(bus_y_min, min(socket_y, bus_y_max))
         
-        return Point(bus_x, clamped_y)
+        y_position = 0 # Use the center point of all buses, instead of the clamped 
+        
+        return Point(x_position, y_position)
     
     def _block_elements_on_grid(self, grid: np.ndarray, net_name: str) -> np.ndarray:
         """Mark traces from other nets on the same layer as obstacles."""
@@ -692,7 +694,7 @@ class BusRouter:
                 continue
             
             # Find nearest point on the bus
-            bus_point = self._find_nearest_point_on_bus(socket_pos, bus)
+            bus_point = self._find_point_on_bus(socket_pos, bus)
             print(f"🔵 Routing socket at {socket_pos} to bus point at {(bus_point.x, bus_point.y)}")
             
             # Route the socket to the bus
