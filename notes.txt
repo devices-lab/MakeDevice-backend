@@ -26,6 +26,12 @@ imrovements preferable
 
 
 
+From fronted to be corrected
+
+- no need for manufacturing options
+
+
+
     {
       "name": "ec30_3x3_l_mh_0.1",
       "position": { "x": -20, "y": 50.75 },

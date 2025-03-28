@@ -1,1 +1,104 @@
-{"board": {"name": "", "generation_software": {"vendor": "Devices-Lab", "application": "MakeDevice", "version": "0.1"}, "size": {"x": 100, "y": 100}, "origin": {"x": 0, "y": 0}, "debug": true}, "configuration": {"routing_options": {"resolution": 0.25, "allow_diagonal_traces": true, "allow_overlap": false, "algorithm": "a_star"}, "gerbersockets_options": {"layer_name": "GerberSockets.gbr", "keep_out_zone_aperture_diameter": 0.1, "net_diameter_map": {"JD_PWR": 0.11, "GND": 0.12, "JD_DATA": 0.13}, "legacy_sockets": true}, "layer_map": {"F_Cu.gtl": {"nets": [], "fill": false, "attributes": "Copper,L1,Top,Signal"}, "In1_Cu.g2": {"nets": [], "fill": false, "attributes": "Copper,L2,Inner,Signal"}, "In2_Cu.g3": {"nets": [], "fill": false, "attributes": "Copper,L3,Inner,Signal"}, "B_Cu.gbl": {"nets": ["JD_GND"], "fill": true, "attributes": "Copper,L4,Bottom,Signal"}}, "fabrication_options": {"module_margin": 0, "bus_width": 0.25, "bus_spacing": 0.5, "edge_clearance": 0.5, "track_width": 0.125, "via_diameter": 0.35, "via_hole_diameter": 0.2, "rounded_corner_radius": 5, "connectors": {"left": false, "right": false, "bottom": false, "top": false}}, "manufacturing_options": {"F_Cu.gtl": {"nets": [], "fill": false, "attributes": "Copper,L1,Top,Signal"}, "In1_Cu.g2": {"nets": [], "fill": false, "attributes": "Copper,L2,Inner,Signal"}, "In2_Cu.g3": {"nets": [], "fill": false, "attributes": "Copper,L3,Inner,Signal"}, "B_Cu.gbl": {"nets": ["JD_GND"], "fill": true, "attributes": "Copper,L4,Bottom,Signal"}}}, "modules": [{"position": {"x": 8, "y": -25}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}, {"position": {"x": 8, "y": 15}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}, {"position": {"x": 8, "y": -25}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}, {"position": {"x": 8, "y": 15}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}, {"position": {"x": 8, "y": -25}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}, {"position": {"x": 8, "y": 15}, "rotation": 0, "name": "ec30_3x2_lr_mh_0.1"}]}
+{
+  "board": {
+    "name": "",
+    "generation_software": {
+      "vendor": "Devices-Lab",
+      "application": "MakeDevice",
+      "version": "0.1"
+    },
+    "size": { "x": 36, "y": 36 },
+    "origin": { "x": 0, "y": 0 },
+    "debug": true
+  },
+  "configuration": {
+    "routing_options": {
+      "resolution": 0.25,
+      "allow_diagonal_traces": true,
+      "allow_overlap": false,
+      "algorithm": "a_star"
+    },
+    "gerbersockets_options": {
+      "layer_name": "GerberSockets.gbr",
+      "keep_out_zone_aperture_diameter": 0.1,
+      "net_diameter_map": {
+        "JD_PWR": 0.11,
+        "GND": 0.12,
+        "JD_DATA": 0.13,
+        "SWCLK": 0.14,
+        "SWDIO~": 0.15,
+        "SWDIO~^": 0.16,
+        "RESET": 0.17,
+        "USB_D_P": 0.18,
+        "USB_D_N": 0.19
+      },
+      "legacy_sockets": true
+    },
+    "layer_map": {
+      "F_Cu.gtl": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L1,Top,Signal"
+      },
+      "In1_Cu.g2": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L2,Inner,Signal"
+      },
+      "In2_Cu.g3": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L3,Inner,Signal"
+      },
+      "B_Cu.gbl": {
+        "nets": ["GND"],
+        "fill": true,
+        "attributes": "Copper,L4,Bottom,Signal"
+      }
+    },
+    "fabrication_options": {
+      "module_margin": 0,
+      "bus_width": 0.25,
+      "bus_spacing": 0.5,
+      "edge_clearance": 0.5,
+      "track_width": 0.125,
+      "via_diameter": 0.35,
+      "via_hole_diameter": 0.2,
+      "rounded_corner_radius": 5,
+      "connectors": {
+        "left": false,
+        "right": false,
+        "bottom": false,
+        "top": false
+      }
+    },
+    "manufacturing_options": {
+      "F_Cu.gtl": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L1,Top,Signal"
+      },
+      "In1_Cu.g2": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L2,Inner,Signal"
+      },
+      "In2_Cu.g3": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L3,Inner,Signal"
+      },
+      "B_Cu.gbl": {
+        "nets": ["GND"],
+        "fill": true,
+        "attributes": "Copper,L4,Bottom,Signal"
+      }
+    }
+  },
+  "modules": [
+    {
+      "position": { "x": 0, "y": 0 },
+      "rotation": 0,
+      "name": "ec30_2x2_lr_mh_0.1"
+    }
+  ]
+}
