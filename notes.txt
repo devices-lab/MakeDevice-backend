@@ -15,8 +15,8 @@ fixes needed
 
 
 On Saturday 
-- ensure that for a net that has a copper fill (in this case the GND), that there is no bus created for it
-- there is still issues with via clearance on the bus connections
+- ensure that for a net that has a copper fill (in this case the GND), that there is no bus created for it - DONE
+- there is still issues with via clearance on the bus connections - hopefully DONE
 
 General things to implement 
 - point to point routing

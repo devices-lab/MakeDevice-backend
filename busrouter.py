@@ -215,17 +215,17 @@ class BusRouter:
             Point: The nearest point on the bus
         """
         # For vertical buses, the x-coordinate is fixed, and we clamp the y-coordinate
-        # socket_x, socket_y = socket_pos
+        socket_x, socket_y = socket_pos
         x_position = bus.start.x
         
         # Clamp the y-coordinate to the bus extent
-        # bus_y_min = min(bus.start.y, bus.end.y)
-        # bus_y_max = max(bus.start.y, bus.end.y)
-        # clamped_y = max(bus_y_min, min(socket_y, bus_y_max))
+        bus_y_min = min(bus.start.y, bus.end.y)
+        bus_y_max = max(bus.start.y, bus.end.y)
+        clamped_y_position = max(bus_y_min, min(socket_y, bus_y_max))
         
-        y_position = 0 # Use the center point of all buses, instead of the clamped 
+        center_y_position = 0 # Use the center point of all buses, instead of the clamped 
         
-        return Point(x_position, y_position)
+        return Point(x_position, clamped_y_position)
     
     def _block_elements_on_grid(self, grid: np.ndarray, net_name: str) -> np.ndarray:
         """Mark traces from other nets on the same layer as obstacles."""
@@ -507,13 +507,14 @@ class BusRouter:
                
     def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
         """
-        Sort ALL sockets from all nets in a top-left to bottom-right pattern.
+        Sort ALL sockets from all nets based on position, prioritizing left-to-right,
+        and then top-to-bottom for sockets with the same x-coordinate.
         
         Parameters:
             socket_locations: Dictionary mapping net names to lists of socket positions
             
         Returns:
-            List of (net_name, socket_position) tuples sorted in a top-left to bottom-right pattern
+            List of (net_name, socket_position) tuples sorted left-to-right, then top-to-bottom
         """
         all_sockets = []
         
@@ -529,12 +530,12 @@ class BusRouter:
                 
                 # Store socket with coordinates for sorting
                 all_sockets.append(
-                    (net_name, socket_pos, socket_y, socket_x)  # Store y and x for sorting
+                    (net_name, socket_pos, socket_x, -socket_y)  # Store x and -y for sorting
                 )
         
-        # Sort by y-coordinate (descending) and then by x-coordinate (ascending)
-        # This gives top (highest y) to bottom, and left (lowest x) to right
-        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (-x[2], x[3]))]
+        # Sort by x-coordinate (ascending) and then by y-coordinate (descending)
+        # This gives left (lowest x) to right, and top (highest y) to bottom for same x
+        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (x[2], x[3]))]
         
         return sorted_sockets
     
