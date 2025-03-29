@@ -23,6 +23,11 @@ General things to implement
 - create a Router class if the functionality overlaps
 - bom consolidation, checking for repetitive values (and replacing with the previous part number), reshuffling of reference designators
 
+
+optimise and cleanup
+in bus router, when referencing any nets, need to reference only the layer objects, and not the gerbersockets
+
+
 - cleanup the objects
 - routing on inner layers
 
@@ -30,10 +35,8 @@ imrovements preferable
 
 - merge/consolidate overlapping segments - hard to do properly!
 - support the bus on the right side as well 
-- diagonal traces do not work - check out other types of contraints in the pathfinder
 - shorten the buses to a minimum after all connections are placed?
-- implent so that any layer can be a plane?
-- make it configurable to set which nets are to be routed with buses, and which to be routed with normal routing
+- make it configurable to set which nets are to be routed with buses, and which to be routed with normal routing - for now hardcode
 
 
 

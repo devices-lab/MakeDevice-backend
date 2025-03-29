@@ -38,7 +38,6 @@ class BusRouter:
         self.grid_center_y = self.grid_height // 2
         self.sockets = board.sockets
         self.zones = board.zones
-        self.bus_clearance = board.bus_clearance
         
         # Will be populated during routing
         self.trace_indexes: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
@@ -240,6 +239,8 @@ class BusRouter:
         # Get all nets on the same layer from the board structure
         nets_on_current_layer = self._get_nets_for_layer(current_layer_name)
         
+        last_bus_x_index = self._to_grid_indices(self.board.bus_clearance, 0)[0] - self.grid_width // 2
+        
         # Find other nets on the same layer
         for other_net in nets_on_current_layer:
             if other_net == net_name and self.allow_overlap:
@@ -250,10 +251,15 @@ class BusRouter:
                 for x, y, _ in path:
                     if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
                         temp_grid[y, x] = BLOCKED_CELL
+                        
+                        # Ensure that the paths above the buses have more clearance to accomondate for vias
+                        if x < last_bus_x_index:
+                            temp_grid[y-1, x] = BLOCKED_CELL
+                            temp_grid[y+1, x] = BLOCKED_CELL
             
             # Mark all vias on the bus as obstacles
             for via_index in self.via_indexes.get(other_net, []):
-                for dx in range(-2, 3): # 2 extra grid cells of keep out on left and right
+                for dx in range(-1, 2): # 2 extra grid cells of keep out on left and right
                     for dy in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
                         nx, ny = via_index[0] + dx, via_index[1] + dy
                         if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
@@ -501,15 +507,15 @@ class BusRouter:
                
     def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
         """
-        Sort ALL sockets from all nets by proximity to their respective buses.
+        Sort ALL sockets from all nets in a top-left to bottom-right pattern.
         
         Parameters:
             socket_locations: Dictionary mapping net names to lists of socket positions
             
         Returns:
-            List of (net_name, socket_position) tuples sorted by proximity to buses
+            List of (net_name, socket_position) tuples sorted in a top-left to bottom-right pattern
         """
-        all_sockets_with_distance = []
+        all_sockets = []
         
         for net_name, locations in socket_locations.items():
             # Get the bus for this net
@@ -517,22 +523,18 @@ class BusRouter:
             if not bus:
                 continue
                 
-            bus_x = bus.start.x
-            
-            # Calculate horizontal distances from sockets to their bus
+            # Add all socket positions for this net
             for socket_pos in locations:
                 socket_x, socket_y = socket_pos
                 
-                # Horizontal distance to bus
-                horizontal_distance = abs(socket_x - bus_x)
-                
-                # Store (net_name, socket_pos) with distance and y-coordinate
-                all_sockets_with_distance.append(
-                    ((net_name, socket_pos), horizontal_distance, -socket_y)  # Negative y for top-to-bottom
+                # Store socket with coordinates for sorting
+                all_sockets.append(
+                    (net_name, socket_pos, socket_y, socket_x)  # Store y and x for sorting
                 )
         
-        # Sort by distance (ascending) and then by y-coordinate (descending)
-        sorted_sockets = [(net, socket) for (net, socket), _, _ in sorted(all_sockets_with_distance, key=lambda x: (x[1], x[2]))]
+        # Sort by y-coordinate (descending) and then by x-coordinate (ascending)
+        # This gives top (highest y) to bottom, and left (lowest x) to right
+        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (-x[2], x[3]))]
         
         return sorted_sockets
     

@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 60, "y": 40 },
+    "size": { "x": 200, "y": 40 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -75,9 +75,9 @@
   },
   "modules": [
     {
-      "name": "vm_rotary_button_0.2",
+      "name": "vm_jacdaptor_0.1",
       "position": { "x": 0, "y": 0  },
-      "rotation": 0
+      "rotation": 90
     }
   ]
 }
