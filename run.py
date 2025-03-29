@@ -9,15 +9,15 @@ from busrouter import BusRouter as Router
 import warnings
 import sys
 
-def run(file_number: int):
+def run(test_name: str):
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
     
-    loader = Loader(f"./test_data/data_{file_number}.json")
-    print("🔵 Using", f"./test_data/data_{file_number}.json")
+    loader = Loader(f"./test_data/data_{test_name}.json")
+    print("🔵 Using", f"data_{test_name}.json")
     if loader.debug:
         print("⚪️ Running in debug mode")
 
@@ -54,6 +54,6 @@ def run(file_number: int):
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
     if (len(sys.argv) > 1):
-        run(int(sys.argv[1]))
+        run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
     else:
         run(5)
