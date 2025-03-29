@@ -7,9 +7,9 @@ from board import Board
 from busrouter import BusRouter as Router
 
 import warnings
+import sys
 
 def run(file_number: int):
-    
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
@@ -17,6 +17,7 @@ def run(file_number: int):
     print("🔵 = INFO\n")
     
     loader = Loader(f"./test_data/data_{file_number}.json")
+    print("🔵 Using", f"./test_data/data_{file_number}.json")
     if loader.debug:
         print("⚪️ Running in debug mode")
 
@@ -49,7 +50,10 @@ def run(file_number: int):
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
-    
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
-    run(5)
+    if (len(sys.argv) > 1):
+        run(int(sys.argv[1]))
+    else:
+        run(5)
