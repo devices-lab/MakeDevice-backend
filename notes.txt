@@ -14,6 +14,17 @@ fixes needed
         -> throw an error message when a keepout zone overlaps with the bus
 
 
+On Saturday 
+- ensure that for a net that has a copper fill (in this case the GND), that there is no bus created for it
+- there is still issues with via clearance on the bus connections
+
+General things to implement 
+- point to point routing
+- create a Router class if the functionality overlaps
+- bom consolidation, checking for repetitive values (and replacing with the previous part number), reshuffling of reference designators
+
+- cleanup the objects
+- routing on inner layers
 
 imrovements preferable
 

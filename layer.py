@@ -32,4 +32,4 @@ class Layer:
         self.segments = []
     
     def __repr__(self) -> str:
-        return f"Layer(name={self.name}, nets={self.nets}, segments={len(self.segments)})"
+        return f"Layer(name={self.name}, nets={self.nets}, fill={self.fill}, segments={len(self.segments)})"

@@ -659,6 +659,10 @@ class BusRouter:
         """
         Route sockets to buses for all nets, prioritizing by proximity.
         
+        The routing happens in two phases:
+        - First, route all sockets that have buses using your proximity sorting
+        - Then, process the remaining sockets that don't have buses but are in filled layers (need vias)
+        
         Returns:
             None
         """
@@ -666,26 +670,35 @@ class BusRouter:
             print("No sockets to route")
             return
         
-        # Get socket locations
+        # Get socket locations and all layers
         socket_locations = self.sockets.get_socket_locations()
-        nets = list(socket_locations.keys())
+        layers = self.board.get_layers()
+
+        # Filter for layers with fill=False
+        non_fill_layers = [layer for layer in layers if layer.fill == False]
+        fill_layers = [layer for layer in layers if layer.fill == True]
         
+        bus_nets = []
+        fill_nets = []
+        
+        for layer in non_fill_layers:
+            for net in layer.nets:
+                bus_nets.append(net)
+        
+        for layer in fill_layers:
+            for net in layer.nets:
+                fill_nets.append(net)
+            
         # Create bus segments
-        self.buses = self._create_buses(nets)
+        self.buses = self._create_buses(bus_nets)
         
         # Sort ALL sockets from all nets by proximity to their buses
         all_sockets_sorted = self._sort_all_sockets_by_proximity(socket_locations)
         
+        print(f"🟢 Routing {len(all_sockets_sorted)} sockets with buses")
         # Route each socket in order of proximity
         for i, (net_name, socket_pos) in enumerate(all_sockets_sorted):
-            print(f"🟠 Routing socket {i+1}/{len(all_sockets_sorted)} for net {net_name}")
-            
-            # If the net is on the back layer, place a via for it on the socket, 
-            # and skip routing (will be included in the zone)
-            if self.net_to_layer_map.get(net_name) == self.back_layer.name:
-                print(f"🟠 Placing a via for GND net at {socket_pos}")
-                self._add_via(net_name, self._to_grid_indices(socket_pos[0], socket_pos[1]))
-                continue
+            print(f"🟢 Routing socket {i+1}/{len(all_sockets_sorted)} for net {net_name}")
             
             # Get the bus for this net
             bus = self.buses.get(net_name)
@@ -706,6 +719,22 @@ class BusRouter:
             else:
                 print(f"🔴 No path found for socket at {socket_pos} to bus")
         
+        # Now, handle remaining sockets that don't have buses (typically for filled zones)
+        print(f"🟢 Processing sockets for filled zones")
+        for net_name, locations in socket_locations.items():
+            # Skip if this net was already handled (has a bus)
+            if net_name in bus_nets:
+                continue
+                
+            # Check if this net is in a filled layer
+            if net_name in fill_nets:
+                print(f"🟢 Processing {len(locations)} sockets for filled net {net_name}")
+                for socket_pos in locations:
+                    print(f"🟢 Placing a via for {net_name} net at {socket_pos}")
+                    self._add_via(net_name, self._to_grid_indices(socket_pos[0], socket_pos[1]))
+            else:
+                print(f"🔴 Net {net_name} has no bus and is not in a filled layer")
+    
         # Consolidate grid paths to segments (also adds to board layers)
         self._convert_trace_indexes_to_segments()
         

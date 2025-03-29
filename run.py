@@ -10,6 +10,12 @@ import warnings
 
 def run(file_number: int):
     
+    print("🟢 = OK")
+    print("🟡 = WARNING")
+    print("🔴 = ERROR")
+    print("⚪️ = DEBUG")
+    print("🔵 = INFO\n")
+    
     loader = Loader(f"./test_data/data_{file_number}.json")
     if loader.debug:
         print("⚪️ Running in debug mode")
