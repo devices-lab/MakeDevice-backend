@@ -57,20 +57,26 @@ def run(file_number: str):
 
     # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
     top_layer = board.get_layer("F_Cu.gtl")
+    inner_layer = board.get_layer("In1_Cu.g2")
     bottom_layer = board.get_layer("B_Cu.gbl")
     
     left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
+    
+    right_router = BusRouter(board, tracks_layer=inner_layer, buses_layer=bottom_layer, side="right")
+    right_router.route()
 
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
     
-     # "PASS" and "FAIL" substrings are checked for by test.py
-    if (left_router.failed_routes == 0):
-        print(f"🟢 PASS: All GerberSockets routed successfully")
+     # "PASS" and "FAIL" substrings are checked for by test.py]
+    all = sockets.get_socket_count()
+    connected = board.connected_sockets_count
+    if ((all - connected) == 0):
+        print(f"🟢 PASS: All GerberSockets routed {connected} successfully")
     else:
-        print(f"🔴 FAIL: GerberSockets routing incomplete for {left_router.failed_routes} socket. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} completed")
+        print(f"🔴 FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
 
     if debug.do_video:
         debug.video(name=file_number)

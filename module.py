@@ -21,11 +21,16 @@ class Module:
         self.position = Position(position[0], position[1])
         self.rotation = rotation
         self.grid = None
-        self.bounding_box = None  # (min_x, min_y, max_x, max_y)
+        # (bottom_left, top_left, top_right, bottom_right)
+        self.zone: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]] = None 
     
-    def set_bounding_box(self, bbox: Tuple[float, float, float, float]) -> None:
-        """Set the bounding box for the module"""
-        self.bounding_box = bbox
+    def set_zone(self, p1: tuple[float, float], p2: tuple[float, float], 
+             p3: tuple[float, float], p4: tuple[float, float]) -> None:
+        """
+        Set the keep-out zone for the module.
+        """
+        # Set the zone as a tuple of four tuples
+        self.zone = (p1, p2, p3, p4)
     
     def is_within_board(self, board_dimensions: Tuple[float, float], origin: Tuple[float, float] = (0, 0)) -> bool:
         """

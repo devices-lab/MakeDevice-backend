@@ -17,6 +17,7 @@ import debug
 class BusRouter(Router):
     """
     A router that creates a vertical bus for each net and connects sockets to the bus.
+    Supports buses on either the left or right side.
     """
     
     def __init__(self, board: Board, tracks_layer: Layer, buses_layer: Layer, side: str) -> None:
@@ -44,23 +45,23 @@ class BusRouter(Router):
         Verify if the provided side is valid.
         
         Parameters:
-            side: The side to verify (should be 'top' or 'bottom')
+            side: The side to verify (should be 'left' or 'right')
             
         Returns:
             str: The verified side
         """
-        if side not in ['top', 'bottom', 'left', 'right']:
-            raise ValueError(f"🔴 Invalid side '{side}'. Must be 'top' or 'bottom'")
+        if side not in ['left', 'right']:
+            raise ValueError(f"🔴 Invalid side '{side}'. Must be 'left' or 'right'")
         
         return side
           
     def _create_buses(self, tracks_layer: Layer, buses_layer: Layer) -> Dict[str, Segment]:
-        """Calculate positions and create vertical bus segments for each net."""
+        """
+        Calculate positions and create vertical bus segments for each net.
+        Bus position depends on the specified side. Also creates a zone for the bus area.
+        """
         # The corner radius determines the vertical length of the buses
         corner_radius = self.board.loader.rounded_corner_radius
-        
-        # Start position for first bus
-        first_bus_x_position: float = (-self.board.width / 2) + self.edge_clearance
                 
         # Vertical offset for buses
         offset = corner_radius if corner_radius > 0 else self.edge_clearance
@@ -69,30 +70,80 @@ class BusRouter(Router):
         bus_upper_y = (self.board.height / 2) - offset
         bus_lower_y = (-self.board.height / 2) + offset
         
+        bus_zone: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]]
+        
         # Create result dictionary for bus segments
         bus_segments: Dict[str, Segment] = {}
         
         # Calculate positions and create segments for each net
-        current_x_position: float = first_bus_x_position
-        
-        for net in tracks_layer.nets:
-            # Create segment points
-            start_point = Point(current_x_position, bus_upper_y)
-            end_point = Point(current_x_position, bus_lower_y)
+        if self.side == 'left':
+            # Start position for first bus at left edge
+            first_bus_x_position: float = (-self.board.width / 2) + self.edge_clearance
+            current_x_position: float = first_bus_x_position
             
-            # Create segment with layer and width (all buses go on back layer)
-            bus_segment = Segment(start_point, end_point, layer=buses_layer.name, width=self.bus_width, net=net)
+            for net in tracks_layer.nets:
+                # Create segment points
+                start_point = Point(current_x_position, bus_upper_y)
+                end_point = Point(current_x_position, bus_lower_y)
+                
+                # Create segment with layer and width
+                bus_segment = Segment(start_point, end_point, layer=buses_layer.name, width=self.bus_width, net=net)
+                
+                self.buses_layer.add_segment(bus_segment) # Add segment to buses layer
+                bus_segments[net] = bus_segment # Store bus segment
+                
+                # Move to the next x position (right)
+                current_x_position += self.bus_spacing
             
-            self.buses_layer.add_segment(bus_segment) # Add segment to buses layer
-            bus_segments[net] = bus_segment # Store bus segment
+            # Store clearance needed for the buses (for backward compatibility)
+            self.board.total_buses_width = current_x_position + (self.board.width / 2)
             
-            # Move to the next x position
-            current_x_position += self.bus_spacing
+            # Create and add a zone for the bus area
+            zone_bottom_left = (-self.board.width / 2, -self.board.height / 2)
+            zone_top_left = (-self.board.width / 2, self.board.height / 2)
+            zone_top_right = (current_x_position, self.board.height / 2)
+            zone_bottom_right = (current_x_position, -self.board.height / 2)
+            
+            # Create rectangle in (bottom_left, top_left, top_right, bottom_right) format
+            bus_zone = (zone_bottom_left, zone_top_left, zone_top_right, zone_bottom_right)
+            
+        elif self.side == 'right':
+            # Start position for first bus at right edge
+            first_bus_x_position: float = (self.board.width / 2) - self.edge_clearance
+            current_x_position: float = first_bus_x_position
+            
+            for net in tracks_layer.nets:
+                # Create segment points
+                start_point = Point(current_x_position, bus_upper_y)
+                end_point = Point(current_x_position, bus_lower_y)
+                
+                # Create segment with layer and width
+                bus_segment = Segment(start_point, end_point, layer=buses_layer.name, width=self.bus_width, net=net)
+                
+                self.buses_layer.add_segment(bus_segment) # Add segment to buses layer
+                bus_segments[net] = bus_segment # Store bus segment
+                
+                # Move to the next x position (left)
+                current_x_position -= self.bus_spacing
+            
+            # Store clearance needed for the buses (for backward compatibility)
+            self.board.total_buses_width = (self.board.width / 2) - current_x_position
+            
+            # Create and add a zone for the bus area
+            zone_bottom_left = (current_x_position, -self.board.height / 2)
+            zone_top_left = (current_x_position, self.board.height / 2)
+            zone_top_right = (self.board.width / 2, self.board.height / 2)
+            zone_bottom_right = (self.board.width / 2, -self.board.height / 2)
         
-        # Store clearance needed for the buses
-        self.board.total_buses_width = current_x_position + (self.board.width / 2)
+        # Create rectangle in (bottom_left, top_left, top_right, bottom_right) format
+        bus_zone = (zone_bottom_left, zone_top_left, zone_top_right, zone_bottom_right)
+        self.board.zones.add_zone(bus_zone)
         
-        print(f"🟢 Created {len(bus_segments)} bus segments")
+        # Validate zones and modules once again
+        self.board._validate_zones_and_modules()
+        
+        print(f"🟢 Created {len(bus_segments)} bus segments on {self.side} side")
+        print(f"🟢 Added bus zone for {self.side} side")
         return bus_segments
 
     def _get_point_on_bus(self, socket_pos: Tuple[float, float], bus: Segment) -> Point:
@@ -115,7 +166,6 @@ class BusRouter(Router):
         bus_y_max = max(bus.start.y, bus.end.y)
         clamped_y_position = max(bus_y_min, min(socket_y, bus_y_max))
         
-        # For testing, let's try the top y-coordinate on the bus
         return Point(x_position, clamped_y_position)
     
     def custom_heuristic(self, dx: int, dy: int) -> float:
@@ -134,12 +184,38 @@ class BusRouter(Router):
     
     def _mark_obstacles_above_buses(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
         """
-        Needs an updated documentation
-        """
+        Mark obstacle cells to prevent traces from crossing over other traces in the bus area.
         
-        last_bus_x_index = self._coordinates_to_indices(self.board.total_buses_width, 0)[0] - self.grid_width // 2
-
+        Parameters:
+            grid: The obstacle grid
+            net_to_protect: The name of the net to protect from obstacles
+            
+        Returns:
+            np.ndarray: Updated obstacle grid
+        """
         temporary_obstacle_grid = np.copy(grid)
+        
+        # Determine the bus boundary depending on the side
+        if self.side == 'left':
+            # Convert board coordinates to grid indices
+            bus_boundary_x_index = self._coordinates_to_indices(self.board.total_buses_width, 0)[0]
+            # Ensure this index isn't beyond the grid width
+            last_bus_x_index = min(bus_boundary_x_index, self.grid_width - 1)
+            
+            # Define column range for obstacles
+            start_col = 0  # Left edge
+            end_col = last_bus_x_index
+        elif self.side == 'right':
+            # For right side, calculate the position from the right edge
+            bus_boundary_x = (self.board.width / 2) - self.board.total_buses_width
+            bus_boundary_x_index = self._coordinates_to_indices(bus_boundary_x, 0)[0]
+            
+            # Ensure this index isn't below 0
+            first_bus_x_index = max(bus_boundary_x_index, 0)
+            
+            # Define column range for obstacles
+            start_col = first_bus_x_index
+            end_col = self.grid_width - 1  # Right edge
         
         # Find the layer for this net
         current_layer = self.board.get_layer_for_net(net_to_protect)
@@ -150,27 +226,43 @@ class BusRouter(Router):
         # Find other nets on the same layer
         for net in current_layer.nets:
             if net == net_to_protect and self.board.allow_overlap:
-                continue  # Allow overlap woud allow this net to overlap (short) with itself
+                continue  # Allow overlap would allow this net to overlap (short) with itself
             
-            # Mark all paths above the bus with a larger keep-out zone around it
+            # Mark all paths in the bus area with a larger keep-out zone around it
             for path_index in self.paths_indices.get(net, []):
                 for x, y, _ in path_index:
-                    if 0 <= y < self.grid_height and 0 <= x < last_bus_x_index:     
+                    if 0 <= y < self.grid_height and start_col <= x <= end_col:     
                         for dy in range(-1, 2): # 2 extra grid cells of keep out on left and right
                             for dx in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
                                 ny, nx = y + dy, x + dx
-                                temporary_obstacle_grid[ny, nx] = self.BLOCKED_CELL
+                                if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
+                                    temporary_obstacle_grid[ny, nx] = self.BLOCKED_CELL
         
-        # Ensure the first column is always free   
-        for y in range(self.edge_clearance_grid_units):
-            temporary_obstacle_grid[y, 0] = self.FREE_CELL
+        # Ensure edge columns are always free
+        if self.side == 'left':
+            # For left side, keep leftmost column free
+            for y in range(self.grid_height):
+                temporary_obstacle_grid[y, 0] = self.FREE_CELL
+        elif self.side == 'right':
+            # For right side, keep rightmost column free
+            for y in range(self.grid_height):
+                temporary_obstacle_grid[y, self.grid_width - 1] = self.FREE_CELL
             
         return temporary_obstacle_grid
     
     def _route_socket_to_bus(self, grid: np.ndarray, socket_coordinate: Tuple[float, float], 
                                     bus_connection_coordinates: Point, net_name: str) -> List[Tuple[int, int, int]]:
         """
-        Needs an updated documentation
+        Route a socket to the bus, taking into account which side the buses are on.
+        
+        Parameters:
+            grid: The base grid for pathfinding
+            socket_coordinate: The (x, y) coordinate of the socket
+            bus_connection_coordinates: The target point on the bus
+            net_name: The name of the net being routed
+            
+        Returns:
+            List of (x, y, layer) tuples representing the path
         """
         # Apply obstacles from other nets on the same layer
         current_grid = self._mark_obstacles_on_grid(grid, net_name)
@@ -185,14 +277,15 @@ class BusRouter(Router):
         # Convert to grid indices
         bus_connection_index = self._coordinates_to_indices(bus_connection_coordinates.x, bus_connection_coordinates.y)
         
-        # For sockets to the right of the bus, we'll target a point
-        # to the left of the bus (so paths have to cross the bus)
-        target_column_index = 0  # Use left edge of grid as target
-        
-        # If socket is to the left of the bus, we'll target a point
-        # to the right of the bus (so paths have to cross the bus)
-        if socket_index[0] < bus_connection_index[0]:
-            target_column_index = self.grid_width - 1 # Use right edge of grid as target
+        # Determine target column based on the side and socket position
+        if self.side == 'left':
+            # For left side: sockets to the right of the bus target the left edge
+            # sockets to the left of the bus target the right edge
+            target_column_index = 0 if socket_index[0] > bus_connection_index[0] else self.grid_width - 1
+        elif self.side == 'right':
+            # For right side: sockets to the left of the bus target the right edge
+            # sockets to the right of the bus target the left edge
+            target_column_index = self.grid_width - 1 if socket_index[0] < bus_connection_index[0] else 0
         
         # Create pathfinding grid
         pathfinding_grid = Grid(matrix=current_grid, grid_id=0)
@@ -222,31 +315,39 @@ class BusRouter(Router):
                 chopped_path = []
                 bus_crossed = False
                 
-                # For paths from the right of the bus to the left
-                if socket_index[0] > bus_connection_index[0]:
-                    for i, node in enumerate(path):
-                        if node.x <= bus_connection_index[0]:
-                            # We've reached or crossed the bus
-                            bus_crossed = True
-                            # Add the current node (which is on or past the bus)
+                # Adjust crossing detection based on the side
+                if self.side == 'left':
+                    # For left side buses
+                    if socket_index[0] > bus_connection_index[0]:
+                        # Socket is to the right of the bus
+                        for i, node in enumerate(path):
                             chopped_path.append(node)
-                            # Break the loop - we've reached the bus
-                            break
-                        # Add nodes until we reach the bus
-                        chopped_path.append(node)
-                
-                # For paths from the left of the bus to the right
-                else:
-                    for i, node in enumerate(path):
-                        if node.x >= bus_connection_index[0]:
-                            # We've reached or crossed the bus
-                            bus_crossed = True
-                            # Add the current node (which is on or past the bus)
+                            if node.x <= bus_connection_index[0]:
+                                bus_crossed = True
+                                break
+                    else:
+                        # Socket is to the left of the bus
+                        for i, node in enumerate(path):
                             chopped_path.append(node)
-                            # Break the loop - we've reached the bus
-                            break
-                        # Add nodes until we reach the bus
-                        chopped_path.append(node)
+                            if node.x >= bus_connection_index[0]:
+                                bus_crossed = True
+                                break
+                elif self.side == 'right':
+                    # For right side buses
+                    if socket_index[0] < bus_connection_index[0]:
+                        # Socket is to the left of the bus
+                        for i, node in enumerate(path):
+                            chopped_path.append(node)
+                            if node.x >= bus_connection_index[0]:
+                                bus_crossed = True
+                                break
+                    else:
+                        # Socket is to the right of the bus
+                        for i, node in enumerate(path):
+                            chopped_path.append(node)
+                            if node.x <= bus_connection_index[0]:
+                                bus_crossed = True
+                                break
                 
                 # If we never crossed the bus, something went wrong
                 if not bus_crossed:
@@ -254,7 +355,6 @@ class BusRouter(Router):
                     return []
                 
                 # Add a node exactly at the bus position if needed
-                # (This ensures we connect exactly to the bus point)
                 if chopped_path[-1].x != bus_connection_index[0] or chopped_path[-1].y != bus_connection_index[1]:
                     # Create a new node at the exact bus position
                     bus_node = pathfinding_grid.node(bus_connection_index[0], bus_connection_index[1])
@@ -327,10 +427,15 @@ class BusRouter(Router):
                     sockets_by_zone[assigned_zone] = []
                 sockets_by_zone[assigned_zone].append(socket_info)
         
-        # Step 3: Sort sockets within each zone (initially left-to-right, top-to-bottom)
+        # Step 3: Sort sockets within each zone (different order based on side)
         for zone_idx in sockets_by_zone:
-            sockets_by_zone[zone_idx].sort(key=lambda s: (s[2], -s[3]))  # Sort by x, then -y
-
+            if self.side == 'left':
+                # For left side buses, left-to-right priority
+                sockets_by_zone[zone_idx].sort(key=lambda s: (s[2], -s[3]))  # Sort by x, then -y
+            elif self.side == 'right':
+                # For right side buses, right-to-left priority
+                sockets_by_zone[zone_idx].sort(key=lambda s: (-s[2], -s[3]))  # Sort by -x, then -y
+        
         # Step 4: Create a queue of sockets to route
         routing_queue = []
         for zone_idx in sorted(sockets_by_zone.keys()):
@@ -347,7 +452,7 @@ class BusRouter(Router):
             zone_routed[zone_idx] = []
         
         # Step 6: Route each socket with backtracking when needed
-        print(f"🟢 Routing {len(routing_queue)} sockets with buses")
+        print(f"🟢 Routing {len(routing_queue)} sockets with buses on {self.side} side")
         i = 0
         while i < len(routing_queue):
             zone_idx, net_name, socket_coordinate, x, y = routing_queue[i]
@@ -383,7 +488,9 @@ class BusRouter(Router):
                 if coord_key not in zone_orders[zone_idx]:
                     zone_orders[zone_idx][coord_key] = 1  # 1 = original order
                 
+                # Keep track of the number of connected sockets on the board
                 i += 1
+                self.board.connected_sockets_count += 1
             else:
                 print(f"🔴 No path found for socket at {socket_coordinate} to bus")
                 

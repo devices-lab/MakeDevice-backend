@@ -30,7 +30,6 @@ def _generate_graphics(board: Board, output_dir) -> None:
     
     via_diameter = board.loader.via_diameter
     edge_clearance = board.loader.edge_clearance
-    total_buses_width = board.total_buses_width
     o_x = board.origin_x
     o_y = board.origin_y
     
@@ -43,8 +42,8 @@ def _generate_graphics(board: Board, output_dir) -> None:
         # Add fills if selected for the current layer
         if layer.fill:
             # First, create a path of the entire board outline, taking into consideration the bus_clearance
-            bottom_left = ((o_x - board.width / 2) + total_buses_width, o_y - board.height / 2 + edge_clearance)
-            top_left = ((o_x - board.width / 2) + total_buses_width, o_y + board.height / 2 - edge_clearance)
+            bottom_left = ((o_x - board.width / 2) + edge_clearance, o_y - board.height / 2 + edge_clearance)
+            top_left = ((o_x - board.width / 2) + edge_clearance, o_y + board.height / 2 - edge_clearance)
             top_right = (o_x + board.width / 2 - edge_clearance, o_y + board.height / 2 - edge_clearance)
             bottom_right = (o_x + board.width / 2 - edge_clearance, o_y - board.height / 2 + edge_clearance)
 

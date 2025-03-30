@@ -27,8 +27,6 @@ class Router:
         # Store the output of this router
         self.paths_indices: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
         self.vias_indices: DefaultDict[str, List[Tuple[int, int]]] = defaultdict(list)
-
-        self.failed_routes = 0
         
         # Cell values
         self.FREE_CELL = 1
@@ -40,7 +38,7 @@ class Router:
     def _to_grid_unit(self, value: float) -> int:
         """Convert a value to grid resolution.
         
-        Parameters: 
+        Parameters: 4
             value: Value in mm
         
         Returns:
@@ -114,7 +112,14 @@ class Router:
         
     def _mark_obstacles_on_grid(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
         """
-        Needs an updated documentation
+        Mark existing paths and vias from other nets as obstacles on the grid.
+        
+        Parameters:
+            grid: The base obstacle grid
+            net_to_protect: The net that should not be blocked by these obstacles
+            
+        Returns:
+            np.ndarray: Updated obstacle grid with marked paths and vias
         """
         
         temporary_obstacle_grid = np.copy(grid)
@@ -128,21 +133,23 @@ class Router:
         # Find other nets on the same layer
         for net in current_layer.nets:
             if net == net_to_protect and self.board.allow_overlap:
-                continue  # Allow overlap woud allow this net to overlap (short) with itself
+                continue  # Allow overlap would allow this net to overlap (short) with itself
             
             # Mark all paths on other nets as obstacles
             for path in self.paths_indices.get(net, []):
                 for x, y, _ in path:
                     if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
-                        temporary_obstacle_grid[y, x] = self.BLOCKED_CELL # TODO: if any problems arise, check here
+                        temporary_obstacle_grid[y, x] = self.BLOCKED_CELL
                         
             # Mark all the area around all vias as obstacles
             for via_index in self.vias_indices.get(net, []):
+                x, y = via_index[0], via_index[1]  # Fix: Properly extract x and y from via_index
                 if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
-                    for dy in range(-1, 2): # 2 extra grid cells of keep out on left and right
-                        for dx in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
-                            ny, nx = via_index[0] + dy, via_index[1] + dx
-                            temporary_obstacle_grid[ny, nx] = self.BLOCKED_CELL
+                    for dy in range(-1, 2):  # Keep-out zone of 1 cell in each direction
+                        for dx in range(-1, 2):
+                            ny, nx = y + dy, x + dx  # Fix: Use the extracted x and y
+                            if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
+                                temporary_obstacle_grid[ny, nx] = self.BLOCKED_CELL
             
         return temporary_obstacle_grid
     
