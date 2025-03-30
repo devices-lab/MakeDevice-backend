@@ -9,9 +9,9 @@ from generate import generate
 from process import merge_stacks, compress_directory
 
 import warnings
+import sys
 
-def run(file_number: int):
-    
+def run(file_number: str):
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
@@ -19,6 +19,7 @@ def run(file_number: int):
     print("🔵 = INFO\n")
     
     loader = Loader(f"./test_data/data_{file_number}.json")
+    print("🔵 Using", f"data_{file_number}.json")
     
     if loader.debug:
         print("⚪️ Running in debug mode")
@@ -60,10 +61,18 @@ def run(file_number: int):
     left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
 
+    if (left_router.failed_routes == 0):
+        print(f"🟢 All gerber sockets routed successfully")
+    else:
+        print(f"🔴 Gerber socket routing failed for {left_router.failed_routes} routes. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} succeeded")
+
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
     
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
-    run(5)
+    if (len(sys.argv) > 1):
+        run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
+    else:
+        run(5)

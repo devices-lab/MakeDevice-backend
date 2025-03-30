@@ -26,6 +26,8 @@ class Router:
         # Store the output of this router
         self.paths_indices: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
         self.vias_indices: DefaultDict[str, List[Tuple[int, int]]] = defaultdict(list)
+
+        self.failed_routes = 0
         
         # Cell values
         self.FREE_CELL = 1
