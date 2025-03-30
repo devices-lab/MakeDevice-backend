@@ -115,8 +115,6 @@ class BusRouter(Router):
         bus_y_max = max(bus.start.y, bus.end.y)
         clamped_y_position = max(bus_y_min, min(socket_y, bus_y_max))
         
-        center_y_position = 0 # Use the center point of all buses, instead of the clamped 
-        
         return Point(x_position, clamped_y_position)
     
     def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
@@ -152,6 +150,20 @@ class BusRouter(Router):
         sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (x[2], x[3]))]
         
         return sorted_sockets
+
+    def custom_heuristic(self, dx: int, dy: int) -> float:
+        """
+        Custom heuristic for A* pathfinding.
+        
+        Parameters:
+            dx: The x-coordinate difference
+            dy: The y-coordinate difference
+            
+        Returns:
+            float: The heuristic value
+        """
+        # Use Manhattan distance
+        return dx + dy
     
     def _route_socket_to_bus(self, grid: np.ndarray, socket_coordinate: Tuple[float, float], 
                                     bus_connection_coordinates: Point, net_name: str) -> List[Tuple[int, int, int]]:
@@ -196,7 +208,7 @@ class BusRouter(Router):
         if self.board.algorithm == "breadth_first":
             finder = BreadthFirstFinder()
         else:  # default to A*
-            finder = AStarFinder()
+            finder = AStarFinder(heuristic=self.custom_heuristic)
         
         # Configure diagonal movement
         if self.board.allow_diagonal_traces:
@@ -269,6 +281,7 @@ class BusRouter(Router):
                 return path_tuples
             else:
                 print(f"🔴 No path found between socket at {socket_coordinate} and target")
+                self.failed_routes += 1
                 return []
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
