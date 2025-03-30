@@ -475,7 +475,7 @@ class BusRouter(Router):
 
             if debug.do_video:
                 debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, socket_locations, self.board.loader.resolution)
-            
+
             if path:
                 print(f"🟢 Found path for socket at {socket_coordinate} to bus")
                 self.paths_indices[net_name].append(path)
@@ -589,3 +589,6 @@ class BusRouter(Router):
         
         # Convert via indexes to points (also adds to board layers)
         self._convert_via_indexes_to_points()
+
+        if debug.do_video:
+            debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, socket_locations, self.board.loader.resolution)
