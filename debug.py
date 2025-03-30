@@ -123,7 +123,11 @@ def video(name=""):
     """
     Generates a video from the frames saved in the debug folder, then removes the folder
     """
-    os.system(f"ffmpeg -r 7 -i debug/frame_%d.png -vcodec mpeg4 -y debug_{name}.mp4")
+
+    # Target a 10 second video
+    rate = float(frame_index) / 10.0
+
+    os.system(f"ffmpeg -r {rate} -i debug/frame_%d.png -vcodec mpeg4 -y debug_{name}.mp4")
 
     # Remove the debug folder
     for file in os.listdir("debug"):

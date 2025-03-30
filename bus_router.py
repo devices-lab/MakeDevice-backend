@@ -583,8 +583,6 @@ class BusRouter(Router):
 
                 # If no backtracking was done or possible, just skip this socket
                 i += 1
-                self.failed_routes += 1
-                print(f"🔴 Failed to route socket {i} in zone {zone_idx}")
         
         # Consolidate grid paths to segments (also adds to board layers)
         self._convert_trace_indices_to_segments()

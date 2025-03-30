@@ -9,6 +9,8 @@ import os
 import subprocess
 import sys
 
+test_with_video = False
+
 def test():
     print("🟢 = OK")
     print("🟡 = WARNING")
@@ -21,12 +23,19 @@ def test():
     passes = 0
     fails = 0
 
+    if test_with_video:
+        print("🔵 Generating a video for each test")
+
     for file in test_files:
         print(f"🔵 Testing {file}")
         # Remove "data_" and ".json" from the file name
         file = file[5:-5]
-        # If there's an error, hide the traceback
-        process = subprocess.Popen(["python3", "run.py", file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        argument_list = ["python3", "run.py", file]
+        if test_with_video:
+            argument_list.append("video")
+
+        process = subprocess.Popen(argument_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         result_found = False
 
         # Wait for the process to finish
@@ -57,4 +66,8 @@ def test():
         print(f"🟡\t{len(test_files) - passes - fails} tests without result")
 
 if __name__ == "__main__":
+    # Check for video argument
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "video":
+            test_with_video = True
     test()
