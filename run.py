@@ -9,15 +9,15 @@ from busrouter import BusRouter as Router
 import warnings
 import sys
 
-def run(test_name: str):
+def run(file_number: str):
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
     
-    loader = Loader(f"./test_data/data_{test_name}.json")
-    print("🔵 Using", f"data_{test_name}.json")
+    loader = Loader(f"./test_data/data_{file_number}.json")
+    print("🔵 Using", f"data_{file_number}.json")
     if loader.debug:
         print("⚪️ Running in debug mode")
 
@@ -46,6 +46,11 @@ def run(test_name: str):
     router = Router(board)
     
     router.route()
+
+    if (router.failed_routes == 0):
+        print(f"🟢 PASS: All gerber sockets routed successfully")
+    else:
+        print(f"🔴 FAIL: Gerber socket routing failed for {router.failed_routes} routes. {router.sockets.get_socket_count() - router.failed_routes}/{router.sockets.get_socket_count()} succeeded")
 
     generate(board)
     merge_stacks(board.modules, board.name)

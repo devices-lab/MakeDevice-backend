@@ -46,6 +46,9 @@ class BusRouter:
         
         # Track routed nets by layer
         self.routed_nets_by_layer = defaultdict(list)  # {layer_name: [list of net names]}
+
+        # Count routing fails
+        self.failed_routes = 0
         
         # Configuration for bus spacing and traces
         self.trace_width = board.loader.fabrication_options['track_width']
@@ -223,7 +226,7 @@ class BusRouter:
         # bus_y_max = max(bus.start.y, bus.end.y)
         # clamped_y = max(bus_y_min, min(socket_y, bus_y_max))
         
-        y_position = 0 # Use the center point of all buses, instead of the clamped 
+        y_position = socket_pos[1] # Use the center point of all buses, instead of the clamped 
         
         return Point(x_position, y_position)
     
@@ -534,9 +537,22 @@ class BusRouter:
         
         # Sort by y-coordinate (descending) and then by x-coordinate (ascending)
         # This gives top (highest y) to bottom, and left (lowest x) to right
-        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (-x[2], x[3]))]
+        # sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (-x[2], x[3]))]
+
+        # Sort by x-coordinate (ascending) and then by y-coordinate (descending)
+        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (x[3], -x[2]))]
         
         return sorted_sockets
+
+    def custom_heuristic(self, dx, dy) -> float:
+        return dx + dy
+
+        #octile distance
+        # f = math.sqrt(2) - 1
+        # if dx < dy:
+        #     return f * dx + dy
+        # else:
+        #     return f * dy + dx
     
     def _route_socket_to_bus(self, grid: np.ndarray, socket_pos: Tuple[float, float], 
                                     bus_point: Point, net_name: str) -> List[Tuple[int, int, int]]:
@@ -558,7 +574,7 @@ class BusRouter:
         
         # Apply socket margin to ensure the socket is routable
         current_grid = self._apply_socket_margins(current_grid, socket_pos)
-        
+
         # Convert to grid indices
         socket_col, socket_row = self._to_grid_indices(socket_pos[0], socket_pos[1])
         bus_col, bus_row = self._to_grid_indices(bus_point.x, bus_point.y)
@@ -579,8 +595,8 @@ class BusRouter:
         if self.algorithm == "breadth_first":
             finder = BreadthFirstFinder()
         else:  # default to A*
-            finder = AStarFinder()
-        
+            finder = AStarFinder(heuristic=self.custom_heuristic)
+
         # Configure diagonal movement
         if self.allow_diagonal_traces:
             finder.diagonal_movement = DiagonalMovement.only_when_no_obstacle
@@ -720,6 +736,7 @@ class BusRouter:
                 self.trace_indexes[net_name].append(path)
             else:
                 print(f"🔴 No path found for socket at {socket_pos} to bus")
+                self.failed_routes += 1
         
         # Now, handle remaining sockets that don't have buses (typically for filled zones)
         print(f"🟢 Processing sockets for filled zones")
