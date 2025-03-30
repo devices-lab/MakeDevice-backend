@@ -76,4 +76,4 @@ with warnings.catch_warnings():
     if (len(sys.argv) > 1):
         run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
     else:
-        run(5)
+        run("5-flip")

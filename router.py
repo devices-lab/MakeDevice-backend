@@ -145,14 +145,14 @@ class Router:
             
         return temporary_obstacle_grid
     
-    def _apply_socket_margins(self, grid: np.ndarray, socket_index: Tuple[int, int], 
+    def _apply_socket_margins(self, grid: np.ndarray, exposed_socket_index: Tuple[int, int], 
                              keep_out_mm: float = 0.5) -> np.ndarray:
         """
         Apply keep_out zones around all sockets from other nets
         
         Parameters:
             grid: The grid to apply the keep-out zone to
-            socket_position: Grid index of the socket position
+            exposed_socket_index: Index of the socket to be exposed
             keep_out_mm: Optional, keep-out zone size in mm
             
         Returns:
@@ -162,24 +162,18 @@ class Router:
         keep_out_cells = int(np.ceil(keep_out_mm / self.board.resolution))
         # Mark all sockets for this other net as obstacles
         for position in self.board.sockets.get_all_coordinates():
-            x, y = self._coordinates_to_indices(position[0], position[1])                
+            socket_index = self._coordinates_to_indices(position[0], position[1])    
             for i in range(-keep_out_cells+1, keep_out_cells):
                 for j in range(-keep_out_cells+1, keep_out_cells):
-                    dx = x + i
-                    dy = y + j
+                    column = socket_index[0] + i
+                    row = socket_index[1] + j
                     # Check if within grid boundaries
-                    if 0 <= dx < self.grid_width and 0 <= dy < self.grid_height:
-                        temp_grid[dy, dx] = self.BLOCKED_CELL
-                        
-        # Apply keep-out zone around the socket
-        for i in range(-keep_out_cells+1, keep_out_cells):
-            for j in range(-keep_out_cells+1, keep_out_cells):
-                y = socket_index[0] + j
-                x = socket_index[1] + i                
-                # Check if within grid boundaries
-                if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
-                    temp_grid[x, y] = self.FREE_CELL 
-        
+                    if 0 <= column < self.grid_width and 0 <= row < self.grid_height:
+                        if socket_index == exposed_socket_index:
+                            temp_grid[row, column] = self.FREE_CELL
+                        else: 
+                            temp_grid[row, column] = self.BLOCKED_CELL
+                            
         return temp_grid
     
     def _convert_trace_indices_to_segments(self) -> None:
@@ -286,8 +280,6 @@ class Router:
                 
         return consolidated_indexes
 
-    
-    
     def _convert_via_indexes_to_points(self) -> None:
         """Convert via grid indices to board coordinate points and add to layers."""
         
