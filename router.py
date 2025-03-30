@@ -22,6 +22,7 @@ class Router:
         self.grid_width = self._to_grid_unit(board.width)
         self.grid_center_x = self.grid_width // 2
         self.grid_center_y = self.grid_height // 2
+        self.edge_clearance_grid_units = self._to_grid_unit(self.board.loader.edge_clearance)
         
         # Store the output of this router
         self.paths_indices: DefaultDict[str, List[List[Tuple[int, int, int]]]] = defaultdict(list)
@@ -79,7 +80,7 @@ class Router:
         """Create the base grid for the entire board."""        
         # Initialize grid with free cells
         grid = np.full((self.grid_height, self.grid_width), self.FREE_CELL, dtype=int)
-                
+        
         # Mark keep-out zones in the grid
         for zone in self.board.zones.get_data():
             bottom_left, top_left, top_right, bottom_right = zone

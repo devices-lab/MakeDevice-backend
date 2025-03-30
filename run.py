@@ -61,16 +61,16 @@ def run(file_number: str):
     left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
 
-    # "PASS" and "FAIL" substrings are checked for by test.py
-    if (left_router.failed_routes == 0):
-        print(f"🟢 PASS: All gerber sockets routed successfully")
-    else:
-        print(f"🔴 FAIL: Gerber socket routing failed for {left_router.failed_routes} routes. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} succeeded")
-
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
     
+     # "PASS" and "FAIL" substrings are checked for by test.py
+    if (left_router.failed_routes == 0):
+        print(f"🟢 PASS: All GerberSockets routed successfully")
+    else:
+        print(f"🔴 FAIL: GerberSockets routing incomplete for {left_router.failed_routes} socket. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} completed")
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
     if (len(sys.argv) > 1):
