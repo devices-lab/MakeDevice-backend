@@ -56,15 +56,18 @@ def run(file_number: str):
 
     # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
     top_layer = board.get_layer("F_Cu.gtl")
+    inner_layer = board.get_layer("In1_Cu.g2")
     bottom_layer = board.get_layer("B_Cu.gbl")
     
-    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="right")
+    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
+    
+    right_router = BusRouter(board, tracks_layer=inner_layer, buses_layer=bottom_layer, side="right")
+    right_router.route()
 
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
-    
     
      # "PASS" and "FAIL" substrings are checked for by test.py]
     all = sockets.get_socket_count()
