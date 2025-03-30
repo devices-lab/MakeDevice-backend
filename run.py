@@ -58,18 +58,21 @@ def run(file_number: str):
     top_layer = board.get_layer("F_Cu.gtl")
     bottom_layer = board.get_layer("B_Cu.gbl")
     
-    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
+    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="right")
     left_router.route()
 
     generate(board)
     merge_stacks(board.modules, board.name)
     compress_directory("output")
     
-     # "PASS" and "FAIL" substrings are checked for by test.py
-    if (left_router.failed_routes == 0):
-        print(f"🟢 PASS: All GerberSockets routed successfully")
+    
+     # "PASS" and "FAIL" substrings are checked for by test.py]
+    all = sockets.get_socket_count()
+    connected = board.connected_sockets_count
+    if ((all - connected) == 0):
+        print(f"🟢 PASS: All GerberSockets routed {connected} successfully")
     else:
-        print(f"🔴 FAIL: GerberSockets routing incomplete for {left_router.failed_routes} socket. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} completed")
+        print(f"🔴 FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
