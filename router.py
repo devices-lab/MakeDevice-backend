@@ -79,7 +79,7 @@ class Router:
         """Create the base grid for the entire board."""        
         # Initialize grid with free cells
         grid = np.full((self.grid_height, self.grid_width), self.FREE_CELL, dtype=int)
-        
+                
         # Mark keep-out zones in the grid
         for zone in self.board.zones.get_data():
             bottom_left, top_left, top_right, bottom_right = zone

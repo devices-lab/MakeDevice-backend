@@ -114,21 +114,31 @@ class BusRouter(Router):
         bus_y_max = max(bus.start.y, bus.end.y)
         clamped_y_position = max(bus_y_min, min(socket_y, bus_y_max))
         
-        return Point(x_position, clamped_y_position)
+        # For testing, let's try the top y-coordinate on the bus
+        return Point(x_position, 0)
     
     def _sort_all_sockets_by_proximity(self, socket_locations: Dict[str, List[Tuple[float, float]]]) -> List[Tuple[str, Tuple[float, float]]]:
         """
-        Sort ALL sockets from all nets based on position, prioritizing left-to-right,
-        and then top-to-bottom for sockets with the same x-coordinate.
+        Sort sockets by:
+        1. Distance to bus (x-coordinate)
+        2. For sockets on the same x-index, group by their respective zones
+        3. Within each zone group, sort from outer edges toward the center
+        
+        TODO: fix so that it takes into account module_margin
+        TODO: doesn't work when routing is still forced to go downwards
+        TODO: implement a system that sees that the first socket can't be routed, 
+        TODO: and changes the order for all remaining sockets of that module
+        TODO: this will be like a feedback loop
         
         Parameters:
             socket_locations: Dictionary mapping net names to lists of socket positions
             
         Returns:
-            List of (net_name, socket_position) tuples sorted left-to-right, then top-to-bottom
+            List of (net_name, socket_position) tuples sorted by the defined strategy
         """
         all_sockets = []
         
+        # Step 1: Collect all sockets with their metadata
         for net_name, locations in socket_locations.items():
             # Get the bus for this net
             bus = self.bus_segments.get(net_name)
@@ -139,16 +149,90 @@ class BusRouter(Router):
             for socket_pos in locations:
                 socket_x, socket_y = socket_pos
                 
-                # Store socket with coordinates for sorting
+                # Store socket with x-coordinate for initial sorting
                 all_sockets.append(
-                    (net_name, socket_pos, socket_x, -socket_y)  # Store x and -y for sorting
+                    (net_name, socket_pos, socket_x, socket_y)
                 )
         
-        # Sort by x-coordinate (ascending) and then by y-coordinate (descending)
-        # This gives left (lowest x) to right, and top (highest y) to bottom for same x
-        sorted_sockets = [(net, socket) for net, socket, _, _ in sorted(all_sockets, key=lambda x: (x[2], x[3]))]
+        # Step 2: Group sockets by x-coordinate
+        sockets_by_x = {}
+        for socket_info in all_sockets:
+            net_name, socket_pos, x, y = socket_info
+            if x not in sockets_by_x:
+                sockets_by_x[x] = []
+            sockets_by_x[x].append(socket_info)
         
-        return sorted_sockets
+        # Step 3: Process each group of sockets with the same x-coordinate
+        sorted_result = []
+        sorted_x_values = sorted(sockets_by_x.keys())  # Sort x-coordinates
+        
+        for x in sorted_x_values:
+            sockets_at_x = sockets_by_x[x]
+            
+            # If only one socket at this x-coordinate, add it directly
+            if len(sockets_at_x) == 1:
+                sorted_result.append((sockets_at_x[0][0], sockets_at_x[0][1]))
+                continue
+            
+            # Step 3a: Group sockets by their zone
+            zones_data = self.board.zones.get_data()
+            sockets_by_zone = {}
+            
+            for socket_info in sockets_at_x:
+                net_name, socket_pos, x, y = socket_info
+                
+                # Find which zone this socket belongs to
+                assigned_zone = None
+                for zone_idx, zone in enumerate(zones_data):
+                    bottom_left, top_left, top_right, bottom_right = zone
+                    
+                    # Check if socket is within this zone
+                    if (bottom_left[0] <= x <= top_right[0] and 
+                        bottom_left[1] <= y <= top_left[1]):
+                        assigned_zone = zone_idx
+                        break
+                
+                # Add socket to its zone group
+                if assigned_zone is not None:
+                    if assigned_zone not in sockets_by_zone:
+                        sockets_by_zone[assigned_zone] = []
+                    sockets_by_zone[assigned_zone].append(socket_info)
+            
+            # Step 3b: Sort sockets within each zone from outside edges toward center
+            for zone_idx, zone_sockets in sockets_by_zone.items():
+                zone = zones_data[zone_idx]
+                bottom_left, top_left, top_right, bottom_right = zone
+                
+                # Calculate midpoint of the zone edge
+                zone_edge_midpoint_y = (top_left[1] + bottom_left[1]) / 2
+                
+                # Calculate distance from midpoint for each socket
+                annotated_sockets = []
+                for socket_info in zone_sockets:
+                    net_name, socket_pos, x, y = socket_info
+                    
+                    # Distance from the midpoint of the zone edge (positive value)
+                    midpoint_distance = abs(y - zone_edge_midpoint_y)
+                    
+                    # Record whether socket is above or below midpoint (for tie-breaking)
+                    is_above_midpoint = y > zone_edge_midpoint_y
+                    
+                    annotated_sockets.append(
+                        (net_name, socket_pos, midpoint_distance, is_above_midpoint)
+                    )
+                
+                # Sort by distance from midpoint (descending) to prioritize outer edges
+                # For same distance, prioritize sockets above the midpoint
+                sorted_zone_sockets = sorted(
+                    annotated_sockets, 
+                    key=lambda s: (-s[2], not s[3])  # '-' makes it descending, 'not' makes True come first
+                )
+                
+                # Add sorted sockets from this zone to result
+                for socket_info in sorted_zone_sockets:
+                    sorted_result.append((socket_info[0], socket_info[1]))
+        
+        return sorted_result
 
     def custom_heuristic(self, dx: int, dy: int) -> float:
         """
