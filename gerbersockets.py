@@ -137,11 +137,8 @@ class Sockets(Object):
             raise ValueError("Loader with configuration not provided.")
         
         net_diameter_map = self.loader.net_diameter_map
-        resolution = self.resolution
         legacy_sockets = self.loader.legacy_sockets
-        
-        # Add here support for new ASCII socket format, for now leave as is
-        
+            
         diameter_to_net = {value: key for key, value in net_diameter_map.items()}
         self.socket_locations = {}
         alignment_errors = []
@@ -166,7 +163,7 @@ class Sockets(Object):
                         # Check if the raw coordinates align with the resolution grid
                         if not self._is_aligned_with_resolution(x_raw) or \
                            not self._is_aligned_with_resolution(y_raw):
-                            alignment_errors.append((net_name, (x_raw, y_raw), resolution))
+                            alignment_errors.append((net_name, (x_raw, y_raw), self.resolution))
                         
                         # Round to resolution for storage
                         rounded_location = (
@@ -185,15 +182,6 @@ class Sockets(Object):
             
         return self.socket_locations
     
-    def get_nets(self) -> List[str]:
-        """
-        Get all net names that have sockets.
-        
-        Returns:
-            List[str]: List of net names
-        """
-        return list(self.socket_locations.keys())
-    
     def get_socket_count(self, net_name: str = None) -> int:
         """
         Get the number of sockets for a specific net or all nets.
@@ -208,22 +196,28 @@ class Sockets(Object):
             return len(self.socket_locations.get(net_name, []))
         else:
             return sum(len(sockets) for sockets in self.socket_locations.values())
-    
-    def get_socket_locations(self, net_name: str = None) -> Dict[str, List[Tuple[float, float]]]:
+        
+    def get_nets(self) -> List[str]:
         """
-        Get socket locations for a specific net or all nets.
+        Get all net names that have sockets.
+        
+        Returns:
+            List[str]: List of net names
+        """
+        return list(self.socket_locations.keys())
+    
+    def get_socket_positions_for_net(self, net: str) -> List[Tuple[float, float]]:
+        """Get all socket locations for a specific net
         
         Parameters:
-            net_name: Optional net name to filter locations by
+            net: The net name
             
         Returns:
-            Dict or List: Socket locations for the requested net(s)
+            List[Tuple[float, float]]: List of socket locations for the net
         """
-        if net_name:
-            return {net_name: self.socket_locations.get(net_name, [])}
-        return self.socket_locations
+        return self.get_socket_positions(net).get(net, [])
     
-    def get_all_positions(self) -> List[Tuple[float, float]]:
+    def get_all_coordinates(self) -> List[Tuple[float, float]]:
         """ Get all raw positions for all sockets """
         return [pos for net in self.socket_locations.values() for pos in net]
     
@@ -431,15 +425,6 @@ class Zones(Object):
         """
         return len(self.zone_rectangles)
     
-    def get_zone_rectangles(self) -> List[Tuple]:
-        """
-        Get all keep-out zone rectangles.
-        
-        Returns:
-            List[Tuple]: List of zone rectangles
-        """
-        return self.zone_rectangles
-    
     def get_data(self) -> List[Tuple]:
         """
         Get data representation of the zones.
@@ -498,7 +483,7 @@ class Zones(Object):
         except ValueError:
             return False
     
-    def is_point_in_zone(self, point: Tuple[float, float]) -> bool:
+    def is_point_in_a_zone(self, point: Tuple[float, float]) -> bool:
         """
         Check if a point is within any keep-out zone.
         

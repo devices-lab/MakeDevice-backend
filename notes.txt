@@ -40,6 +40,25 @@ imrovements preferable
 
 
 
+
+
+in Board class
+
+take the extracted socket information
+sort out which nets connect how
+
+identify which nets are routed by which router 
+store all of the paths
+
+
+
+
+
+
+
+
+
+
 From fronted to be corrected
 
 - no need for manufacturing options

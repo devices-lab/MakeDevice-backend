@@ -43,11 +43,12 @@ class Segment:
     Represents a line segment with start and end points, 
     as well as layer and width information.
     """
-    def __init__(self, start: Point, end: Point, layer: str = None, width: float = None):
+    def __init__(self, start: Point, end: Point, layer: str = None, width: float = None, net: str = None):
         self.start = start
         self.end = end
         self.layer = layer  # Layer name (e.g., "F_Cu.gtl", "B_Cu.gbl")
         self.width = width  # Trace width in mm
+        self.net = net  # Net name (e.g., "GND", "VCC")
     
     def as_tuple(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Return the segment as a tuple of tuples ((start_x, start_y), (end_x, end_y))"""
@@ -68,7 +69,7 @@ class Segment:
     def __repr__(self) -> str:
         layer_info = f", layer='{self.layer}'" if self.layer else ""
         width_info = f", width={self.width}" if self.width is not None else ""
-        return f"Segment(start={self.start}, end={self.end}{layer_info}{width_info})"
+        return f"Segment(start={self.start}, end={self.end}{layer_info}{width_info} net='{self.net}')"
 
 
 class NetSegments:
