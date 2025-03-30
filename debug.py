@@ -5,6 +5,8 @@ from gerber_writer import DataLayer, Path
 from pathlib import Path as PathLib
 from typing import Dict, List, Tuple, Union
 
+frame_index = 0
+do_video = False
 
 def generate_test_grid(dimensions):
     width, height = dimensions
@@ -41,12 +43,30 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
         with points as tuples.
         resolution (float): The resolution of the grid, for scaling the socket and segment coordinates.
     """
-    plt.figure(figsize=(7, 7))  # Set the figure size
+    scale = 2
+    plt.figure(figsize=((grid.shape[1] * scale) / 100, (grid.shape[0] * scale) / 100))  # Set the figure size
+
+    plt.gcf().patch.set_facecolor('black')
+    plt.axis('off')
+
     extent = [0, grid.shape[1], 0, grid.shape[0]]
-    plt.imshow(grid, cmap='gray', interpolation='nearest', extent=None)  # Display the grid
+    plt.imshow(grid, cmap='binary', interpolation='nearest', extent=None)  # Display the grid
     
     # Define colors for different nets, ensure there's a default color if net not listed
-    colors = {'JD_PWR': 'red', 'JD_GND': 'blue', 'JD_DATA': 'green', 'default': 'gray'}
+    set_colors = {
+        'JD_PWR': 'red',
+        'JD_GND': 'white',
+        'JD_DATA': 'yellow',
+        'GND': 'white', 
+        'SWCLK': 'blue',
+        'SWDIO~': 'green',
+        'SWDIO~^': 'lightgreen',
+        'RESET': 'orange',
+        'default': 'gray'
+    }
+
+    # Default color for a different key
+    colors = lambda key: set_colors[key] if key in set_colors else set_colors['default']
 
     # Center coordinates for plotting
     center_x, center_y = grid.shape[1] // 2, grid.shape[0] // 2
@@ -57,18 +77,60 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
             # Adjust coordinates for the plot: shifting origin to the center of the grid
             plot_x = (center_y + int(y / resolution))  # Adjust for numpy's row-major order (flip x and y)
             plot_y = (center_x + int(x / resolution))
-            plt.scatter(plot_y, plot_x, c=colors[net_type], s=100, label=net_type, alpha=0.6)
+
+            # Invert the x axis to match the traditional Cartesian coordinate system
+            plot_x = grid.shape[0] - plot_x
+
+            # plt.scatter(plot_y, plot_x, c=colors(net_type), s=100, label=net_type, alpha=0.3)
+            plt.scatter(plot_y, plot_x, c=colors(net_type), s=10, alpha=0.8)
 
      # Draw the routes
     for net_type, paths in routes.items():
         for path in paths:
             if path:  # Ensure there is a valid path
-                path_y, path_x = zip(*path)  # Coordinates are directly usable, no need for center adjustment
-                plt.plot(path_x, path_y, c=colors[net_type], linewidth=2, alpha=0.6)  # Use the same color as the sockets
-                
-    plt.grid(True)
-    plt.legend(title='Jacdac nets')
-    plt.show()
+                # print(path)
+                path_x, path_y, path_z = zip(*path)  # Coordinates are directly usable, no need for center adjustment
+                plt.plot(path_x, path_y, c=colors(net_type), linewidth=2, alpha=0.6)  # Use the same color as the sockets
+
+    # Group lavels with the same name
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+
+    plt.grid(False)
+
+    plt.tight_layout(pad=0)
+    # plt.legend(title='Jacdac nets')
+    frame(plt)
+
+def frame(plt):
+    """
+    Saves the current plot as a frame for a video.
+    """
+    global frame_index
+    if frame_index == 0:
+        # Make the folder if it doesn't exist
+        os.makedirs("debug", exist_ok=True)
+
+        # Empty the debug folder in a safe way (not rm
+        for file in os.listdir("debug"):
+            os.remove(f"debug/{file}")
+
+    plt.savefig(f"debug/frame_{frame_index}.png")
+    frame_index += 1
+
+def video(name=""):
+    """
+    Generates a video from the frames saved in the debug folder, then removes the folder
+    """
+    os.system(f"ffmpeg -r 7 -i debug/frame_%d.png -vcodec mpeg4 -y debug_{name}.mp4")
+
+    # Remove the debug folder
+    for file in os.listdir("debug"):
+        os.remove(f"debug/{file}")
+    os.rmdir("debug")
+
+    print(f"🟢 Generated debug_{name}.mp4")
 
 def show_segments_sockets(segments, socket_locations):
     """

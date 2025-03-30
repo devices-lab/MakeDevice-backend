@@ -12,6 +12,7 @@ from layer import Layer
 from objects import Point, Segment
 
 from router import Router
+import debug
     
 class BusRouter(Router):
     """
@@ -273,7 +274,6 @@ class BusRouter(Router):
                 return path_tuples
             else:
                 print(f"🔴 No path found between socket at {socket_coordinate} and target")
-                self.failed_routes += 1
                 return []
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
@@ -330,7 +330,7 @@ class BusRouter(Router):
         # Step 3: Sort sockets within each zone (initially left-to-right, top-to-bottom)
         for zone_idx in sockets_by_zone:
             sockets_by_zone[zone_idx].sort(key=lambda s: (s[2], -s[3]))  # Sort by x, then -y
-        
+
         # Step 4: Create a queue of sockets to route
         routing_queue = []
         for zone_idx in sorted(sockets_by_zone.keys()):
@@ -367,6 +367,9 @@ class BusRouter(Router):
             
             # Route the socket to the bus
             path = self._route_socket_to_bus(self.base_grid, socket_coordinate, bus_point, net_name)
+
+            if debug.do_video:
+                debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, socket_locations, self.board.loader.resolution)
             
             if path:
                 print(f"🟢 Found path for socket at {socket_coordinate} to bus")
@@ -473,6 +476,8 @@ class BusRouter(Router):
 
                 # If no backtracking was done or possible, just skip this socket
                 i += 1
+                self.failed_routes += 1
+                print(f"🔴 Failed to route socket {i} in zone {zone_idx}")
         
         # Consolidate grid paths to segments (also adds to board layers)
         self._convert_trace_indices_to_segments()

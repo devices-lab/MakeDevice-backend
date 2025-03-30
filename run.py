@@ -10,6 +10,7 @@ from process import merge_stacks, compress_directory
 
 import warnings
 import sys
+import debug
 
 def run(file_number: str):
     print("🟢 = OK")
@@ -71,9 +72,15 @@ def run(file_number: str):
     else:
         print(f"🔴 FAIL: GerberSockets routing incomplete for {left_router.failed_routes} socket. {sockets.get_socket_count() - left_router.failed_routes}/{sockets.get_socket_count()} completed")
 
+    if debug.do_video:
+        debug.video(name=file_number)
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
     if (len(sys.argv) > 1):
+        if (len(sys.argv) > 2):
+            if (sys.argv[2] == "video"):
+                debug.do_video = True
         run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
     else:
         run("5-flip")
