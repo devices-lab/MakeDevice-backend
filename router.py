@@ -159,7 +159,8 @@ class Router:
             Updated grid with socket keep-out applied
         """
         temp_grid = np.copy(grid)
-        keep_out_cells = int(np.ceil(keep_out_mm / self.board.resolution))
+        keep_out_cells = self._to_grid_unit(keep_out_mm)
+        
         # Mark all sockets for this other net as obstacles
         for position in self.board.sockets.get_all_coordinates():
             socket_index = self._coordinates_to_indices(position[0], position[1])    
