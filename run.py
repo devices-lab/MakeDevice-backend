@@ -1,10 +1,10 @@
-from process import merge_layers, merge_stacks, clear_directories, compress_directory
-from generate import generate
+from process import merge_layers, clear_directories
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
 from board import Board
-from busrouter import BusRouter as Router
+
+from bus_router import BusRouter
 
 import warnings
 import sys
@@ -18,6 +18,7 @@ def run(file_number: str):
     
     loader = Loader(f"./test_data/data_{file_number}.json")
     print("🔵 Using", f"data_{file_number}.json")
+    
     if loader.debug:
         print("⚪️ Running in debug mode")
 
@@ -25,8 +26,10 @@ def run(file_number: str):
     clear_directories()
     print("🟢 Cleared out `/output` and `/generated` directories")
     
+    board = Board(loader)
+    
     # Merge the GerberSockets layers from all individual modules
-    gerbersockets_layer = merge_layers(loader.modules, loader.gerbersockets_layer_name, loader.name)
+    gerbersockets_layer = merge_layers(board.modules, loader.gerbersockets_layer_name, board.name)
     print("🟢 Merged", loader.gerbersockets_layer_name, "layers")
 
     # Get the locations of the sockets
@@ -34,28 +37,37 @@ def run(file_number: str):
     if sockets.get_socket_count() == 0:
         print("🔴 No sockets found")
         return
+    else: 
+        board.add_sockets(sockets)
+        print("🟢 Found", sockets.get_socket_count(), "sockets and added them to the board")
+    
     
     # Get the keep out zones 
     zones = Zones(loader, gerbersockets_layer)
     if zones.get_zone_count() == 0:
-        print("🔴 No keep-out zones found")
+        print("🔴 No keep-out zones found, and added them to the board")
         return
+    else:
+        board.add_zones(zones)
+        print("🟢 Found", zones.get_zone_count(), "keep-out zones and added them to the board")
 
-    board = Board(loader, sockets, zones)
-        
-    router = Router(board)
+
+    # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
+    top_layer = board.get_layer("F_Cu.gtl")
+    bottom_layer = board.get_layer("B_Cu.gbl")
     
-    router.route()
+    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
+    left_router.route()
 
     if (router.failed_routes == 0):
         print(f"🟢 PASS: All gerber sockets routed successfully")
     else:
         print(f"🔴 FAIL: Gerber socket routing failed for {router.failed_routes} routes. {router.sockets.get_socket_count() - router.failed_routes}/{router.sockets.get_socket_count()} succeeded")
 
-    generate(board)
-    merge_stacks(board.modules, board.name)
-    compress_directory("output")
-
+    # generate(board)
+    # merge_stacks(board.modules, board.name)
+    # compress_directory("output")
+    
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 
     if (len(sys.argv) > 1):

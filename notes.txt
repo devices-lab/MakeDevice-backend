@@ -15,8 +15,8 @@ fixes needed
 
 
 On Saturday 
-- ensure that for a net that has a copper fill (in this case the GND), that there is no bus created for it
-- there is still issues with via clearance on the bus connections
+- ensure that for a net that has a copper fill (in this case the GND), that there is no bus created for it - DONE
+- there is still issues with via clearance on the bus connections - hopefully DONE
 
 General things to implement 
 - point to point routing
@@ -37,6 +37,25 @@ imrovements preferable
 - support the bus on the right side as well 
 - shorten the buses to a minimum after all connections are placed?
 - make it configurable to set which nets are to be routed with buses, and which to be routed with normal routing - for now hardcode
+
+
+
+
+
+in Board class
+
+take the extracted socket information
+sort out which nets connect how
+
+identify which nets are routed by which router 
+store all of the paths
+
+
+
+
+
+
+
 
 
 

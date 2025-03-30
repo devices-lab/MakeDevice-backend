@@ -54,7 +54,7 @@ class Module:
         return (origin[0] <= min_x and max_x <= origin[0] + board_dimensions[0] and
                 origin[1] <= min_y and max_y <= origin[1] + board_dimensions[1])
     
-    def get_position_tuple(self) -> Tuple[float, float]:
+    def get_position(self) -> Position:
         """Return the position as a tuple (x, y)"""
         return self.position.as_tuple()
     

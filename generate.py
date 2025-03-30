@@ -57,7 +57,7 @@ def _generate_graphics(board: Board, output_dir) -> None:
             gerber.add_region(outline, "GND,Copper,Fill", negative=False)
             
             # # Now for each zone, add a cutout (negative region)
-            zones = board._zones.get_data()
+            zones = board.zones.get_data()
             for zone in zones:
                 cutout = Path()
                 cutout.moveto(zone[0])
@@ -128,7 +128,7 @@ def _generate_drill(board: Board, output_dir="./generated") -> None:
     ]
 
     # Adding drill locations from socket_locations
-    for drill_hole in board._drill_holes:
+    for drill_hole in board.drill_holes:
         x, y = drill_hole.as_tuple()
         content.append(f"X{x:.2f}Y{y:.2f}")
     
