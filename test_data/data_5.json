@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 200, "y": 200 },
+    "size": { "x": 50, "y": 50 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -75,13 +75,8 @@
   },
   "modules": [
     {
-      "name": "vm_jacdaptor_0.1",
-      "position": { "x": -30, "y": 50 },
-      "rotation": 0
-    }, 
-    {
-      "name": "vm_rgb_ring_0.2",
-      "position": { "x": 50, "y": 0 },
+      "name": "vm_light_sensor_0.2",
+      "position": { "x": 0, "y": 0 },
       "rotation": 0
     }
   ]

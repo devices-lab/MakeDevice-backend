@@ -5,6 +5,8 @@ from loader import Loader
 from board import Board
 
 from bus_router import BusRouter
+from generate import generate
+from process import merge_stacks, compress_directory
 
 import warnings
 
@@ -58,9 +60,9 @@ def run(file_number: int):
     left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
 
-    # generate(board)
-    # merge_stacks(board.modules, board.name)
-    # compress_directory("output")
+    generate(board)
+    merge_stacks(board.modules, board.name)
+    compress_directory("output")
     
 with warnings.catch_warnings():
     warnings.simplefilter("ignore") 

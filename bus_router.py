@@ -24,7 +24,6 @@ class BusRouter(Router):
         super().__init__(board)
         
         self.bus_segments = Dict[str, Segment]
-        self.total_buses_width: float = 0.0
 
         # Configuration for bus spacing and traces
         self.track_width = board.loader.track_width
@@ -57,7 +56,7 @@ class BusRouter(Router):
     def _create_buses(self, tracks_layer: Layer, buses_layer: Layer) -> Dict[str, Segment]:
         """Calculate positions and create vertical bus segments for each net."""
         # The corner radius determines the vertical length of the buses
-        corner_radius = self.board.loader.fabrication_options['rounded_corner_radius']
+        corner_radius = self.board.loader.rounded_corner_radius
         
         # Start position for first bus
         first_bus_x_position: float = (-self.board.width / 2) + self.edge_clearance
@@ -90,7 +89,7 @@ class BusRouter(Router):
             current_x_position += self.bus_spacing
         
         # Store clearance needed for the buses
-        self.total_buses_width = current_x_position + (self.board.width / 2)
+        self.board.total_buses_width = current_x_position + (self.board.width / 2)
         
         print(f"🟢 Created {len(bus_segments)} bus segments")
         return bus_segments
@@ -153,29 +152,56 @@ class BusRouter(Router):
         
         return sorted_sockets
     
+    
+    def _mark_obstacles_above_buses(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
+        """
+        Needs an updated documentation
+        """
+        
+        last_bus_x_index = self._coordinates_to_indices(self.board.total_buses_width, 0)[0] - self.grid_width // 2
+
+        temporary_obstacle_grid = np.copy(grid)
+        
+        # Find the layer for this net
+        current_layer = self.board.get_layer_for_net(net_to_protect)
+        
+        if not current_layer:
+            return temporary_obstacle_grid
+        
+        # Find other nets on the same layer
+        for net in current_layer.nets:
+            if net == net_to_protect and self.board.allow_overlap:
+                continue  # Allow overlap woud allow this net to overlap (short) with itself
+            
+            # Mark all paths above the bus with a larger keep-out zone around it
+            for path_index in self.paths_indices.get(net, []):
+                for x, y, _ in path_index:
+                    if 0 <= y < self.grid_height and 0 <= x < last_bus_x_index:     
+                        for dy in range(-1, 2): # 2 extra grid cells of keep out on left and right
+                            for dx in range(-1, 2): # 1 extra grid cell of keep out on top and bottom
+                                ny, nx = y + dy, x + dx
+                                temporary_obstacle_grid[ny, nx] = self.BLOCKED_CELL
+        
+        # Ensure the first column is always free   
+        for y in range(self.grid_height):
+            temporary_obstacle_grid[y, 0] = self.FREE_CELL
+            
+        return temporary_obstacle_grid
+    
     def _route_socket_to_bus(self, grid: np.ndarray, socket_coordinate: Tuple[float, float], 
                                     bus_connection_coordinates: Point, net_name: str) -> List[Tuple[int, int, int]]:
         """
-        Route a socket to the bus by targeting the left edge of the grid and then chopping
-        the path at the bus column.
-        
-        Parameters:
-            grid: The routing grid
-            socket_pos: (x, y) position of the socket
-            bus_point: Point on the bus to connect to
-            net_name: Name of the net being routed
-            
-        Returns:
-            List of grid indices representing the path up to the bus
+        Needs an updated documentation
         """
         # Apply obstacles from other nets on the same layer
         current_grid = self._mark_obstacles_on_grid(grid, net_name)
+        current_grid = self._mark_obstacles_above_buses(current_grid, net_name)
         
         # Apply socket margin to ensure the socket is routable
         socket_index = self._coordinates_to_indices(socket_coordinate[0], socket_coordinate[1])
 
+        # Mark GerberSockets accordingly
         current_grid = self._apply_socket_margins(current_grid, socket_index)
-        # Mark the socket position as free
         
         # Convert to grid indices
         bus_connection_index = self._coordinates_to_indices(bus_connection_coordinates.x, bus_connection_coordinates.y)
@@ -273,83 +299,19 @@ class BusRouter(Router):
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
             return []
-
-    def _mark_obstacles_above_buses(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
-        """TODO: Make a function that marks obstacles above the bus segments"""
-        
-        last_bus_x_index = self._coordinates_to_indices(self.total_buses_width, 0)[0] - self.grid_width // 2
-
-        temporary_obstacle_grid = np.copy(grid)
-        
-        # Find the layer for this net
-        current_layer = self.board.get_layer_for_net(net_to_protect)
-        
-        if not current_layer:
-            return temporary_obstacle_grid
-        
-        # Find other nets on the same layer
-        for net in current_layer.nets:
-            if net == net_to_protect and self.board.allow_overlap:
-                continue  # Allow overlap woud allow this net to overlap (short) with itself
             
-            
-            # TODO: double check if the following x and y are correct, there could be a mistake leading to wrong 
-            # obstacle markings above the buses, and potentially via shorts
-            
-            # Mark all paths on other nets as obstacles
-            for path_index in self.paths_indices.get(net, []):
-                for x, y, _ in path_index:
-                    if 0 <= y < self.grid_height and 0 <= x < last_bus_x_index:     
-                        for dx in range(-1, 2): # 2 extra grid cells of keep out on left and right                   
-                            nx = path_index[1] + dx
-                            temporary_obstacle_grid[y, nx] = self.BLOCKED_CELL
-        
-        # Ensure the first column is always free   
-        for y in range(self.grid_height):
-            temporary_obstacle_grid[y, 0] = self.FREE_CELL
-            
-        return temporary_obstacle_grid
-    
-        
     def route(self) -> None:
         """
-        Route sockets to buses for all nets, prioritizing by proximity.
+        Needs an updated documentation
+        """    
         
-        The routing happens in two phases:
-        - First, route all sockets that have buses using your proximity sorting
-        - Then, process the remaining sockets that don't have buses but are in filled layers (need vias)
-        
-        Returns:
-            None
-        """
-        if not self.board.sockets:
-            print("No sockets to route")
-            return
-        
-        # Get socket locations and all layers
-        socket_locations = self.board.sockets.get_data()
-        layers = self.board.layers
-
-        # Filter for layers with fill=False
-        non_fill_layers = [layer for layer in layers if not layer.fill]
-        fill_layers = [layer for layer in layers if layer.fill]
-        
-        bus_nets = []
-        fill_nets = []
-        
-        for layer in non_fill_layers:
-            for net in layer.nets:
-                bus_nets.append(net)
-        
-        for layer in fill_layers:
-            for net in layer.nets:
-                fill_nets.append(net)
+        # Get the socket locations for the tracks layer
+        socket_locations = self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets)
         
         # Sort ALL sockets from all nets by proximity to their buses
         all_sockets_sorted = self._sort_all_sockets_by_proximity(socket_locations)
         
         print(f"🟢 Routing {len(all_sockets_sorted)} sockets with buses")
-        
         # Route each socket in order of proximity
         for i, (net_name, socket_coordinate) in enumerate(all_sockets_sorted):
             print(f"🟢 Routing socket {i+1}/{len(all_sockets_sorted)} for net {net_name}")
@@ -372,22 +334,6 @@ class BusRouter(Router):
                 self.paths_indices[net_name].append(path)
             else:
                 print(f"🔴 No path found for socket at {socket_coordinate} to bus")
-        
-        # Now, handle remaining sockets that don't have buses (typically for filled zones)
-        print(f"🟢 Processing sockets for filled zones")
-        for net_name, locations in socket_locations.items():
-            # Skip if this net was already handled (has a bus)
-            if net_name in bus_nets:
-                continue
-                
-            # Check if this net is in a filled layer
-            if net_name in fill_nets:
-                print(f"🟢 Processing {len(locations)} sockets for filled net {net_name}")
-                for socket_coordinate in locations:
-                    print(f"🟢 Placing a via for {net_name} net at {socket_coordinate}")
-                    self._add_via(net_name, self._coordinates_to_indices(socket_coordinate[0], socket_coordinate[1]))
-            else:
-                print(f"🔴 Net {net_name} has no bus and is not in a filled layer")
     
         # Consolidate grid paths to segments (also adds to board layers)
         self._convert_trace_indices_to_segments()

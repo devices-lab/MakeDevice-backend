@@ -28,14 +28,14 @@ def _generate_graphics(board: Board, output_dir) -> None:
                             board.generation_software['application'], 
                             board.generation_software['version'])
     
-    via_diameter = board.loader.fabrication_options['via_diameter']
-    edge_clearance = board.loader.fabrication_options['edge_clearance']
-    bus_clearance = board.bus_clearance
-    o_x = board.origin['x']
-    o_y = board.origin['y']
+    via_diameter = board.loader.via_diameter
+    edge_clearance = board.loader.edge_clearance
+    total_buses_width = board.total_buses_width
+    o_x = board.origin_x
+    o_y = board.origin_y
     
     # Process segments and annular rings for each layer
-    for layer_name, layer in board.layers.items():
+    for layer in board.layers:
         
         # Get the corresponding gerber layer
         gerber = DataLayer(layer.attributes, negative=False)
@@ -43,8 +43,8 @@ def _generate_graphics(board: Board, output_dir) -> None:
         # Add fills if selected for the current layer
         if layer.fill:
             # First, create a path of the entire board outline, taking into consideration the bus_clearance
-            bottom_left = ((o_x - board.width / 2) + bus_clearance, o_y - board.height / 2 + edge_clearance)
-            top_left = ((o_x - board.width / 2) + bus_clearance, o_y + board.height / 2 - edge_clearance)
+            bottom_left = ((o_x - board.width / 2) + total_buses_width, o_y - board.height / 2 + edge_clearance)
+            top_left = ((o_x - board.width / 2) + total_buses_width, o_y + board.height / 2 - edge_clearance)
             top_right = (o_x + board.width / 2 - edge_clearance, o_y + board.height / 2 - edge_clearance)
             bottom_right = (o_x + board.width / 2 - edge_clearance, o_y - board.height / 2 + edge_clearance)
 
@@ -87,7 +87,7 @@ def _generate_graphics(board: Board, output_dir) -> None:
 
         
         # Save Gerber file
-        file_path = os.path.join(output_dir, board.name + "-" + layer_name)
+        file_path = os.path.join(output_dir, board.name + "-" + layer.name)
         with open(file_path, 'w') as file:
             file.write(gerber.dumps_gerber())
     

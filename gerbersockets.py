@@ -215,7 +215,23 @@ class Sockets(Object):
         Returns:
             List[Tuple[float, float]]: List of socket locations for the net
         """
-        return self.get_socket_positions(net).get(net, [])
+        return self.socket_locations.get(net, [])
+    
+    def get_socket_positions_for_nets(self, nets: List[str]) -> Dict[str, List[Tuple[float, float]]]:
+        """Get all socket locations for a list of specific nets
+        
+        Parameters:
+            nets: List of net names
+            
+        Returns:
+            Dict[str, List[Tuple[float, float]]]: Dictionary mapping net names to lists of socket locations
+        """
+        result = {}
+        for net in nets:
+            positions = self.socket_locations.get(net, [])
+            if positions:  # Only add to result if there are positions for this net
+                result[net] = positions
+        return result
     
     def get_all_coordinates(self) -> List[Tuple[float, float]]:
         """ Get all raw positions for all sockets """

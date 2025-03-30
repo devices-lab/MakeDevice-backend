@@ -42,6 +42,9 @@ class Board:
         self.zones: Optional[Zones] = zones
         self.drill_holes: List[Point] = []
         
+        # Fabrication parameters coming from routing
+        self.total_buses_width: float = 0.0
+        
         # Track warnings
         self.position_warnings: List[str] = []
     

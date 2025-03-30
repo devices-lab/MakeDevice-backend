@@ -110,7 +110,9 @@ class Router:
         self.vias_indices[net_name].append(point)
         
     def _mark_obstacles_on_grid(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
-        """Mark paths and vias from other nets on the same layer as obstacles."""
+        """
+        Needs an updated documentation
+        """
         
         temporary_obstacle_grid = np.copy(grid)
         
@@ -129,11 +131,8 @@ class Router:
             for path in self.paths_indices.get(net, []):
                 for x, y, _ in path:
                     if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
-                        temporary_obstacle_grid[y, x] = self.BLOCKED_CELL # TODO: check y and x are the correct way around
-    
-            # TODO: double check if the following x and y are correct, there could be a mistake leading to wrong 
-            # obstacle markings above the buses, and potentially via shorts
-            
+                        temporary_obstacle_grid[y, x] = self.BLOCKED_CELL # TODO: if any problems arise, check here
+                        
             # Mark all the area around all vias as obstacles
             for via_index in self.vias_indices.get(net, []):
                 if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
@@ -147,7 +146,6 @@ class Router:
     def _apply_socket_margins(self, grid: np.ndarray, socket_index: Tuple[int, int], 
                              keep_out_mm: float = 0.5) -> np.ndarray:
         """
-        TODO: check if this function is necessary
         Apply keep_out zones around all sockets from other nets
         
         Parameters:
@@ -175,12 +173,10 @@ class Router:
         for i in range(-keep_out_cells+1, keep_out_cells):
             for j in range(-keep_out_cells+1, keep_out_cells):
                 y = socket_index[0] + j
-                x = socket_index[1] + i
-                # TODO: double check if the above x and y are correct
-                
+                x = socket_index[1] + i                
                 # Check if within grid boundaries
                 if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
-                    temp_grid[y, x] = self.FREE_CELL 
+                    temp_grid[x, y] = self.FREE_CELL 
         
         return temp_grid
     
