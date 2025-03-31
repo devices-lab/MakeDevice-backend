@@ -75,7 +75,7 @@
   },
   "modules": [
     {
-      "name": "vm_jacdaptor_0.1",
+      "name": "vm_jacdaptor_no_swdio_0.1",
       "position": { "x": -9, "y": 55 },
       "rotation": 0
     },
