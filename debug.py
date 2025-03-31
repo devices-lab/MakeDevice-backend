@@ -1,4 +1,5 @@
 import os
+import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from gerber_writer import DataLayer, Path
@@ -127,7 +128,11 @@ def video(name=""):
     # Target a 10 second video
     rate = float(frame_index) / 10.0
 
-    os.system(f"ffmpeg -r {rate} -i debug/frame_%d.png -vcodec mpeg4 -y debug_{name}.mp4")
+    subprocess.run(
+        f"ffmpeg -y -framerate {rate} -i debug/frame_%d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -preset veryfast debug_{name}.mp4",
+        shell=True,
+        check=True
+    )
 
     # Remove the debug folder
     for file in os.listdir("debug"):
