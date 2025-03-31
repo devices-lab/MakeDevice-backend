@@ -561,6 +561,11 @@ class BusRouter(Router):
                     
                     # Route the socket to the bus
                     print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
+
+                    if self.board.loader.run_from_server:
+                        from server import update_progress
+                        update_progress(self.board)
+
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                     
                     if debug.do_video:

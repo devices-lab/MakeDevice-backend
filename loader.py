@@ -7,10 +7,11 @@ class Loader:
     Handles loading data from JSON sent from MakeDevice
     """
     
-    def __init__(self, file_path: Union[str, Path]):
+    def __init__(self, file_path: Union[str, Path], run_from_server: bool = False):
         """Initialize with path to JSON file"""
         self.file_path = Path(file_path)
         self.data: Dict[str, Any] = {}        
+        self.run_from_server = run_from_server
         self._load()
         
     def _load(self) -> None:

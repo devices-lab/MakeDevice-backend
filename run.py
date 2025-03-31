@@ -13,14 +13,14 @@ import warnings
 import sys
 import debug
 
-def run(file_number: str):
+def run(file_number: str, run_from_server: bool = False) -> bool:
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
     
-    loader = Loader(f"./test_data/data_{file_number}.json")
+    loader = Loader(f"./test_data/data_{file_number}.json", run_from_server=run_from_server)
     print("🔵 Using", f"data_{file_number}.json")
     
     if loader.debug:
@@ -40,7 +40,7 @@ def run(file_number: str):
     sockets = Sockets(loader, gerbersockets_layer)
     if sockets.get_socket_count() == 0:
         print("🔴 No sockets found")
-        return
+        return True
     else: 
         board.add_sockets(sockets)
         print("🟢 Found", sockets.get_socket_count(), "sockets and added them to the board")
@@ -50,7 +50,7 @@ def run(file_number: str):
     zones = Zones(loader, gerbersockets_layer)
     if zones.get_zone_count() == 0:
         print("🔴 No keep-out zones found, and added them to the board")
-        return
+        return True
     else:
         board.add_zones(zones)
         print("🟢 Found", zones.get_zone_count(), "keep-out zones and added them to the board")
@@ -74,20 +74,25 @@ def run(file_number: str):
     all = sockets.get_socket_count()
     connected = board.connected_sockets_count
     
+    failed = False
     if ((all - connected) == 0):
         print(f"✅ PASS: All {connected} GerberSockets routed successfully")
     else:
+        failed = True
         print(f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
 
-    # if debug.do_video:
-    #     debug.video(name=file_number)
+    if debug.do_video:
+        debug.video(name=file_number)
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore") 
-    if (len(sys.argv) > 1):
-        if (len(sys.argv) > 2):
-            if (sys.argv[2] == "video"):
-                debug.do_video = True
-        run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
-    else:
-        run("5")
+    return failed
+
+if __name__ == "__main__":
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore") 
+        if (len(sys.argv) > 1):
+            if (len(sys.argv) > 2):
+                if (sys.argv[2] == "video"):
+                    debug.do_video = True
+            run(sys.argv[1]) # e.g 'python3 run.py 5-flip'
+        else:
+            run("5")
