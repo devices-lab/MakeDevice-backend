@@ -493,3 +493,4 @@ class Board:
         zone_count = self.zones.get_zone_count() if self.zones else 0
         return f"Board(name={self.name}, dimensions={self.dimensions}, layers={len(self.layers)}, modules={len(self.modules)}, sockets={socket_count}, zones={zone_count})"
 
+

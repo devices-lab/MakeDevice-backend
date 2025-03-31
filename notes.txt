@@ -83,6 +83,10 @@ AB get routed, but C fails.
 Now we need to go back, remove B paths, flip the order to ADCB, and try again.
 
 
+1. Get the nets for the tracks layer
+2. Get the 
+
+
 
 
 

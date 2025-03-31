@@ -373,243 +373,219 @@ class BusRouter(Router):
                 path_tuples = [(node.x, node.y, -1) for node in chopped_path]
                 return path_tuples
             else:
-                print(f"🔴 No path found between socket at {socket_coordinate} and target")
+                print(f"🟡 No path found between socket at {socket_coordinate} and bus")
                 return []
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
             return []
            
-    def route(self) -> None:
+    def _group_sockets(self, sockets_data, zones_data):
         """
-        Route sockets to buses with adaptive routing strategy that dynamically
-        changes the routing order when pathfinding fails.
+        Group sockets that appear on the same line on a zone edge and sort them
+        based on the routing side.
         
-        A lot of this was AI generated, I will deal with optimizing this at a later point.
+        Parameters:
+            sockets_data: Dict mapping net names to lists of socket positions
+            zones_data: List of zone rectangles
+            
+        Returns:
+            OrderedDict mapping zone center point to list of sorted socket groups,
+            with zones sorted according to routing side
+        """
+        from collections import OrderedDict
         
-        Strategy:
-        1. Sort sockets left-to-right, then top-to-bottom
-        2. Group sockets by module on the x-axis and y-axis
-        3. If routing fails, backtrack and reorder subsequent sockets in that group
-        """    
-        # Get the socket locations for the tracks layer
-        socket_locations = self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets)
+        # Initialize result structure
+        socket_groups = defaultdict(list)
         
-        # Step 1: Collect all sockets with their metadata
-        all_sockets = []
-        for net_name, locations in socket_locations.items():
-            bus = self.bus_segments.get(net_name)
-            if not bus:
-                continue
-                
-            for socket_pos in locations:
+        # Calculate zone centers first
+        zone_centers = []
+        for zone in zones_data:
+            bottom_left, top_left, top_right, bottom_right = zone
+            center_x = (bottom_left[0] + top_right[0]) / 2
+            center_y = (bottom_left[1] + top_right[1]) / 2
+            zone_centers.append((center_x, center_y))
+        
+        # Organize all sockets by zone
+        zone_sockets = defaultdict(list)
+        for net_name, positions in sockets_data.items():
+            for socket_pos in positions:
                 socket_x, socket_y = socket_pos
-                all_sockets.append((net_name, socket_pos, socket_x, socket_y))
+                
+                # Find which zone this socket belongs to
+                for zone_idx, zone in enumerate(zones_data):
+                    bottom_left, top_left, top_right, bottom_right = zone
+                    
+                    # Check if socket is within this zone
+                    if (bottom_left[0] <= socket_x <= top_right[0] and 
+                        bottom_left[1] <= socket_y <= top_right[1]):
+                        # Add to zone's sockets using center as key
+                        zone_center = zone_centers[zone_idx]
+                        zone_sockets[zone_center].append((net_name, socket_pos))
+                        break
         
-        # Step 2: Group sockets by zone
+        # For each zone, group sockets by alignment
+        for zone_center, sockets in zone_sockets.items():
+            # Group by x-coordinate (vertical alignment)
+            x_groups = defaultdict(list)
+            # Group by y-coordinate (horizontal alignment)
+            y_groups = defaultdict(list)
+            
+            for socket_info in sockets:
+                net_name, socket_pos = socket_info
+                socket_x, socket_y = socket_pos
+                x_groups[socket_x].append(socket_info)
+                y_groups[socket_y].append(socket_info)
+            
+            # Add all groups with more than one socket
+            for x, group in x_groups.items():
+                if len(group) > 1: 
+                    # Sort vertically aligned sockets from top to bottom (decreasing y)
+                    sorted_group = sorted(group, key=lambda s: -s[1][1])
+                    socket_groups[zone_center].append(sorted_group)
+                    
+            for y, group in y_groups.items():
+                if len(group) > 1: 
+                    # Sort horizontally aligned sockets based on routing side
+                    if self.side == "left":
+                        # Left to right for left side routing
+                        sorted_group = sorted(group, key=lambda s: s[1][0])
+                    else:  # self.side == "right"
+                        # Right to left for right side routing
+                        sorted_group = sorted(group, key=lambda s: -s[1][0])
+                    socket_groups[zone_center].append(sorted_group)
+        
+        # Sort zones and create an ordered dictionary
+        sorted_zones = list(socket_groups.keys())
+        
+        # Sort zones based on routing side: horizontal position first, then vertical
+        if self.side == "left":
+            # For left routing: left-to-right, then top-to-bottom
+            sorted_zones.sort(key=lambda center: (center[0], -center[1]))
+        else:  # self.side == "right"
+            # For right routing: right-to-left, then top-to-bottom
+            sorted_zones.sort(key=lambda center: (-center[0], -center[1]))
+        
+        # Create ordered dictionary with sorted zone keys
+        ordered_socket_groups = OrderedDict()
+        for zone_center in sorted_zones:
+            ordered_socket_groups[zone_center] = socket_groups[zone_center]
+        
+        return ordered_socket_groups
+    
+    def route(self) -> None:
+        # Get all of the sockets for the tracks layer
+        sockets_data = self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets)
+        
+        # Get the total number of sockets
+        total_sockets = sum(len(positions) for positions in sockets_data.values())
+        
+        # Group them by zone, and orientation (in a row, or in a column)
         zones_data = self.board.zones.get_data()
-        sockets_by_zone = {}
         
-        for socket_info in all_sockets:
-            net_name, socket_pos, x, y = socket_info
-            
-            # Find which zone this socket belongs to
-            assigned_zone = None
-            for zone_idx, zone in enumerate(zones_data):
-                bottom_left, top_left, top_right, bottom_right = zone
+        # Group sockets by zone edges and order them top-to-bottom or left-to-right
+        grouped_sockets = self._group_sockets(sockets_data, zones_data)
+        
+        socket_count = 1
+        
+        for zone_center, socket_groups in grouped_sockets.items():
+            # For each group of sockets
+            for group_idx, socket_group in enumerate(socket_groups):
+                current_order = 1  # 1 for forward, -1 for reverse
+                i = 0
                 
-                # Check if socket is within this zone
-                if (bottom_left[0] <= x <= top_right[0] and 
-                    bottom_left[1] <= y <= top_left[1]):
-                    assigned_zone = zone_idx
-                    break
-            
-            # Add socket to its zone group
-            if assigned_zone is not None:
-                if assigned_zone not in sockets_by_zone:
-                    sockets_by_zone[assigned_zone] = []
-                sockets_by_zone[assigned_zone].append(socket_info)
-        
-        ## Step 3: Sort sockets within each zone and calculate zone distance scores
-        zone_distance_scores = {}
-        
-        for zone_idx in sockets_by_zone:
-            zone_sockets = sockets_by_zone[zone_idx]
-            
-            # Calculate average x-distance from the bus for this zone
-            if self.side == 'left':
-                # For left side buses, measure distance from left edge
-                zone_distance = sum(s[2] for s in zone_sockets) / len(zone_sockets)
-            else:  # right side
-                # For right side buses, measure distance from right edge (using negative values)
-                zone_distance = -sum(s[2] for s in zone_sockets) / len(zone_sockets)
-            
-            # Store the zone's distance score for sorting later
-            zone_distance_scores[zone_idx] = zone_distance
-            
-            # Sort sockets within the zone by x-position, then top-to-bottom
-            if self.side == 'left':
-                # For left side buses, left-to-right priority
-                sockets_by_zone[zone_idx].sort(key=lambda s: (s[2], -s[3]))  # Sort by x, then -y
-            else:  # right side
-                # For right side buses, right-to-left priority
-                sockets_by_zone[zone_idx].sort(key=lambda s: (-s[2], -s[3]))  # Sort by -x, then -y
-        
-        # Step 4: Create a routing queue, prioritizing zones closest to the bus side
-        routing_queue = []
-        
-        # Sort zones by their distance scores (closest zones first)
-        sorted_zones = sorted(zone_distance_scores.keys(), 
-                            key=lambda zone_idx: zone_distance_scores[zone_idx])
-        
-        # Build the routing queue with the sorted zones
-        for zone_idx in sorted_zones:
-            for socket_info in sockets_by_zone[zone_idx]:
-                net_name, socket_pos, x, y = socket_info
-                routing_queue.append((zone_idx, net_name, socket_pos, x, y))
-        
-        # Step 5: Track zone routing orders and already routed sockets
-        zone_orders = {}  # Maps zone_idx -> {(x,y) -> direction}
-        zone_routed = {}  # Maps zone_idx -> list of routed sockets
-        
-        for zone_idx in sockets_by_zone:
-            zone_orders[zone_idx] = {}
-            zone_routed[zone_idx] = []
-        
-        # Step 6: Route each socket with backtracking when needed
-        print(f"🟢 Routing {len(routing_queue)} sockets with buses on {self.side} side")
-        i = 0
-        while i < len(routing_queue):
-            zone_idx, net_name, socket_coordinate, x, y = routing_queue[i]
-            
-            print(f"🟢 Routing socket {i+1}/{len(routing_queue)} for net {net_name}")
-            
-            # Get the bus for this net
-            bus = self.bus_segments.get(net_name)
-            if not bus:
-                print(f"🔴 No bus found for net {net_name}")
-                i += 1
-                continue
-            
-            # Find nearest point on the bus
-            bus_point = self._get_point_on_bus(socket_coordinate, bus)
-            print(f"🔵 Routing socket at {socket_coordinate} to bus point at {(bus_point.x, bus_point.y)}")
-            
-            # Route the socket to the bus
-            path = self._route_socket_to_bus(self.base_grid, socket_coordinate, bus_point, net_name)
-
-            if debug.do_video:
-                debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, socket_locations, self.board.loader.resolution)
-            
-            if path:
-                print(f"🟢 Found path for socket at {socket_coordinate} to bus")
-                self.paths_indices[net_name].append(path)
-                
-                # Add to routed sockets for this zone
-                zone_routed[zone_idx].append((net_name, socket_coordinate, x, y))
-                
-                # Remember the current direction for this coordinate group
-                coord_key = (x, y)
-                if coord_key not in zone_orders[zone_idx]:
-                    zone_orders[zone_idx][coord_key] = 1  # 1 = original order
-                
-                # Keep track of the number of connected sockets on the board
-                i += 1
-                self.board.connected_sockets_count += 1
-            else:
-                print(f"🔴 No path found for socket at {socket_coordinate} to bus")
-                
-                # Backtracking logic - only if we've routed at least one socket in this zone
-                if zone_routed[zone_idx]:
-                    print(f"🟡 Backtracking in zone {zone_idx}")
+                # Process all sockets in the group
+                while i < len(socket_group):
+                    socket = socket_group[i]
+                    net_name, socket_pos = socket
                     
-                    # Find all sockets in this zone with the same x-coordinate
-                    same_x_sockets = [(idx, s) for idx, s in enumerate(routing_queue) 
-                                    if s[0] == zone_idx and s[3] == x]
+                    # Get the bus for this net
+                    bus = self.bus_segments.get(net_name)
+                    if not bus:
+                        print(f"🔴 No bus found for net {net_name}")
+                        i += 1
+                        socket_count += 1
+                        continue
                     
-                    # If multiple sockets with same x-coordinate exist
-                    if len(same_x_sockets) > 1:
-                        # Find which ones we've already routed and which ones are left
-                        routed_indices = []
+                    # Find nearest point on the bus
+                    bus_point = self._get_point_on_bus(socket_pos, bus)
+                    
+                    # Route the socket to the bus
+                    print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name}")
+                    path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
+                    
+                    if debug.do_video:
+                        debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
+                            self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
+                            self.board.loader.resolution)
+                    
+                    if path:
+                        print(f"🟢 Found path for socket at {socket_pos} to bus\n")
                         
-                        for r_net, r_pos, r_x, r_y in zone_routed[zone_idx]:
-                            if r_x == x:
-                                # Find the index in the routing queue
-                                for q_idx, q_item in enumerate(routing_queue):
-                                    if (q_item[0] == zone_idx and q_item[1] == r_net and 
-                                        q_item[2] == r_pos):
-                                        routed_indices.append(q_idx)
-                                        break
+                        # Add path indices
+                        self.paths_indices[net_name].append(path)
                         
-                        # If we have at least one routed socket with this x
-                        if routed_indices:
-                            # Get the last routed socket
-                            last_routed_idx = max(routed_indices)
-                            last_zone, last_net, last_pos, last_x, last_y = routing_queue[last_routed_idx]
+                        # Add to routed sockets count
+                        self.board.connected_sockets_count += 1                
+                        
+                        # Move to the next socket
+                        i += 1
+                        socket_count += 1
+                    else:                        
+                        # If this is the first socket in the group, routing failed
+                        if i == 0:
+                            print(f"🔴 Routing failed for the first socket in group and cannot backtrack \n")
+                            i += 1
                             
-                            # Remove its path
-                            for path_idx, path in enumerate(self.paths_indices.get(last_net, [])):
-                                # Check if this path connects to the socket we're removing
-                                socket_indices = self._coordinates_to_indices(last_pos[0], last_pos[1])
-                                if path and path[0][0] == socket_indices[0] and path[0][1] == socket_indices[1]:
-                                    del self.paths_indices[last_net][path_idx]
-                                    
-                                    # Also remove the via at the end of the path
-                                    connection_point = path[-1]
-                                    for via_idx, via in enumerate(self.vias_indices.get(last_net, [])):
-                                        if via[0] == connection_point[0] and via[1] == connection_point[1]:
-                                            del self.vias_indices[last_net][via_idx]
-                                            break
-                                    break
-                            
-                            # Remove this socket from the routed list
-                            for r_idx, (r_net, r_pos, r_x, r_y) in enumerate(zone_routed[zone_idx]):
-                                if r_net == last_net and r_pos == last_pos:
-                                    del zone_routed[zone_idx][r_idx]
-                                    break
-                            
-                            # Get all unrouted sockets with this x (including the one that just failed)
-                            unrouted_sockets = []
-                            current_idx = i
-                            
-                            # Track the current socket that failed
-                            current_socket = routing_queue[current_idx]
-                            
-                            # Start from the last routed socket that we just removed
-                            for q_idx in range(last_routed_idx, len(routing_queue)):
-                                q_item = routing_queue[q_idx]
-                                if q_item[0] == zone_idx and q_item[3] == x:  # Same zone and x
-                                    unrouted_sockets.append((q_idx, q_item))
-                            
-                            # Change the ordering direction for these sockets
-                            coord_key = (x, y)
-                            if coord_key in zone_orders[zone_idx]:
-                                zone_orders[zone_idx][coord_key] *= -1  # Flip the direction
-                            else:
-                                zone_orders[zone_idx][coord_key] = -1  # Start with reversed order
-                            
-                            # Sort unrouted sockets based on the new direction
-                            direction = zone_orders[zone_idx][coord_key]
-                            
-                            if direction == 1:  # Top to bottom
-                                unrouted_sockets.sort(key=lambda s: -s[1][4])  # Sort by -y
-                            else:  # Bottom to top
-                                unrouted_sockets.sort(key=lambda s: s[1][4])   # Sort by y
-                            
-                            # Replace sockets in routing queue with reordered ones
-                            for new_idx, (old_idx, socket) in enumerate(unrouted_sockets):
-                                routing_queue[last_routed_idx + new_idx] = socket
-                            
-                            # Reset index to retry routing from the last routed point
-                            i = last_routed_idx
-                            
-                            print(f"🟢 Backtracking succeeded! Reordered {len(unrouted_sockets)} sockets in zone {zone_idx}")
+                            socket_count += 1
                             continue
-
-                # If no backtracking was done or possible, just skip this socket
-                i += 1
+                        
+                        # Otherwise, we can backtrack
+                        print(f"🟡 Backtracking in group {group_idx} at socket {i}")
+                        
+                        # Get the previously routed socket
+                        previous_socket = socket_group[i-1]
+                        previous_net, previous_pos = previous_socket
+                        
+                        # Remove its path
+                        for path_idx, path in enumerate(self.paths_indices.get(previous_net, [])):
+                            # Check if this path connects to the socket we're removing
+                            socket_indices = self._coordinates_to_indices(previous_pos[0], previous_pos[1])
+                            if path and path[0][0] == socket_indices[0] and path[0][1] == socket_indices[1]:
+                                # Also remove the via at the end of the path
+                                connection_point = path[-1]
+                                for via_idx, via in enumerate(self.vias_indices.get(previous_net, [])):
+                                    if via[0] == connection_point[0] and via[1] == connection_point[1]:
+                                        del self.vias_indices[previous_net][via_idx]
+                                        break
+                                
+                                # Now remove the path
+                                del self.paths_indices[previous_net][path_idx]
+                                
+                                # Decrement connected sockets count
+                                self.board.connected_sockets_count -= 1
+                                socket_count -= 1
+                                
+                                break
+                        
+                        # Invert the order of the remaining sockets from this point on
+                        current_order *= -1
+                        if current_order == -1:  # Reverse order
+                            # Reverse the order from i-1 to the end
+                            remaining = socket_group[i-1:]
+                            remaining.reverse()
+                            socket_group[i-1:] = remaining
+                            print(f"🟢 Reversed routing order for the remaining sockets in group")
+                        else:  # Forward order
+                            # Restore original order from i-1 to the end
+                            remaining = socket_group[i-1:]
+                            remaining.reverse()  # Reverse again to get back to original
+                            socket_group[i-1:] = remaining
+                            print(f"🟢 Restored original routing or routing order for the remaining sockets in group \n")
+                       
+                        # Restart from the previous socket position
+                        i = i - 1
         
-        # Consolidate grid paths to segments (also adds to board layers)
+        # Convert traces and vias indices to segments (also adds to board layers)
         self._convert_trace_indices_to_segments()
-        
-        # Convert via indexes to points (also adds to board layers)
         self._convert_via_indexes_to_points()
+                    

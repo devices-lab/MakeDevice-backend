@@ -80,6 +80,14 @@
   },
   "modules": [
     {
+      "name": "vm_jacdaptor_0.1",
+      "position": {
+        "x": 0,
+        "y": 30
+      },
+      "rotation": 0
+    },
+    {
       "name": "vm_light_sensor_0.2",
       "position": {
         "x": 0,

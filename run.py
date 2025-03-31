@@ -62,7 +62,7 @@ def run(file_number: str):
     left_router.route()
     
     right_router = BusRouter(board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right")
-    right_router.route()
+    right_router.route()    
 
     generate(board)
     merge_stacks(board.modules, board.name)
