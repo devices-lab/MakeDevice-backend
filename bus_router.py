@@ -628,4 +628,8 @@ class BusRouter(Router):
         # Convert traces and vias indices to segments (also adds to board layers)
         self._convert_trace_indices_to_segments()
         self._convert_via_indexes_to_points()
-                    
+
+        if debug.do_video:
+            debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
+                self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
+                self.board.loader.resolution)
