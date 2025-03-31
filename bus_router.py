@@ -423,6 +423,9 @@ class BusRouter(Router):
                         zone_sockets[zone_center].append((net_name, socket_pos))
                         break
         
+        # Track which sockets have been added to groups
+        added_sockets = set()
+        
         # For each zone, group sockets by alignment
         for zone_center, sockets in zone_sockets.items():
             # Group by x-coordinate (vertical alignment)
@@ -436,12 +439,16 @@ class BusRouter(Router):
                 x_groups[socket_x].append(socket_info)
                 y_groups[socket_y].append(socket_info)
             
-            # Add all groups with more than one socket
+            # Add multi-socket groups first
             for x, group in x_groups.items():
                 if len(group) > 1: 
                     # Sort vertically aligned sockets from top to bottom (decreasing y)
                     sorted_group = sorted(group, key=lambda s: -s[1][1])
                     socket_groups[zone_center].append(sorted_group)
+                    
+                    # Mark these sockets as added
+                    for socket_info in group:
+                        added_sockets.add((socket_info[0], tuple(socket_info[1])))
                     
             for y, group in y_groups.items():
                 if len(group) > 1: 
@@ -453,6 +460,17 @@ class BusRouter(Router):
                         # Right to left for right side routing
                         sorted_group = sorted(group, key=lambda s: -s[1][0])
                     socket_groups[zone_center].append(sorted_group)
+                    
+                    # Mark these sockets as added
+                    for socket_info in group:
+                        added_sockets.add((socket_info[0], tuple(socket_info[1])))
+            
+            # Now add any single sockets that weren't part of a multi-socket group
+            for socket_info in sockets:
+                socket_key = (socket_info[0], tuple(socket_info[1]))
+                if socket_key not in added_sockets:
+                    socket_groups[zone_center].append([socket_info])
+                    added_sockets.add(socket_key)
         
         # Sort zones and create an ordered dictionary
         sorted_zones = list(socket_groups.keys())
