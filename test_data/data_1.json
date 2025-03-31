@@ -80,60 +80,44 @@
   },
   "modules": [
     {
-      "name": "vm_jacdaptor_0.1",
       "position": {
-        "x": 0,
-        "y": 30
+        "x": 46,
+        "y": 21
       },
-      "rotation": 0
+      "rotation": 0,
+      "name": "vm_light_sensor_0.2"
     },
     {
-      "name": "vm_light_sensor_0.2",
       "position": {
-        "x": 0,
-        "y": 0
+        "x": -8,
+        "y": 26
       },
-      "rotation": 0
+      "rotation": 0,
+      "name": "vm_jacdaptor_0.1"
     },
     {
-      "name": "vm_light_sensor_0.2",
       "position": {
-        "x": 30,
-        "y": 0
+        "x": -32,
+        "y": -16
       },
-      "rotation": 0
+      "rotation": -90,
+      "name": "vm_rotary_button_0.2"
     },
     {
-      "name": "vm_light_sensor_0.2",
       "position": {
-        "x": -30,
-        "y": 0
+        "x": 43,
+        "y": -16
       },
-      "rotation": 0
+      "rotation": 90,
+      "name": "ec30_3x2_lr_mh_0.1"
     },
     {
-      "name": "vm_light_sensor_0.2",
       "position": {
-        "x": 0,
-        "y": -20
+        "x": 2,
+        "y": -14
       },
-      "rotation": 0
-    },
-    {
-      "name": "vm_light_sensor_0.2",
-      "position": {
-        "x": 30,
-        "y": -20
-      },
-      "rotation": 0
-    },
-    {
-      "name": "vm_light_sensor_0.2",
-      "position": {
-        "x": -30,
-        "y": -20
-      },
-      "rotation": 0
+      "rotation": 0,
+      "name": "vm_rgb_ring_0.2"
     }
   ]
 }

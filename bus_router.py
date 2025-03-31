@@ -532,19 +532,12 @@ class BusRouter(Router):
         
         socket_count = 1
         
-        # Track failed sockets to avoid infinite loops
-        failed_sockets = set()
-        
-        # Track which sockets have been tried in reverse order
-        reversed_pairs = set()
-        
         for zone_center, socket_groups in grouped_sockets.items():
             
             module_name = self.board.get_module_name_from_position(zone_center)
             
             # For each group of sockets
             for group_idx, socket_group in enumerate(socket_groups):
-                current_order = 1  # 1 for forward, -1 for reverse
                 i = 0
                 
                 # Process all sockets in the group
@@ -554,12 +547,7 @@ class BusRouter(Router):
                     
                     # Check if this socket has already failed
                     socket_key = (net_name, tuple(socket_pos))
-                    if socket_key in failed_sockets:
-                        print(f"🟠 Skipping previously failed socket at {socket_pos} for net {net_name}")
-                        i += 1
-                        socket_count += 1
-                        continue
-                    
+
                     # Get the bus for this net
                     bus = self.bus_segments.get(net_name)
                     if not bus:
@@ -593,9 +581,6 @@ class BusRouter(Router):
                         i += 1
                         socket_count += 1
                     else:                        
-                        # Mark this socket as failed to prevent repeated attempts
-                        failed_sockets.add(socket_key)
-                        
                         # If this is the first socket in the group, routing failed
                         if i == 0:
                             print(f"🔴 Routing failed for the first socket in group and cannot backtrack\n")
@@ -609,20 +594,6 @@ class BusRouter(Router):
                         # Get the previously routed socket
                         previous_socket = socket_group[i-1]
                         previous_net, previous_pos = previous_socket
-                        
-                        # Create a key for this backtracking attempt
-                        prev_socket_key = (previous_net, tuple(previous_pos))
-                        pair_key = (prev_socket_key, socket_key)
-                        
-                        # Check if we've already tried reversing these specific sockets
-                        if pair_key in reversed_pairs:
-                            print(f"🔴 Already tried reversing these sockets skipping this socket \n")
-                            i += 1
-                            socket_count += 1
-                            continue
-                        
-                        # Mark that we've tried reversing this pair
-                        reversed_pairs.add(pair_key)
                         
                         # Remove its path
                         for path_idx, path in enumerate(self.paths_indices.get(previous_net, [])):
