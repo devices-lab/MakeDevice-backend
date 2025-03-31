@@ -56,10 +56,8 @@
         "attributes": "Copper,L3,Inner,Signal"
       },
       "B_Cu.gbl": {
-        "nets": [
-          "GND"
-        ],
-        "fill": true,
+        "nets": ["SWDIO~", "SWDIO~^"],
+        "fill": false,
         "attributes": "Copper,L4,Bottom,Signal"
       }
     },

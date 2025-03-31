@@ -107,39 +107,122 @@ class Board:
             )
             self.layers.append(layer)
     
+    def _pair_special_sockets(self):
+        """Pairs transmitter (~^) and receiver (~) sockets and creates new net names"""
+        if not self.sockets:
+            return {}
+        
+        # Get original socket locations
+        original_locations = self.sockets.socket_locations.copy()
+        new_locations = {}
+        
+        # Group by base name
+        base_groups = {}
+        
+        # Find transmitters and receivers
+        for net in original_locations:
+            if net.endswith('~^'):
+                base_name = net[:-2]  # Remove ~^ suffix
+                if base_name not in base_groups:
+                    base_groups[base_name] = {'transmitters': [], 'receivers': []}
+                
+                # Add all transmitter positions
+                for position in original_locations[net]:
+                    base_groups[base_name]['transmitters'].append((net, position))
+                    
+            elif net.endswith('~'):
+                base_name = net[:-1]  # Remove ~ suffix
+                if base_name not in base_groups:
+                    base_groups[base_name] = {'transmitters': [], 'receivers': []}
+                
+                # Add all receiver positions
+                for position in original_locations[net]:
+                    base_groups[base_name]['receivers'].append((net, position))
+        
+        # For each base group, create pairs
+        for base_name, group in base_groups.items():
+            pair_count = min(len(group['transmitters']), len(group['receivers']))
+            
+            print(f"🔵 Processing {base_name} sockets: {len(group['transmitters'])} transmitters, {len(group['receivers'])} receivers")
+            
+            for i in range(pair_count):
+                new_net = f"{base_name}_{i+1}"
+                
+                # Add both positions to the new net
+                transmitter_net, transmitter_position = group['transmitters'][i]
+                receiver_net, receiver_position = group['receivers'][i]
+                
+                new_locations[new_net] = [transmitter_position, receiver_position]
+                
+                print(f"🟢 Paired {transmitter_net} with {receiver_net} as {new_net}")
+            
+            # Report unpaired
+            if len(group['transmitters']) > pair_count:
+                print(f"🔴 {len(group['transmitters']) - pair_count} unpaired transmitters for {base_name}")
+            
+            if len(group['receivers']) > pair_count:
+                print(f"🟠 Disregarding {len(group['receivers']) - pair_count} unpaired receivers for {base_name}")
+        
+        # Copy non-special nets
+        for net, positions in original_locations.items():
+            if not (net.endswith('~') or net.endswith('~^')):
+                new_locations[net] = positions.copy()
+        
+        return new_locations
+
     def _assign_nets_to_layers(self) -> None:
-        """ Assign nets to layers based on the layer map and socket data """
+        """Assigns nets to layers and handles special paired nets"""
+        if not self.sockets:
+            return
         
-        # First, add any explicit nets from the layer map
+        # Handle special nets
+        new_locations = self._pair_special_sockets()
+        
+        if new_locations:
+            # Get old special nets
+            old_special_nets = [net for net in self.sockets.socket_locations 
+                    if net.endswith('~') or net.endswith('~^')]
+            
+            # Update socket locations
+            self.sockets.socket_locations = new_locations
+            
+            # Update layer assignments
+            for layer in self.layers:
+                # Remove old special nets
+                layer.nets = [net for net in layer.nets if net not in old_special_nets]
+        
+        # Add nets from layer map
         for layer_name, layer_data in self.loader.layer_map.items():
-            nets = layer_data.get('nets')
-            if nets:
-                # Get the layer by name
+            if layer_data.get('nets'):
                 layer = self.get_layer(layer_name)
-                # Add nets to the layer
+                if not layer:
+                    print(f"🔴 layer '{layer_name}' not found")
+                    continue
+                    
                 for net in layer_data.get('nets', []):
-                    layer.add_net(net)
-        
-        # Second, assign the remaining nets from the extracted sockets
-        if self.sockets:
-                socket_nets = set(self.sockets.get_nets())
-                
-                # Get all nets that are already assigned to layers
-                assigned_nets = set()
-                for layer in self.layers:
-                    assigned_nets.update(layer.nets)
-                
-                # Find unassigned nets
-                unassigned_nets = socket_nets - assigned_nets
-                
-                # Assign unassigned nets to the top layer "F_Cu.gtl"
-                if unassigned_nets:
-                    top_layer = self.get_layer("F_Cu.gtl")
-                    if top_layer:
-                        for net in unassigned_nets:
-                            top_layer.add_net(net)
+                    # If it's an old special net, find matching new ones
+                    if net.endswith('~') or net.endswith('~^'):
+                        base_name = net[:-1] if net.endswith('~') else net[:-2]
+                        paired_nets = [n for n in new_locations if n.startswith(f"{base_name}_")]
+                        for paired_net in paired_nets:
+                            layer.add_net(paired_net)
                     else:
-                        print(f"🔴 Warning: Unable to find top layer 'F_Cu.gtl' for unassigned nets: {unassigned_nets}")
+                        layer.add_net(net)
+        
+        # Assign remaining nets to top layer
+        socket_nets = set(self.sockets.get_nets())
+        assigned_nets = set()
+        for layer in self.layers:
+            assigned_nets.update(layer.nets)
+        
+        unassigned_nets = socket_nets - assigned_nets
+        if unassigned_nets:
+            top_layer = self.get_layer("F_Cu.gtl")
+            if top_layer:
+                for net in unassigned_nets:
+                    top_layer.add_net(net)
+            else:
+                print(f"🔴 top layer 'F_Cu.gtl' not found for unassigned nets: {unassigned_nets}")
     
     def _assign_zones_to_modules(self) -> None:
         """
@@ -162,8 +245,7 @@ class Board:
                     module.set_zone(*zone)
                     print(f"🟢 Assigned zone to module '{module.name}' at position ({center_x}, {center_y})")
                     break 
-                
-                
+                            
     def _validate_zones_and_modules(self) -> None:
         """
         Validates the positions of modules and zones by:
@@ -178,7 +260,7 @@ class Board:
             return
         
         # 1. Check if any module zones overlap
-        print("🟢 Validating module zone overlaps...")
+        print("🔵 Validating module zone overlaps")
         modules_with_zones = [module for module in self.modules if hasattr(module, 'zone') and module.zone]
         
         for i, module1 in enumerate(modules_with_zones):
@@ -193,7 +275,7 @@ class Board:
                     self.position_warnings.append(warning)
         
         # 2. Check if any module zone extends beyond the board size
-        print("🟢 Validating module zones within board boundaries...")
+        print("🔵 Validating module zones within board boundaries")
         # Calculate the board boundaries
         xmin = self.origin_x - self.width / 2
         xmax = self.origin_x + self.width / 2
@@ -210,12 +292,12 @@ class Board:
                 tr[0] > xmax or tr[1] > ymax or 
                 br[0] > xmax or br[1] < ymin):
                 
-                warning = f"🔴 WARNING: Module '{module.name}' zone extends beyond board boundaries"
+                warning = f"🔴 Module '{module.name}' zone extends beyond board boundaries"
                 print(warning)
                 self.position_warnings.append(warning)
         
         # 3. Check if any module zones overlap with remaining zones in self.zones
-        print("🟢 Validating module zones against other zones...")
+        print("🔵 Validating module zones against other zones")
         all_zones = self.zones.get_data()
         
         for module in modules_with_zones:
@@ -233,7 +315,7 @@ class Board:
                     continue
                     
                 if self._do_zones_overlap(module_zone, zone):
-                    warning = f"🔴 WARNING: Module '{module.name}' zone overlaps with a zone at position {(zone[0], zone[2])}"
+                    warning = f"🔴 Module '{module.name}' zone overlaps with a zone at position {(zone[0], zone[2])}"
                     print(warning)
                     self.position_warnings.append(warning)
         
@@ -241,8 +323,7 @@ class Board:
             print("🟢 All zones and modules validated successfully!")
         else:
             print(f"🔴 Found {len(self.position_warnings)} validation issues")
-        
-               
+                 
     def _do_zones_overlap(self, zone1: List[Tuple[float, float]], zone2: List[Tuple[float, float]]) -> bool: 
         """
         Check if two zones overlap, considering a module margin.
@@ -334,27 +415,6 @@ class Board:
         # Add zones to the grid
         for zone in corner_zones:
             self.zones.add_zone(zone)
-
-            
-    def generate(self) -> None:
-        """Does nothing for now"""
-        if not self.sockets:
-            print("🔴 No sockets found, cannot generate routing")
-            return
-        
-        if not self.zones:
-            print("🔴 No keep-out zones found, cannot generate routing")
-            return
-        
-        if not self.modules:
-            print("🔴 No modules found, cannot generate routing")
-            return
-        
-        if not self.layers:
-            print("🔴 No layers found, cannot generate routing")
-            return
-
-        pass
     
     def add_drill_hole(self, position: Point) -> None:
         """Add a drill hole to the board
@@ -413,7 +473,7 @@ class Board:
         """
         self.sockets = sockets
         self._assign_nets_to_layers()
-    
+        
     def add_zones(self, zones: Zones) -> None:
         """Add keep-out zones to the board
         

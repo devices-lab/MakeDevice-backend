@@ -51,7 +51,36 @@ identify which nets are routed by which router
 store all of the paths
 
 
+So I want to fix the route() function in my code (pasted).
 
+
+
+Here is an example. A PCB has 2 modules, and both modules has 4 sockets. Both modules have all their sockets on the lower edge of the their respective zone. 
+
+The 8 sockets, even though they are all on the same row index, they get grouped according to which keep-out zone they are on.
+
+Once we have these socket groups, I wanto organise the order of routing based on their distance from board edge (whether left or right).
+
+Within socket groups, I would like to organise them top to bottom.
+
+Let the routing begin, and the pathfinding will attempt to find it's path. 
+
+If the pathfinding for a particular socket fails, I would like to go back and remove the path indices and via index of the previous rouitng attempt.
+
+At this point, I need to keep track of which socket (let's call it BOBA) was removed. Now will come the re-order stage. 
+
+Now I will need to flip the order in which the sockets are routed, but only from the socket BOBA to the end of the list within that socket group. 
+
+And continue routing from there, following the same above pattern. 
+
+If a routing fails at the same place, even after re-ordering from the point of failure -1 socket, than continue to the next socket group.
+
+
+So back at our example, Lets say one of the modules has 4 sockets grouped together, ABCD.
+
+AB get routed, but C fails.
+
+Now we need to go back, remove B paths, flip the order to ADCB, and try again.
 
 
 

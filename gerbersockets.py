@@ -296,6 +296,39 @@ class Sockets(Object):
                 return False
         return False
     
+    def update_net_names(self, net_mapping: Dict[str, str]) -> None:
+        """
+        Update socket net names according to the provided mapping.
+        Used to replace special net names (e.g., with ~ and ~^) with paired names.
+        
+        Parameters:
+            net_mapping (Dict[str, str]): Mapping from old net names to new net names
+            
+        Returns:
+            None
+        """
+        # Create a new socket_locations dictionary with updated net names
+        updated_socket_locations = {}
+        
+        # Process each net and its locations
+        for net, locations in self.socket_locations.items():
+            if net in net_mapping:
+                # Use the new net name from the mapping
+                new_net = net_mapping[net]
+                print(f"🟢 Updating socket net from '{net}' to '{new_net}'")
+                
+                # If the new net already exists, extend its locations
+                if new_net in updated_socket_locations:
+                    updated_socket_locations[new_net].extend(locations)
+                else:
+                    updated_socket_locations[new_net] = locations.copy()
+            else:
+                # Keep the original net name
+                updated_socket_locations[net] = locations.copy()
+        
+        # Replace the old socket_locations with the updated one
+        self.socket_locations = updated_socket_locations
+        
     def plot_extracted_sockets(self, output_file: str) -> None:
         """
         Plot the keep-out zones on a Gerber file.

@@ -378,11 +378,13 @@ class BusRouter(Router):
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
             return []
-            
+           
     def route(self) -> None:
         """
         Route sockets to buses with adaptive routing strategy that dynamically
         changes the routing order when pathfinding fails.
+        
+        A lot of this was AI generated, I will deal with optimizing this at a later point.
         
         Strategy:
         1. Sort sockets left-to-right, then top-to-bottom
@@ -427,18 +429,40 @@ class BusRouter(Router):
                     sockets_by_zone[assigned_zone] = []
                 sockets_by_zone[assigned_zone].append(socket_info)
         
-        # Step 3: Sort sockets within each zone (different order based on side)
+        ## Step 3: Sort sockets within each zone and calculate zone distance scores
+        zone_distance_scores = {}
+        
         for zone_idx in sockets_by_zone:
+            zone_sockets = sockets_by_zone[zone_idx]
+            
+            # Calculate average x-distance from the bus for this zone
+            if self.side == 'left':
+                # For left side buses, measure distance from left edge
+                zone_distance = sum(s[2] for s in zone_sockets) / len(zone_sockets)
+            else:  # right side
+                # For right side buses, measure distance from right edge (using negative values)
+                zone_distance = -sum(s[2] for s in zone_sockets) / len(zone_sockets)
+            
+            # Store the zone's distance score for sorting later
+            zone_distance_scores[zone_idx] = zone_distance
+            
+            # Sort sockets within the zone by x-position, then top-to-bottom
             if self.side == 'left':
                 # For left side buses, left-to-right priority
                 sockets_by_zone[zone_idx].sort(key=lambda s: (s[2], -s[3]))  # Sort by x, then -y
-            elif self.side == 'right':
+            else:  # right side
                 # For right side buses, right-to-left priority
                 sockets_by_zone[zone_idx].sort(key=lambda s: (-s[2], -s[3]))  # Sort by -x, then -y
         
-        # Step 4: Create a queue of sockets to route
+        # Step 4: Create a routing queue, prioritizing zones closest to the bus side
         routing_queue = []
-        for zone_idx in sorted(sockets_by_zone.keys()):
+        
+        # Sort zones by their distance scores (closest zones first)
+        sorted_zones = sorted(zone_distance_scores.keys(), 
+                            key=lambda zone_idx: zone_distance_scores[zone_idx])
+        
+        # Build the routing queue with the sorted zones
+        for zone_idx in sorted_zones:
             for socket_info in sockets_by_zone[zone_idx]:
                 net_name, socket_pos, x, y = socket_info
                 routing_queue.append((zone_idx, net_name, socket_pos, x, y))

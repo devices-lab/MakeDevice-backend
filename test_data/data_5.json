@@ -41,7 +41,7 @@
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": ["SWDIO~", "SWDIO~^"],
+        "nets": [],
         "fill": false,
         "attributes": "Copper,L2,Inner,Signal"
       },

@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 300, "y": 100 },
+    "size": { "x": 200, "y": 100 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -41,7 +41,7 @@
         "attributes": "Copper,L1,Top,Signal"
       },
       "In1_Cu.g2": {
-        "nets": ["SWDIO~", "SWDIO~^"],
+        "nets": [],
         "fill": false,
         "attributes": "Copper,L2,Inner,Signal"
       },
@@ -76,13 +76,13 @@
   "modules": [
     {
       "name": "vm_jacdaptor_0.1",
-      "position": { "x": 100, "y": 20  },
+      "position": { "x": -50, "y": 0  },
       "rotation": 0
     },
     {
       "name": "vm_jacdaptor_0.1",
-      "position": { "x": 20, "y": 20  },
-      "rotation": 0
+      "position": { "x": 80, "y": 0  },
+      "rotation": 270
     }
   ]
 }
