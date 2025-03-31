@@ -58,11 +58,11 @@ def run(file_number: str):
     top_layer = board.get_layer("F_Cu.gtl")
     bottom_layer = board.get_layer("B_Cu.gbl")
     
-    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="right")
+    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
     left_router.route()
     
-    # right_router = BusRouter(board, tracks_layer=bottom_layer, buses_layer=top_layer, side="left")
-    # right_router.route()    
+    right_router = BusRouter(board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right")
+    right_router.route()    
 
     generate(board)
     merge_stacks(board.modules, board.name)

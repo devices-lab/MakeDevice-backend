@@ -443,19 +443,27 @@ class BusRouter(Router):
                 x_groups[socket_x].append(socket_info)
                 y_groups[socket_y].append(socket_info)
             
-            # Add multi-socket groups first
+            # Store all groups with position information
+            all_groups = []
+            
+            # Add multi-socket vertical groups
             for x, group in x_groups.items():
                 if len(group) > 1: 
                     # Sort vertically aligned sockets from top to bottom (decreasing y)
                     sorted_group = sorted(group, key=lambda s: -s[1][1])
-                    socket_groups[zone_center].append(sorted_group)
+                    # Add group with its x position
+                    all_groups.append((x, sorted_group))
                     
                     # Mark these sockets as added
                     for socket_info in group:
                         added_sockets.add((socket_info[0], tuple(socket_info[1])))
-                    
+            
+            # Add multi-socket horizontal groups
             for y, group in y_groups.items():
                 if len(group) > 1: 
+                    # Calculate the average x position for this group
+                    avg_x = sum(s[1][0] for s in group) / len(group)
+                    
                     # Sort horizontally aligned sockets based on routing side
                     if self.side == "left":
                         # Left to right for left side routing
@@ -463,7 +471,9 @@ class BusRouter(Router):
                     else:  # self.side == "right"
                         # Right to left for right side routing
                         sorted_group = sorted(group, key=lambda s: -s[1][0])
-                    socket_groups[zone_center].append(sorted_group)
+                    
+                    # Add group with its average x position
+                    all_groups.append((avg_x, sorted_group))
                     
                     # Mark these sockets as added
                     for socket_info in group:
@@ -473,8 +483,21 @@ class BusRouter(Router):
             for socket_info in sockets:
                 socket_key = (socket_info[0], tuple(socket_info[1]))
                 if socket_key not in added_sockets:
-                    socket_groups[zone_center].append([socket_info])
+                    # Use the socket's x position
+                    x = socket_info[1][0]
+                    all_groups.append((x, [socket_info]))
                     added_sockets.add(socket_key)
+            
+            # Sort all groups by distance from edge
+            if self.side == "left":
+                # For left routing: sort by x position, leftmost first
+                all_groups.sort(key=lambda g: g[0])
+            else:  # self.side == "right"
+                # For right routing: sort by x position, rightmost first
+                all_groups.sort(key=lambda g: -g[0])
+            
+            # Extract the sorted groups
+            socket_groups[zone_center] = [group for _, group in all_groups]
         
         # Sort zones and create an ordered dictionary
         sorted_zones = list(socket_groups.keys())
@@ -509,7 +532,16 @@ class BusRouter(Router):
         
         socket_count = 1
         
+        # Track failed sockets to avoid infinite loops
+        failed_sockets = set()
+        
+        # Track which sockets have been tried in reverse order
+        reversed_pairs = set()
+        
         for zone_center, socket_groups in grouped_sockets.items():
+            
+            module_name = self.board.get_module_name_from_position(zone_center)
+            
             # For each group of sockets
             for group_idx, socket_group in enumerate(socket_groups):
                 current_order = 1  # 1 for forward, -1 for reverse
@@ -519,6 +551,14 @@ class BusRouter(Router):
                 while i < len(socket_group):
                     socket = socket_group[i]
                     net_name, socket_pos = socket
+                    
+                    # Check if this socket has already failed
+                    socket_key = (net_name, tuple(socket_pos))
+                    if socket_key in failed_sockets:
+                        print(f"🟠 Skipping previously failed socket at {socket_pos} for net {net_name}")
+                        i += 1
+                        socket_count += 1
+                        continue
                     
                     # Get the bus for this net
                     bus = self.bus_segments.get(net_name)
@@ -532,7 +572,7 @@ class BusRouter(Router):
                     bus_point = self._get_point_on_bus(socket_pos, bus)
                     
                     # Route the socket to the bus
-                    print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name}")
+                    print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                     
                     if debug.do_video:
@@ -553,20 +593,36 @@ class BusRouter(Router):
                         i += 1
                         socket_count += 1
                     else:                        
+                        # Mark this socket as failed to prevent repeated attempts
+                        failed_sockets.add(socket_key)
+                        
                         # If this is the first socket in the group, routing failed
                         if i == 0:
-                            print(f"🔴 Routing failed for the first socket in group and cannot backtrack \n")
+                            print(f"🔴 Routing failed for the first socket in group and cannot backtrack\n")
                             i += 1
-                            
                             socket_count += 1
                             continue
                         
                         # Otherwise, we can backtrack
-                        print(f"🟡 Backtracking in group {group_idx} at socket {i}")
+                        print(f"🟠 Backtracking in group {group_idx} at socket {i}")
                         
                         # Get the previously routed socket
                         previous_socket = socket_group[i-1]
                         previous_net, previous_pos = previous_socket
+                        
+                        # Create a key for this backtracking attempt
+                        prev_socket_key = (previous_net, tuple(previous_pos))
+                        pair_key = (prev_socket_key, socket_key)
+                        
+                        # Check if we've already tried reversing these specific sockets
+                        if pair_key in reversed_pairs:
+                            print(f"🔴 Already tried reversing these sockets skipping this socket \n")
+                            i += 1
+                            socket_count += 1
+                            continue
+                        
+                        # Mark that we've tried reversing this pair
+                        reversed_pairs.add(pair_key)
                         
                         # Remove its path
                         for path_idx, path in enumerate(self.paths_indices.get(previous_net, [])):
@@ -589,21 +645,12 @@ class BusRouter(Router):
                                 
                                 break
                         
-                        # Invert the order of the remaining sockets from this point on
-                        current_order *= -1
-                        if current_order == -1:  # Reverse order
-                            # Reverse the order from i-1 to the end
-                            remaining = socket_group[i-1:]
-                            remaining.reverse()
-                            socket_group[i-1:] = remaining
-                            print(f"🟢 Reversed routing order for the remaining sockets in group")
-                        else:  # Forward order
-                            # Restore original order from i-1 to the end
-                            remaining = socket_group[i-1:]
-                            remaining.reverse()  # Reverse again to get back to original
-                            socket_group[i-1:] = remaining
-                            print(f"🟢 Restored original routing or routing order for the remaining sockets in group \n")
-                       
+                        # Reverse the order from i-1 to the end
+                        remaining = socket_group[i-1:]
+                        remaining.reverse()
+                        socket_group[i-1:] = remaining
+                        print(f"🟢 Reversed routing order for the remaining sockets in group")
+                    
                         # Restart from the previous socket position
                         i = i - 1
         
