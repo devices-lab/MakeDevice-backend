@@ -6,7 +6,7 @@
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 175, "y": 175 },
+    "size": { "x": 180, "y": 162 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -76,7 +76,7 @@
   "modules": [
     {
       "name": "vm_jacdaptor_0.1",
-      "position": { "x": -9, "y": 62 },
+      "position": { "x": -9, "y": 55 },
       "rotation": 0
     },
     {
@@ -116,12 +116,12 @@
     },
     {
       "name": "vm_rp2040_brain_0.1",
-      "position": { "x": 50, "y": 60 },
+      "position": { "x": 45, "y": 64.5 },
       "rotation": 270
     },
     {
       "name": "vm_rgb_led_0.2",
-      "position": { "x": -68, "y": 55 },
+      "position": { "x": -58, "y": 55 },
       "rotation": 0
     },
     {
