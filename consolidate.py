@@ -337,9 +337,15 @@ def transform_coordinates(x: float, y: float, rotation: float, offset_x: float, 
     new_x = rotated_x + offset_x
     new_y = rotated_y + offset_y
     
-    # Update the component's rotation by adding module rotation
-    # Keep within 0-360 degree range
-    new_rotation = (rotation + module_rotation) % 360
+    # Calculate new rotation with special handling for 90/270 degree module rotations
+    mod_rot = module_rotation % 360
+    if mod_rot in [90, 270] or mod_rot in [-90, -270]:
+        # For modules rotated by 90 or 270 degrees (or -90 or -270), 
+        # add 180 to each component rotation
+        new_rotation = (rotation + module_rotation + 180) % 360
+    else:
+        # For other module rotations, just add the module rotation
+        new_rotation = (rotation + module_rotation) % 360
     
     return new_x, new_y, new_rotation
 
