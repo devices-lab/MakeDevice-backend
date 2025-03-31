@@ -1,21 +1,16 @@
 {
   "board": {
-    "name": "",
+    "name": "MakeDevice",
     "generation_software": {
       "vendor": "Devices-Lab",
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": {
-      "x": 125,
-      "y": 85
-    },
-    "origin": {
-      "x": 0,
-      "y": 0
-    },
+    "size": { "x": 100, "y": 50 },
+    "origin": { "x": 0, "y": 0 },
     "debug": true
   },
+
   "configuration": {
     "routing_options": {
       "resolution": 0.25,
@@ -67,8 +62,8 @@
       "bus_spacing": 0.5,
       "edge_clearance": 0.5,
       "track_width": 0.125,
-      "via_diameter": 0.35,
-      "via_hole_diameter": 0.2,
+      "via_diameter": 0.4,
+      "via_hole_diameter": 0.3,
       "rounded_corner_radius": 5,
       "connectors": {
         "left": false,
@@ -80,44 +75,14 @@
   },
   "modules": [
     {
-      "position": {
-        "x": 46,
-        "y": 21
-      },
-      "rotation": 0,
-      "name": "vm_light_sensor_0.2"
+      "name": "vm_rp2040_pogo_mh_0.1",
+      "position": { "x": -20, "y": 9.75 },
+      "rotation": 270
     },
     {
-      "position": {
-        "x": -8,
-        "y": 26
-      },
-      "rotation": 0,
-      "name": "vm_jacdaptor_0.1"
-    },
-    {
-      "position": {
-        "x": -32,
-        "y": -16
-      },
-      "rotation": -90,
-      "name": "vm_rotary_button_0.2"
-    },
-    {
-      "position": {
-        "x": 43,
-        "y": -16
-      },
-      "rotation": 90,
-      "name": "vm_keycap_button_0.2"
-    },
-    {
-      "position": {
-        "x": 2,
-        "y": -14
-      },
-      "rotation": 0,
-      "name": "vm_rgb_ring_0.2"
+      "name": "vm_rgb_ring_0.2",
+      "position": { "x": 20, "y": 0 },
+      "rotation": 0
     }
   ]
 }
