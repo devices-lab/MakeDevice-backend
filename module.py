@@ -63,6 +63,10 @@ class Module:
         """Return the position as a tuple (x, y)"""
         return self.position.as_tuple()
     
+    def get_rotation(self) -> float:
+        """Return the rotation of the module"""
+        return self.rotation
+    
     def get_position_dict(self) -> dict:
         """Return the position as a dictionary with 'x' and 'y' keys"""
         return {"x": self.position.x, "y": self.position.y}

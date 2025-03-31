@@ -1,12 +1,9 @@
 import shutil
+
 from pathlib import Path
 from gerbonara import GerberFile, ExcellonFile
 from numpy import pi
-from typing import Union, List, Tuple, Optional
-
-from bom import group_by_attribute, iterate_bom_files, resolve_duplicates, separate_unique_and_duplicates, shake_designators
-from cpl import iterate_cpl_files, map_cpl_designators
-from utils import write_csv
+from typing import Union, List, Optional
 
 from module import Module
 
@@ -61,7 +58,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./mo
                 merged_file = current_file
             else: 
                 merged_file.merge(current_file)
-    
+
     # Save the merged Gerber file to the output directory, if any files were processed
     if merged_file:
         output_file_path = output_dir_path / f'{board_name}-{layer_name}'
@@ -70,7 +67,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./mo
     else:
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
-                   
+            
 def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output', generated_dir='./generated') -> None:
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
@@ -186,52 +183,7 @@ def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: 
         else:
             # Save the transformed source file directly if no target file exists
             source_file.save(target_file_path)
-    
-def process_BOM(bom_filepaths, target_dir):
-    bom_items = iterate_bom_files(bom_filepaths)
-
-    # Separate unique and duplicates items
-    separated_bom_items = separate_unique_and_duplicates(bom_items, 'JLCPCB Part')
-    
-    # Group by JLCPCB Part
-    grouped_bom_items = group_by_attribute(separated_bom_items['duplicates'], 'JLCPCB Part')
-
-    # Resolve duplicates
-    resolved_duplicates = resolve_duplicates(grouped_bom_items)
-    
-    # Shake designators
-    bom_list_unmapped = resolved_duplicates + separated_bom_items['unique']
-
-    # Map designators
-    bom_list_mapped = shake_designators(bom_list_unmapped)
-    # Write the bom to the taget_dir
-    bom_file_path = str(target_dir) + '/' + '{bom.csv'
-    # Filter bom
-    filtered_bom = [{k: v for k, v in d.items() if k != 'Original Designator'} for d in bom_list_mapped['list']]
-    
-    #Writing final bom
-    # print('writing bom to: ', bom_file_path)
-    write_csv(bom_file_path, filtered_bom)
-    # Print the mapped BOM list
-    # print('BOM list mapped: ', bom_list_mapped) 
-    return bom_list_mapped
-    
-def process_CPL(modules, cpl_filepaths, processed_bom, target_dir):
-    
-    # print('cpl filepaths: ', cpl_filepaths)
-    list_of_cpl_dicts = iterate_cpl_files(modules, cpl_filepaths)
-
-    #MAP CPL DESIGNATORS
-    mapped_cpl_list = map_cpl_designators(list_of_cpl_dicts, processed_bom['mapping'])
-    # print('mapped cpl list: ', mapped_cpl_list)
-    
-    # Write the cpl to the taget_dir
-    cpl_filepath = str(target_dir) + '/' + 'cpl.csv'
-    # print('writing CPL to: ', cpl_filepath)
-    write_csv(cpl_filepath, mapped_cpl_list)
-    # Print the mapped BOM list
-    # print('CPL list mapped: ', mapped_cpl_list)
-            
+         
 def clear_directories(output_directory: Union[str, Path] = './output', 
                      generated_directory: Union[str, Path] = './generated'):
     """
