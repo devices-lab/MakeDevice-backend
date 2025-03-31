@@ -80,9 +80,9 @@
       "rotation": 90
     },
     {
-      "name": "vm_jacdaptor_0.1",
-      "position": { "x": 40, "y": 0 },
-      "rotation": 0
+      "name": "vm_light_sensor_0.2",
+      "position": { "x": 20, "y": 0 },
+      "rotation": -90
     }
   ]
 }

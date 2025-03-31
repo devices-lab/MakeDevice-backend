@@ -7,7 +7,7 @@ from board import Board
 from bus_router import BusRouter
 from generate import generate
 from process import merge_stacks, compress_directory
-from bom import consolidate_bom_files
+from consolidate import consolidate_component_files
 
 import warnings
 import sys
@@ -67,7 +67,7 @@ def run(file_number: str):
 
     generate(board)
     merge_stacks(board.modules, board.name)
-    consolidate_bom_files(board.modules, board.name)
+    consolidate_component_files(board.modules, board.name)
     compress_directory("output")
     
     # "PASS" and "FAIL" substrings are checked for by test.py]
@@ -75,9 +75,9 @@ def run(file_number: str):
     connected = board.connected_sockets_count
     
     if ((all - connected) == 0):
-        print(f"🟢 PASS: All {connected} GerberSockets routed successfully")
+        print(f"✅ PASS: All {connected} GerberSockets routed successfully")
     else:
-        print(f"🔴 FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
+        print(f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
 
     # if debug.do_video:
     #     debug.video(name=file_number)

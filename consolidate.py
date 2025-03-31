@@ -5,7 +5,7 @@ import math
 
 from module import Module
 
-def consolidate_bom_files(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output') -> None:
+def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output') -> None:
     """
     Consolidates BOM files from multiple modules into a single BOM file,
     and updates the corresponding CPL (pick and place) files with adjusted positions.
@@ -28,11 +28,11 @@ def consolidate_bom_files(modules: List[Module], board_name: str, modules_dir='.
     output_dir_path.mkdir(parents=True, exist_ok=True)
     
     # Dictionary to store all components with their unique reference designators
-    # Key format: "module_name:original_ref" -> ensures uniqueness
+    # Key format: "module_index:module_name:original_ref" -> ensures uniqueness across duplicate modules
     all_components = {}
     
     # Dictionary to track reference designator remapping
-    # Key: "module_name:original_ref", Value: "new_unique_ref"
+    # Key: "module_index:module_name:original_ref", Value: "new_unique_ref"
     ref_mapping = {}
     
     # Dictionary to track the CPL data for each component
@@ -66,14 +66,14 @@ def consolidate_bom_files(modules: List[Module], board_name: str, modules_dir='.
         
         cpl_file_path = cpl_files[0]  # Use the first CPL file found
         
-        # Process BOM file and collect references
+        # Process BOM file and collect references - using module_idx to ensure uniqueness
         collect_references(bom_file_path, cpl_file_path, module, ref_mapping, all_components, used_refs, module_idx)
     
     # Process component grouping (same value and package get same part number)
     component_groups = group_components(all_components)
     
     # Second pass: Process CPL files with updated reference designators
-    for module in modules:
+    for module_idx, module in enumerate(modules):
         module_path = modules_dir_path / module.name
         
         if not module_path.exists() or not module_path.is_dir():
@@ -85,8 +85,8 @@ def consolidate_bom_files(modules: List[Module], board_name: str, modules_dir='.
             
         cpl_file_path = cpl_files[0]
         
-        # Process CPL file with updated references
-        process_cpl_file(cpl_file_path, module, ref_mapping, cpl_entries)
+        # Process CPL file with updated references - using module_idx to match with first pass
+        process_cpl_file(cpl_file_path, module, ref_mapping, cpl_entries, module_idx)
     
     # Write consolidated BOM to output file
     write_consolidated_bom(component_groups, output_dir_path, board_name)
@@ -154,7 +154,8 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                         continue
                     
                     # Create a unique key for this specific instance
-                    component_key = f"{module.name}:{ref}"
+                    # Include module_idx to handle duplicate modules
+                    component_key = f"{module_idx}:{module.name}:{ref}"
                     
                     # Generate a new unique reference designator
                     # Extract the prefix (e.g., "R" from "R1") and number
@@ -181,6 +182,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                         "original_reference": ref,
                         "new_reference": new_ref,
                         "module_name": module.name,
+                        "module_idx": module_idx,
                         "fieldnames": fieldnames
                     }
     
@@ -236,7 +238,7 @@ def group_components(all_components: Dict) -> Dict:
     return component_groups
 
 
-def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl_entries: Dict) -> None:
+def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl_entries: Dict, module_idx: int) -> None:
     """
     Processes a CPL file and adjusts positions and rotations based on module placement.
     Updates reference designators based on the mapping.
@@ -246,6 +248,7 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
         module (Module): Module object containing position and rotation information.
         ref_mapping (Dict): Dictionary mapping original to new reference designators.
         cpl_entries (Dict): Dictionary to store processed CPL entries.
+        module_idx (int): Module index to match with the correct references.
         
     Returns:
         None
@@ -269,7 +272,7 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
                     continue
                 
                 # Generate the component key for lookup
-                component_key = f"{module.name}:{designator}"
+                component_key = f"{module_idx}:{module.name}:{designator}"
                 
                 # Skip if this component doesn't have a mapped reference
                 if component_key not in ref_mapping:
@@ -382,7 +385,7 @@ def write_consolidated_bom(component_groups: Dict, output_dir_path: Path, board_
                 
                 writer.writerow(row)
         
-        print(f"✅ Consolidated BOM written to: {output_file_path}")
+        print(f"🟢 Consolidated BOM written to: {output_file_path}")
     
     except Exception as e:
         print(f"🔴 Error writing consolidated BOM file: {e}")
@@ -419,7 +422,7 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
                 # Write the row data
                 writer.writerow(entry["row"])
         
-        print(f"✅ Consolidated CPL written to: {output_file_path}")
+        print(f"🟢 Consolidated CPL written to: {output_file_path}")
     
     except Exception as e:
         print(f"🔴 Error writing consolidated CPL file: {e}")
