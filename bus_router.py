@@ -369,6 +369,10 @@ class BusRouter(Router):
                     connection_index = chopped_path[-1]                    
                     self._add_via(net_name, (connection_index.x, connection_index.y))
                     
+                    if self.tracks_layer.name != "F_Cu.gtl":
+                        # Add via to the location of the socket
+                        self._add_via(net_name, (socket_index[0], socket_index[1]))
+                        
                 # Convert path to tuples with layer information
                 path_tuples = [(node.x, node.y, -1) for node in chopped_path]
                 return path_tuples

@@ -462,6 +462,18 @@ class Board:
                 return layer
         return None
     
+    def get_module_name_from_position(self, position: Tuple[float, float]) -> Optional[str]:
+        """Get the module name at a specific position
+        Parameters:
+            position (Tuple[float, float]): The position to search for
+        Returns:
+            str: The name of the module at the position, or None if not found
+        """
+        for module in self.modules:
+            if module.position.x == position[0] and module.position.y == position[1]:
+                return module.name
+        return None
+    
     def add_sockets(self, sockets: Sockets) -> None:
         """Add sockets to the board
         
