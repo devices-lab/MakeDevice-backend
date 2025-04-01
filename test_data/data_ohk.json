@@ -143,6 +143,11 @@
       "name": "jacdac_power_mh_0.1",
       "position": { "x": -75, "y": -75 },
       "rotation": 0
+    },
+    {
+      "name": "jacdac_connector_0.1",
+      "position": { "x": -75, "y": -75 },
+      "rotation": 0
     }
   ]
 }

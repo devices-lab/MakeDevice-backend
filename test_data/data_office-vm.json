@@ -8,7 +8,7 @@
     },
     "size": {
       "x": 125,
-      "y": 85
+      "y": 100
     },
     "origin": {
       "x": 0,
@@ -79,6 +79,16 @@
     }
   },
   "modules": [
+    {
+      "name": "jacdac_connector_0.1",
+      "position": { "x": 0, "y": 50 },
+      "rotation": 0
+    },
+    {
+      "name": "jacdac_connector_0.1",
+      "position": { "x": 0, "y": -50 },
+      "rotation": 180
+    },
     {
       "position": {
         "x": 46,
