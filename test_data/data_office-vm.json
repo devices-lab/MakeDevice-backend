@@ -7,8 +7,8 @@
       "version": "0.1"
     },
     "size": {
-      "x": 125,
-      "y": 100
+      "x": 88,
+      "y": 70
     },
     "origin": {
       "x": 0,
@@ -73,26 +73,22 @@
       "connectors": {
         "left": false,
         "right": false,
-        "bottom": false,
+        "bottom": true,
         "top": false
       }
     }
   },
   "modules": [
+    
     {
       "name": "jacdac_connector_0.1",
-      "position": { "x": 0, "y": 50 },
-      "rotation": 0
-    },
-    {
-      "name": "jacdac_connector_0.1",
-      "position": { "x": 0, "y": -50 },
+      "position": { "x": 0, "y": -35 },
       "rotation": 180
     },
     {
       "position": {
-        "x": 46,
-        "y": 21
+        "x": 32,
+        "y": 20
       },
       "rotation": 0,
       "name": "vm_light_sensor_0.2"
@@ -100,23 +96,23 @@
     {
       "position": {
         "x": -8,
-        "y": 26
+        "y": 23
       },
       "rotation": 0,
       "name": "vm_jacdaptor_0.1"
     },
     {
       "position": {
-        "x": -32,
-        "y": -16
+        "x": -25,
+        "y": -12
       },
       "rotation": -90,
       "name": "vm_rotary_button_0.2"
     },
     {
       "position": {
-        "x": 43,
-        "y": -16
+        "x": 29,
+        "y": -13
       },
       "rotation": 90,
       "name": "vm_keycap_button_0.2"
@@ -124,7 +120,7 @@
     {
       "position": {
         "x": 2,
-        "y": -14
+        "y": -12
       },
       "rotation": 0,
       "name": "vm_rgb_ring_0.2"
