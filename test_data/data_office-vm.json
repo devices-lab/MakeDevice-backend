@@ -67,8 +67,8 @@
       "bus_spacing": 0.5,
       "edge_clearance": 0.5,
       "track_width": 0.125,
-      "via_diameter": 0.35,
-      "via_hole_diameter": 0.2,
+      "via_diameter": 0.4,
+      "via_hole_diameter": 0.3,
       "rounded_corner_radius": 5,
       "connectors": {
         "left": false,
