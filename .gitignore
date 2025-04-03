@@ -15,6 +15,7 @@ output/
 generated/
 output.zip
 debug/*.png
+progress.txt
 
 # Cache 
 __pycache__/
