@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,9.0.0*%
-%TF.CreationDate,2025-03-31T12:22:47+01:00*%
+%TF.CreationDate,2025-04-02T11:36:53+01:00*%
 %TF.ProjectId,vm_rotary_button_0.2,766d5f72-6f74-4617-9279-5f627574746f,v0.2*%
 %TF.SameCoordinates,PX5742de0PY47868c0*%
 %TF.FileFunction,Soldermask,Top*%
 %TF.FilePolarity,Negative*%
 %FSLAX45Y45*%
 G04 Gerber Fmt 4.5, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 9.0.0) date 2025-03-31 12:22:47*
+G04 Created by KiCad (PCBNEW 9.0.0) date 2025-04-02 11:36:53*
 %MOMM*%
 %LPD*%
 G01*

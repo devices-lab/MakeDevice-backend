@@ -55,7 +55,7 @@ class Board:
         self._ensure_directories()
         self._add_modules_from_loader()
         self._add_layers_from_loader()
-        
+    
         # If sockets are are available, assign nets to layers
         if self.sockets:
             self._assign_nets_to_layers()
@@ -416,6 +416,37 @@ class Board:
         for zone in corner_zones:
             self.zones.add_zone(zone)
     
+    def check_for_two_programmers(self) -> None:
+        """
+        Check if both Jacdaptor VM and RP2040 brain are present 
+        on the baord, and if yes, remove the Jacdaptor VM's `SWDIO~` sockets
+        
+        TODO: I am tired, this can definetly be done better
+        """
+        
+        jacdaptor = "vm_jacdaptor_0.1"
+        rp2040 = "vm_rp2040_brain_0.1"
+        
+        # Check if both Jacdaptor VM and RP2040 brain are present
+        jacdaptor_present = any(module.name == jacdaptor for module in self.modules)
+        rp2040_present = any(module.name == rp2040 for module in self.modules)
+        
+        if jacdaptor_present and rp2040_present:
+            print(f"🟡 Both Jacdaptor VM and RP2040 brain are present on the board. Removing Jacdaptor SWDIO~ sockets.")
+            for module in self.modules:
+                if module.name == "vm_jacdaptor_0.1":
+                    zone = module.zone
+                    
+                    for socket in self.sockets.get_socket_positions_for_net("SWDIO~"):
+                        
+                        # Check if the socket is within the Jacdaptor VM's zone
+                        if (zone[0][0] <= socket.x <= zone[2][0] and
+                            zone[0][1] <= socket.y <= zone[2][1]):
+                            
+                            # Remove the socket from the Sockets object
+                            self.sockets.remove_socket("SWDIO~", socket)
+                            print(f"🟢 Removed SWDIO~ socket at {socket} from Jacdaptor VM")
+        
     def add_drill_hole(self, position: Point) -> None:
         """Add a drill hole to the board
         

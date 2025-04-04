@@ -5,17 +5,17 @@
       "Application": "Pcbnew",
       "Version": "9.0.0"
     },
-    "CreationDate": "2025-04-02T11:36:54+01:00"
+    "CreationDate": "2025-03-31T15:03:09+01:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
-      "Name": "vm_rotary_button_0.2",
-      "GUID": "766d5f72-6f74-4617-9279-5f627574746f",
-      "Revision": "v0.2"
+      "Name": "vm_jacdaptor_no_swdio_0.1",
+      "GUID": "766d5f6a-6163-4646-9170-746f725f6e6f",
+      "Revision": "v0.1"
     },
     "Size": {
-      "X": 27.05,
-      "Y": 17.55
+      "X": 59.05,
+      "Y": 23.55
     },
     "LayerNumber": 2,
     "BoardThickness": 1.6,
@@ -34,62 +34,62 @@
   ],
   "FilesAttributes": [
     {
-      "Path": "vm_rotary_button_0.2-F_Cu.gtl",
+      "Path": "vm_jacdaptor_no_swdio_0.1-F_Cu.gtl",
       "FileFunction": "Copper,L1,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-B_Cu.gbl",
+      "Path": "vm_jacdaptor_no_swdio_0.1-B_Cu.gbl",
       "FileFunction": "Copper,L2,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-F_Paste.gtp",
+      "Path": "vm_jacdaptor_no_swdio_0.1-F_Paste.gtp",
       "FileFunction": "SolderPaste,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-B_Paste.gbp",
+      "Path": "vm_jacdaptor_no_swdio_0.1-B_Paste.gbp",
       "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-F_Silkscreen.gto",
+      "Path": "vm_jacdaptor_no_swdio_0.1-F_Silkscreen.gto",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-B_Silkscreen.gbo",
+      "Path": "vm_jacdaptor_no_swdio_0.1-B_Silkscreen.gbo",
       "FileFunction": "Legend,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-F_Mask.gts",
+      "Path": "vm_jacdaptor_no_swdio_0.1-F_Mask.gts",
       "FileFunction": "SolderMask,Top",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "vm_rotary_button_0.2-B_Mask.gbs",
+      "Path": "vm_jacdaptor_no_swdio_0.1-B_Mask.gbs",
       "FileFunction": "SolderMask,Bot",
       "FilePolarity": "Negative"
     },
     {
-      "Path": "vm_rotary_button_0.2-Edge_Cuts.gm1",
+      "Path": "vm_jacdaptor_no_swdio_0.1-Edge_Cuts.gm1",
       "FileFunction": "Profile",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-F_Fab.gbr",
+      "Path": "vm_jacdaptor_no_swdio_0.1-F_Fab.gbr",
       "FileFunction": "AssemblyDrawing,Top",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-B_Fab.gbr",
+      "Path": "vm_jacdaptor_no_swdio_0.1-B_Fab.gbr",
       "FileFunction": "AssemblyDrawing,Bot",
       "FilePolarity": "Positive"
     },
     {
-      "Path": "vm_rotary_button_0.2-GerberSockets.gbr",
+      "Path": "vm_jacdaptor_no_swdio_0.1-GerberSockets.gbr",
       "FileFunction": "Other,User",
       "FilePolarity": "Positive"
     }
