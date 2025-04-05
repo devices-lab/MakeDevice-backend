@@ -1,5 +1,5 @@
 """
-This test script takes all the json files in ./test_data
+This test script takes all the json files in ./data
 and spawns a new python process one at a time for each one, 
 running `python3 run.py <file_name>` and printing the lines
 from its output that contains "PASS:" or "FAIL:".
@@ -18,8 +18,8 @@ def test():
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
     
-    # Get all the json files in ./test_data
-    test_files = [f for f in os.listdir("./test_data") if f.endswith(".json")]
+    # Get all the json files in ./data
+    test_files = [f for f in os.listdir("./data") if f.endswith(".json")]
     passes = 0
     fails = 0
 

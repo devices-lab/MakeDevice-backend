@@ -20,7 +20,7 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
     
-    loader = Loader(f"./test_data/data_{file_number}.json", run_from_server=run_from_server)
+    loader = Loader(f"./data/data_{file_number}.json", run_from_server=run_from_server)
     print("🔵 Using", f"data_{file_number}.json")
     
     if loader.debug:

@@ -353,6 +353,7 @@ def transform_coordinates(x: float, y: float, rotation: float, offset_x: float, 
 def write_consolidated_bom(component_groups: Dict, output_dir_path: Path, board_name: str) -> None:
     """
     Writes the consolidated BOM components to a CSV file.
+    Changes the 'Reference' column name to 'Designator' in the output file.
     
     Parameters:
         component_groups (Dict): Dictionary of grouped components.
@@ -370,24 +371,34 @@ def write_consolidated_bom(component_groups: Dict, output_dir_path: Path, board_
     first_component = next(iter(component_groups.values()))
     fieldnames = first_component.get("fieldnames", ["Value", "Reference", "Package", "LCSC Part"])
     
+    # Create a new fieldnames list with "Reference" replaced by "Designator"
+    output_fieldnames = []
+    for field in fieldnames:
+        if field == "Reference":
+            output_fieldnames.append("Designator")
+        else:
+            output_fieldnames.append(field)
+    
     output_file_path = output_dir_path / f"BOM_{board_name}.csv"
     
     try:
         with open(output_file_path, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer = csv.DictWriter(csvfile, fieldnames=output_fieldnames)
             writer.writeheader()
             
             for component_key, component in component_groups.items():
                 # Create a row for this component
                 row = {}
-                for field in fieldnames:
+                for i, field in enumerate(fieldnames):
+                    output_field = output_fieldnames[i]
+                    
                     if field == "Reference":
                         # For Reference field, join the new unique references
-                        row[field] = ','.join(component["references"])
+                        row[output_field] = ','.join(component["references"])
                     elif field in component:
-                        row[field] = component[field]
+                        row[output_field] = component[field]
                     else:
-                        row[field] = ""
+                        row[output_field] = ""
                 
                 writer.writerow(row)
         
