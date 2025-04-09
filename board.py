@@ -151,7 +151,7 @@ class Board:
                     base_groups[base_name]['transmitters'].append((net, position))
                     
             elif self.net_is_receiver(net):
-                base_name = net[:-2]  # Remove ~(num) suffix
+                base_name = net[:net.index('~')] # Remove ~(num) suffix
                 if base_name not in base_groups:
                     base_groups[base_name] = {'transmitters': [], 'receivers': []}
                 
@@ -201,7 +201,7 @@ class Board:
         if new_locations:
             # Get old special nets
             old_special_nets = [net for net in self.sockets.socket_locations 
-                    if net.endswith('~') or net.endswith('~^')]
+                    if self.net_is_receiver(net) or net.endswith('~^')]
             
             # Update socket locations
             self.sockets.socket_locations = new_locations
@@ -221,8 +221,9 @@ class Board:
                     
                 for net in layer_data.get('nets', []):
                     # If it's an old special net, find matching new ones
-                    if net.endswith('~') or net.endswith('~^'):
-                        base_name = net[:-1] if net.endswith('~') else net[:-2]
+                    if self.net_is_receiver(net) or net.endswith('~^'):
+                        base_name = net[:net.index('~')] if self.net_is_receiver(net) else net
+
                         paired_nets = [n for n in new_locations if n.startswith(f"{base_name}_")]
                         for paired_net in paired_nets:
                             layer.add_net(paired_net)
@@ -452,11 +453,13 @@ class Board:
         rp2040_present = any(module.name == rp2040 for module in self.modules)
         
         if jacdaptor_present and rp2040_present:
-            print(f"🟡 Both Jacdaptor VM and RP2040 brain are present on the board. Removing Jacdaptor SWDIO~ sockets.")
+            print(f"🟡 Both Jacdaptor VM and RP2040 brain are present on the board. Removing Jacdaptor SWDIO~(num) sockets.")
             for module in self.modules:
                 if module.name == "vm_jacdaptor_0.1":
                     zone = module.zone
                     
+                    # TODO: fix
+                    raise NotImplementedError("Jacdaptor VM socket removal not implemented for SWDIO~(num) sockets")
                     for socket in self.sockets.get_socket_positions_for_net("SWDIO~"):
                         
                         # Check if the socket is within the Jacdaptor VM's zone
