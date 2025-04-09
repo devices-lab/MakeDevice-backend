@@ -2,11 +2,11 @@
   "board": {
     "name": "MakeDevice",
     "generation_software": {
-      "vendor": "DevicesLab",
+      "vendor": "Devices-Lab",
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 100, "y": 100 },
+    "size": { "x": 146, "y": 130 },
     "origin": { "x": 0, "y": 0 },
     "debug": true
   },
@@ -83,5 +83,46 @@
       }
     }
   },
-  "modules": []
+  "modules": [
+    {
+      "name": "vm_rgb_led_0.2",
+      "position": { "x": -50, "y": 49 },
+      "rotation": 90
+    },
+    {
+      "name": "vm_jacdaptor_no_swdio_0.1",
+      "position": { "x": 0, "y": 53 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_rp2040_brain_0.1",
+      "position": { "x": 48, "y": 49 },
+      "rotation": 270
+    },
+    {
+      "name": "vm_keycap_button_row_0.2",
+      "position": { "x": -6, "y": 24 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.2",
+      "position": { "x": -6, "y": 4 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.2",
+      "position": { "x": -6, "y": -16 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.2",
+      "position": { "x": -6, "y": -36 },
+      "rotation": 0
+    },
+    {
+      "name": "vm_keycap_button_row_0.2",
+      "position": { "x": -6, "y": -56 },
+      "rotation": 0
+    }
+  ]
 }

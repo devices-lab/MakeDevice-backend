@@ -172,6 +172,10 @@ class Sockets(Object):
                         )
                         
                         self.socket_locations.setdefault(net_name, []).append(rounded_location)
+                elif diameter != 0.1:
+                    print(f"🔴 Socket with diameter {diameter} didn't match any in the net diameter map.")
+                    raise ValueError(f"Socket with diameter {diameter} didn't match any in the net diameter map.")
+
         
         # Raise error if alignment issues were found
         if alignment_errors:

@@ -2,15 +2,20 @@
   "board": {
     "name": "MakeDevice",
     "generation_software": {
-      "vendor": "DevicesLab",
+      "vendor": "Devices-Lab",
       "application": "MakeDevice",
       "version": "0.1"
     },
-    "size": { "x": 100, "y": 100 },
-    "origin": { "x": 0, "y": 0 },
+    "size": {
+      "x": 88,
+      "y": 70
+    },
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
     "debug": true
   },
-
   "configuration": {
     "routing_options": {
       "resolution": 0.25,
@@ -78,10 +83,57 @@
       "connectors": {
         "left": false,
         "right": false,
-        "bottom": false,
+        "bottom": true,
         "top": false
       }
     }
   },
-  "modules": []
+  "modules": [
+    
+    {
+      "name": "jacdac_connector_0.1",
+      "position": { "x": 0, "y": -35 },
+      "rotation": 180
+    },
+    {
+      "position": {
+        "x": 32,
+        "y": 20
+      },
+      "rotation": 0,
+      "name": "vm_light_sensor_0.2"
+    },
+    {
+      "position": {
+        "x": -8,
+        "y": 23
+      },
+      "rotation": 0,
+      "name": "vm_jacdaptor_0.1"
+    },
+    {
+      "position": {
+        "x": -25,
+        "y": -12
+      },
+      "rotation": -90,
+      "name": "vm_rotary_button_0.2"
+    },
+    {
+      "position": {
+        "x": 29,
+        "y": -13
+      },
+      "rotation": 90,
+      "name": "vm_keycap_button_0.2"
+    },
+    {
+      "position": {
+        "x": 2,
+        "y": -12
+      },
+      "rotation": 0,
+      "name": "vm_rgb_ring_0.2"
+    }
+  ]
 }

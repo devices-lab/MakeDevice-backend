@@ -106,9 +106,29 @@ class Board:
                 attributes=layer_data.get('attributes')
             )
             self.layers.append(layer)
-    
+
+    def net_is_receiver(self, net) -> bool:
+        """
+        Match receivers net strings ending in ~0 to ~99
+        """
+        if len(net) < 3:
+            return False
+            
+        try:
+            tilde_pos = net.index('~')
+            remaining_chars = len(net) - tilde_pos - 1
+            
+            if remaining_chars == 1:
+                return net[-1].isdigit()
+            elif remaining_chars == 2:
+                return net[-2:].isdigit()
+            else:
+                return False
+        except ValueError:  # No '~' character found
+            return False
+
     def _pair_special_sockets(self):
-        """Pairs transmitter (~^) and receiver (~) sockets and creates new net names"""
+        """Pairs transmitter ~^ and receiver ~(num) sockets and creates new net names"""
         if not self.sockets:
             return {}
         
@@ -130,8 +150,8 @@ class Board:
                 for position in original_locations[net]:
                     base_groups[base_name]['transmitters'].append((net, position))
                     
-            elif net.endswith('~'):
-                base_name = net[:-1]  # Remove ~ suffix
+            elif self.net_is_receiver(net):
+                base_name = net[:-2]  # Remove ~(num) suffix
                 if base_name not in base_groups:
                     base_groups[base_name] = {'transmitters': [], 'receivers': []}
                 
@@ -146,11 +166,11 @@ class Board:
             print(f"🔵 Processing {base_name} sockets: {len(group['transmitters'])} transmitters, {len(group['receivers'])} receivers")
             
             for i in range(pair_count):
-                new_net = f"{base_name}_{i+1}"
-                
                 # Add both positions to the new net
                 transmitter_net, transmitter_position = group['transmitters'][i]
                 receiver_net, receiver_position = group['receivers'][i]
+
+                new_net = f"{base_name}_{receiver_net.split('~')[-1]}" # e.g SWDIO~8 => SWDIO_8)
                 
                 new_locations[new_net] = [transmitter_position, receiver_position]
                 
@@ -165,7 +185,7 @@ class Board:
         
         # Copy non-special nets
         for net, positions in original_locations.items():
-            if not (net.endswith('~') or net.endswith('~^')):
+            if not (self.net_is_receiver(net) or net.endswith('~^')):
                 new_locations[net] = positions.copy()
         
         return new_locations
