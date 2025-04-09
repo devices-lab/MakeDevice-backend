@@ -58,7 +58,7 @@ def begin_routing():
             json_str = data
             
         # Save the data to a file
-        with open(f"./test_data/data_{file_number}.json", 'w') as file:
+        with open(f"./data/data_{file_number}.json", 'w') as file:
             file.write(json_str)
         
 
