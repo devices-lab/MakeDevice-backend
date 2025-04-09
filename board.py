@@ -113,6 +113,9 @@ class Board:
         """
         if len(net) < 3:
             return False
+
+        if net.count('~^') > 0:
+            return False
             
         try:
             tilde_pos = net.index('~')
