@@ -110,12 +110,21 @@ class Board:
     def net_is_receiver(self, net) -> bool:
         """
         Match receivers net strings ending in ~0 to ~99
+        e.g SWDIO~0, SWDIO~1, SWDIO~99
+
+        Also matches SWDIO~, for the "SWDIO~" net on the
+        layer map
+
+        Does not match SWDIO~^
         """
         if len(net) < 3:
             return False
 
         if net.count('~^') > 0:
             return False
+
+        if net.endswith('~'):
+            return True
             
         try:
             tilde_pos = net.index('~')
