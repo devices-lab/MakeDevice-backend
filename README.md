@@ -39,12 +39,11 @@ Each module available in MakeDevice should have a central JSON file with the fol
 - Number of functional components
 - MCU part number
 - Last update date
-- Gerber file paths
 - 3D file paths
 - Alternate 3D file paths 
     - Kitten bot module floating on top
     - No components, just pads
-- Module type (programmer/target/conenctor)
+- Module type (programmer/target/connector)
 - Firmware descriptions
 - List of GerberSockets
 - Design rules - whether can extend to board edge, or not

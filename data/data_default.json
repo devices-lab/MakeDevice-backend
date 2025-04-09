@@ -2,7 +2,7 @@
   "board": {
     "name": "MakeDevice",
     "generation_software": {
-      "vendor": "Devices-Lab",
+      "vendor": "DevicesLab",
       "application": "MakeDevice",
       "version": "0.1"
     },
@@ -73,11 +73,5 @@
       }
     }
   },
-  "modules": [
-    {
-      "name": "vm_jacdaptor_0.1",
-      "position": { "x": 0, "y": 0 },
-      "rotation": 0
-    }
-  ]
+  "modules": []
 }
