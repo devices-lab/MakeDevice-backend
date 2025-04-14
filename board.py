@@ -481,6 +481,31 @@ class Board:
                             # Remove the socket from the Sockets object
                             self.sockets.remove_socket("SWDIO~", socket)
                             print(f"🟢 Removed SWDIO~ socket at {socket} from Jacdaptor VM")
+
+    def get_module_nets(self) -> Dict[str, List[str]]:
+        """For each module, get the net names of the sockets inside it's zone
+
+        Returns:
+            Dict[str, List[str]]: A dictionary mapping module names to net names
+        """
+        module_names = {module.name: [] for module in self.modules}
+
+        if not self.sockets:
+            print("🟠 No sockets available")
+            return module_names
+        
+        socket_locations = self.sockets.get_data()
+        for net in socket_locations:
+            for socket in socket_locations[net]:
+                for module in self.modules:
+                    zone = module.zone
+                    if (zone is None):
+                        continue
+                    if (zone[0][0] <= socket[0] <= zone[2][0] and
+                        zone[0][1] <= socket[1] <= zone[2][1]):
+                        module_names[module.name].append(net)
+
+        return module_names
         
     def add_drill_hole(self, position: Point) -> None:
         """Add a drill hole to the board

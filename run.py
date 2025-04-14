@@ -54,6 +54,16 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     else:
         board.add_zones(zones)
         print("🟢 Found", zones.get_zone_count(), "keep-out zones and added them to the board")
+
+    # Get the module names and the net names of their sockets
+    module_nets = board.get_module_nets()
+    for module_name in module_nets:
+        print(f"🔵 Module '{module_name}' has the following nets:")
+        str_nets = [str(net) for net in module_nets[module_name]]
+        if len(str_nets) == 0:
+            print("    No nets")
+        else:
+            print(f"    {', '.join(str_nets)}")
             
     # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
     top_layer = board.get_layer("F_Cu.gtl")
@@ -69,6 +79,7 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     merge_stacks(board.modules, board.name)
     consolidate_component_files(board.modules, board.name)
     compress_directory("output")
+
     
     # "PASS" and "FAIL" substrings are checked for by test.py]
     all = sockets.get_socket_count()
