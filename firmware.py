@@ -3,7 +3,7 @@ This script generates the firmware needed for the microbit(s) and/or rp2040 brai
 to act as a programmer probe, automatically flashing all virtual module MCUs
 connected via SWDIO traces.
 
-It needs an output/firmware.json file with the following structure:
+It needs a firmware/firmware.json file with the following structure:
 e.g:
 { modules: [
     { name: "vm_jacdaptor_0.1", nets: [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] },
@@ -15,14 +15,17 @@ e.g:
 It identifies brain modules (programmers) and peripherals (virtual modules)
 based on keywords and SWDIO connections.
 
-It also needs base microbit.bin and pico.bin files, containing the programmer probe
-logic and firmware placeholders which this script replaces with the actual firmware
-for each virtual module (modules/<name>/firmware.bin) - 32KB bin for STM32G030
+It also needs base microbit-base.bin and pico-base.bin files in firmware/,
+containing the programmer probe logic and firmware placeholders which this
+script replaces with the actual firmware for each virtual module
+(modules/<name>/firmware.bin) (32KB bin for STM32G030)
 
-Any pico.bin is converted to pico.uf2 and any microbit.bin to microbit.hex
+Any generated pico.bin is converted to pico.uf2 and any MICROBIT.bin to MICROBIT.hex.
+Uf2 conversion uses picotool, which must be installed and built first.
 
-If there are multiple brains, it will create a copy of the firmware for each brain,
-e.g. microbit.hex, microbit-2.hex, pico-3.uf2
+If there are multiple brains, it will create the required firmware for each brain,
+(e.g. MICROBIT.hex, MICROBIT-2.hex, pico-3.uf2) needed to program every virtual module
+TODO: How does the user know which one to upload to which brain?
 """
 
 import json
@@ -81,13 +84,13 @@ def find_matching_module(swdio_net, peripherals):
 def ensure_target_copy(brain_name, index):
     """Ensure a unique copy of the firmware base file is created for each brain."""
     if "jacdaptor" in brain_name:
-        base_name = "microbit.bin"
+        base_name = "firmware/microbit-base.bin"
         if index == 0:
-            target_name = "output/microbit.bin"
+            target_name = "output/MICROBIT.bin"
         else:
-            target_name = f"output/microbit-{index + 1}.bin"
+            target_name = f"output/MICROBIT-{index + 1}.bin"
     else:
-        base_name = "pico.bin"
+        base_name = "firmware/pico-base.bin"
         if index == 0:
             target_name = "output/pico.bin"
         else:
@@ -139,9 +142,7 @@ def replace_firmware(target_bin, sub_bin, swdio_num):
     with open(target_bin, "wb") as f:
         f.write(modified_data)
 
-    print(
-        f"Firmware replacement for slot {swdio_num} successful in {target_bin} using {sub_bin}"
-    )
+    print(f"Firmware replaced for SWDIO_{swdio_num} in {target_bin} using {sub_bin}")
 
 
 def process_firmware(json_data):
@@ -182,17 +183,23 @@ def convert_firmware(target_bin):
 
     # Determine output filename based on type
     if "pico" in target_bin:
-        if shutil.which("uf2conv") is None:
-            raise EnvironmentError(
-                "Error: uf2conv is not installed. Please install it to proceed. `python3 -m pip install --pre -U git+https://github.com/makerdiary/uf2utils.git@main`"
+        # Check if picotool is in the folder
+        if not os.path.exists("picotool"):
+            raise FileNotFoundError(
+                "Error: ./picotool folder not found. Please git clone and build it first. https://github.com/raspberrypi/picotool"
+            )
+        if not os.path.exists("picotool/build/picotool"):
+            raise FileNotFoundError(
+                "Error: ./picotool/build/picotool not found. Please build it first."
             )
 
         output_file = target_bin.replace(".bin", ".uf2")
-        convert_command = f"uf2conv {target_bin} -o {output_file}"
+        # convert_command = f"uf2conv {target_bin} --family RP2040 -o {output_file}" #uf2 won't upload correctly for some reason
+        convert_command = f"picotool/build/picotool uf2 convert {target_bin} {output_file} --family rp2040"
 
-    elif "microbit" in target_bin:
+    elif "MICROBIT" in target_bin:
         output_file = target_bin.replace(".bin", ".hex")
-        convert_command = f"objcopy -I binary -O ihex {target_bin} {output_file}"
+        convert_command = f"objcopy --input-target=binary --output-target=ihex {target_bin} {output_file}"
 
     else:
         raise ValueError(
@@ -214,22 +221,39 @@ def convert_firmware(target_bin):
     return output_file
 
 
-if __name__ == "__main__":
+def run():
+    # office-vm_net_map
     # json_input = """
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
+
+    # office-vm_net_map no SWDIO_1
+    # json_input = """
+    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
+    # """
+
+    # microbit swapped with rp2040
     # json_input = """
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rp2040.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
+
+    # microbit swapped with rp2040 no SWDIO_1
+    # json_input = """
+    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rp2040.1", "nets": [ "SWDIO_8", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
+    # """
+
+    # two microbit
     # json_input = """
     # { "modules": [ { "name": "jacdaptor_connector_0.1", "nets": [ "SWDIO_10" ] },{ "name": "jacdac_connector_0.1", "nets": [ "SWDIO_10" ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
+
+    # microbit and pico
     # json_input = """
     # { "modules": [ { "name": "rp2040_connector_0.1", "nets": [ "SWDIO_10" ] },{ "name": "jacdac_connector_0.1", "nets": [ "SWDIO_10" ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
-    # Load JSON data from output/firmware.json
-    with open("output/firmware.json", "r") as f:
+    # Load JSON data from firmware/firmware.json
+    with open("firmware/firmware.json", "r") as f:
         json_input = f.read()
 
     json_data = json.loads(json_input)
@@ -240,3 +264,6 @@ if __name__ == "__main__":
         except (FileNotFoundError, ValueError, RuntimeError) as e:
             print(e)
             sys.exit(1)
+
+if __name__ == "__main__":
+    run()

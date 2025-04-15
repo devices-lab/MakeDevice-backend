@@ -64,7 +64,13 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
             print("    No nets")
         else:
             print(f"    {', '.join(str_nets)}")
-            
+
+    # Generate JSON containing module/net mappings needed for MCU programming
+    json = board.get_programming_json()
+    with open("firmware/firmware.json", "w") as json_file:
+        json_file.write(json)
+    print("🟢 Generated MCU programming firmware JSON file")
+
     # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
     top_layer = board.get_layer("F_Cu.gtl")
     bottom_layer = board.get_layer("B_Cu.gbl")
@@ -78,13 +84,6 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     generate(board)
     merge_stacks(board.modules, board.name)
     consolidate_component_files(board.modules, board.name)
-
-    # Generate JSON containing module/net mappings needed for MCU programming
-    json = board.get_programming_json()
-    print("🟢 Generated programming JSON file")
-    with open("output/firmware.json", "w") as json_file:
-        json_file.write(json)
-
     compress_directory("output")
     
     # "PASS" and "FAIL" substrings are checked for by test.py]
