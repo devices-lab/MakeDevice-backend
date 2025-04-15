@@ -482,30 +482,62 @@ class Board:
                             self.sockets.remove_socket("SWDIO~", socket)
                             print(f"🟢 Removed SWDIO~ socket at {socket} from Jacdaptor VM")
 
-    def get_module_nets(self) -> Dict[str, List[str]]:
+    def get_module_nets(self) -> Dict[Module, List[str]]:
         """For each module, get the net names of the sockets inside it's zone
 
         Returns:
-            Dict[str, List[str]]: A dictionary mapping module names to net names
+            Dict[Module, List[str]]: A dictionary mapping modules to net names
         """
-        module_names = {module.name: [] for module in self.modules}
+        module_nets = {module: [] for module in self.modules}
 
         if not self.sockets:
             print("🟠 No sockets available")
-            return module_names
+            raise ValueError("No sockets available")
         
         socket_locations = self.sockets.get_data()
         for net in socket_locations:
             for socket in socket_locations[net]:
+                assignedTo = 0
                 for module in self.modules:
                     zone = module.zone
                     if (zone is None):
                         continue
                     if (zone[0][0] <= socket[0] <= zone[2][0] and
                         zone[0][1] <= socket[1] <= zone[2][1]):
-                        module_names[module.name].append(net)
+                        module_nets[module].append(net)
+                        assignedTo = assignedTo + 1
+                if assignedTo == 0:
+                    print(f"🔴 Socket {socket} is not assigned to any module")
+                if assignedTo > 1:
+                    print(f"🔴 Socket {socket} is assigned to multiple modules")
 
-        return module_names
+        return module_nets
+
+    def get_programming_json(self) -> str:
+        """Generate JSON containing module/net mappings needed for MCU programming
+        
+        Returns:
+            str: The programming JSON for the board
+        """
+
+        json = '{ "modules": [ '
+        module_nets = self.get_module_nets()
+        len_modules = len(module_nets)
+        for i, module in enumerate(module_nets):
+            json += '{ "name": "' + module.name + '", "nets": [ '
+            len_nets = len(module_nets[module])
+            for j in range(len_nets):
+                if j == len_nets - 1:
+                    json += '"' + module_nets[module][j] + '"'
+                else:
+                    json += '"' + module_nets[module][j] + '", '
+            if i == len_modules - 1:
+                json += ' ] }'
+            else:
+                json += ' ] }, '
+        json += ' ] }'
+
+        return json
         
     def add_drill_hole(self, position: Point) -> None:
         """Add a drill hole to the board

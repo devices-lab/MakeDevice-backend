@@ -150,6 +150,10 @@ class Sockets(Object):
         for obj in self.gerber.objects:
             if hasattr(obj, 'aperture') and isinstance(obj.aperture, CircleAperture):
                 diameter = obj.aperture.diameter
+
+                if diameter == 0.15:
+                    print("🟡 Legacy SWDIO~ socket detected with diameter 0.15mm.")
+                    raise ValueError("Legacy socket detected with diameter 0.15mm.")
                 
                 if diameter in diameter_to_net:
                     net_name = diameter_to_net[diameter]

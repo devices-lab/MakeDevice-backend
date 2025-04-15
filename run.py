@@ -57,9 +57,9 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
 
     # Get the module names and the net names of their sockets
     module_nets = board.get_module_nets()
-    for module_name in module_nets:
-        print(f"🔵 Module '{module_name}' has the following nets:")
-        str_nets = [str(net) for net in module_nets[module_name]]
+    for module in module_nets:
+        print(f"🔵 Module '{module.name}' has the following nets:")
+        str_nets = [str(net) for net in module_nets[module]]
         if len(str_nets) == 0:
             print("    No nets")
         else:
@@ -78,8 +78,14 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     generate(board)
     merge_stacks(board.modules, board.name)
     consolidate_component_files(board.modules, board.name)
-    compress_directory("output")
 
+    # Generate JSON containing module/net mappings needed for MCU programming
+    json = board.get_programming_json()
+    print("🟢 Generated programming JSON file")
+    with open("output/firmware.json", "w") as json_file:
+        json_file.write(json)
+
+    compress_directory("output")
     
     # "PASS" and "FAIL" substrings are checked for by test.py]
     all = sockets.get_socket_count()
