@@ -227,17 +227,27 @@ def run():
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
-    # office-vm_net_map no SWDIO_1
+    # office-vm_net_map start on SWDIO_3
     # json_input = """
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
-    # microbit swapped with rp2040
+    # office-vm_net_map start on SWDIO_6
+    # json_input = """
+    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
+    # """
+
+    # office-vm_net_map start on SWDIO_8
+    # json_input = """
+    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
+    # """
+
+    # swapped to rp2040
     # json_input = """
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rp2040.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
-    # microbit swapped with rp2040 no SWDIO_1
+    # swapped to rp2040 no SWDIO_1
     # json_input = """
     # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rp2040.1", "nets": [ "SWDIO_8", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
