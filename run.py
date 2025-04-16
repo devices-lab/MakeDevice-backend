@@ -12,6 +12,7 @@ from consolidate import consolidate_component_files
 import warnings
 import sys
 import debug
+import firmware
 
 def run(file_number: str, run_from_server: bool = False) -> bool:
     print("🟢 = OK")
@@ -97,8 +98,13 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
         failed = True
         print(f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
 
+
     if debug.do_video:
         debug.video(name=file_number)
+
+    # Generate the firmware files for microbit/rp2040 brain to flash
+    # all virtual modules
+    firmware.run()
 
     return failed
 
