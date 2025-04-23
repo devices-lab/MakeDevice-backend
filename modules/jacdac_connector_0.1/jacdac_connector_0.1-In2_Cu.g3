@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,8.0.8*%
-%TF.CreationDate,2025-02-18T14:47:51+00:00*%
+%TF.CreationDate,2025-02-18T18:23:41+00:00*%
 %TF.ProjectId,jacdac_connector_0.1,6a616364-6163-45f6-936f-6e6e6563746f,v0.1*%
 %TF.SameCoordinates,PX8d24d00PY36d6160*%
 %TF.FileFunction,Copper,L3,Inr*%
 %TF.FilePolarity,Positive*%
 %FSLAX46Y46*%
 G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 8.0.8) date 2025-02-18 14:47:51*
+G04 Created by KiCad (PCBNEW 8.0.8) date 2025-02-18 18:23:41*
 %MOMM*%
 %LPD*%
 G01*
