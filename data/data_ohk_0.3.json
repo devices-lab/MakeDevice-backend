@@ -90,12 +90,12 @@
       "rotation": 90
     },
     {
-      "name": "vm_jacdaptor_0.2",
+      "name": "vm_jacdaptor_no_swdio_0.1",
       "position": { "x": 0, "y": 53 },
       "rotation": 0
     },
     {
-      "name": "rp2040_pogo_mh_0.1",
+      "name": "vm_rp2040_brain_0.2",
       "position": { "x": 48, "y": 49 },
       "rotation": 270
     },
