@@ -76,14 +76,14 @@ def run(file_number: str, run_from_server: bool = False) -> bool:
     top_layer = board.get_layer("F_Cu.gtl")
     bottom_layer = board.get_layer("B_Cu.gbl")
     
-    left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
-    left_router.route()
+    # left_router = BusRouter(board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left")
+    # left_router.route()
     
-    right_router = BusRouter(board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right")
-    right_router.route()    
+    # right_router = BusRouter(board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right")
+    # right_router.route()    
 
-    generate(board)
-    merge_stacks(board.modules, board.name)
+    # generate(board)
+    # merge_stacks(board.modules, board.name)
     consolidate_component_files(board.modules, board.name)
     compress_directory("output")
     

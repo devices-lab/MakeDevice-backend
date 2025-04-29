@@ -131,6 +131,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
             
             # Get the fieldnames to ensure we maintain the original format
             fieldnames = reader.fieldnames
+            print("fieldnames: ", fieldnames)
             
             if not fieldnames:
                 print(f"🔴 Invalid BOM file format for: {bom_file_path}")
