@@ -1,0 +1,144 @@
+{
+  "board": {
+    "name": "MakeDevice",
+    "generation_software": {
+      "vendor": "Devices-Lab",
+      "application": "MakeDevice",
+      "version": "0.1"
+    },
+    "size": {
+      "x": 88,
+      "y": 70
+    },
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "debug": true
+  },
+  "configuration": {
+    "routing_options": {
+      "resolution": 0.25,
+      "allow_diagonal_traces": true,
+      "allow_overlap": false,
+      "algorithm": "a_star"
+    },
+    "gerbersockets_options": {
+      "layer_name": "GerberSockets.gbr",
+      "keep_out_zone_aperture_diameter": 0.1,
+      "net_diameter_map": {
+        "JD_PWR": 0.11,
+        "GND": 0.12,
+        "JD_DATA": 0.13,
+        "SWCLK": 0.14,
+        "SWDIO~^": 0.16,
+        "RESET": 0.17,
+        "USB_D_P": 0.18,
+        "USB_D_N": 0.19,
+        "SWDIO~0": 0.20,
+        "SWDIO~1": 0.21,
+        "SWDIO~2": 0.22,
+        "SWDIO~3": 0.23,
+        "SWDIO~4": 0.24,
+        "SWDIO~5": 0.25,
+        "SWDIO~6": 0.26,
+        "SWDIO~7": 0.27,
+        "SWDIO~8": 0.28,
+        "SWDIO~9": 0.29,
+        "SWDIO~10": 0.30
+      },
+      "legacy_sockets": true
+    },
+    "layer_map": {
+      "F_Cu.gtl": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L1,Top,Signal"
+      },
+      "In1_Cu.g2": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L2,Inner,Signal"
+      },
+      "In2_Cu.g3": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L3,Inner,Signal"
+      },
+      "B_Cu.gbl": {
+        "nets": [
+          "SWDIO~",
+          "SWDIO~^"
+        ],
+        "fill": false,
+        "attributes": "Copper,L4,Bottom,Signal"
+      }
+    },
+    "fabrication_options": {
+      "module_margin": 0,
+      "bus_width": 0.25,
+      "bus_spacing": 0.5,
+      "edge_clearance": 0.5,
+      "track_width": 0.125,
+      "via_diameter": 0.4,
+      "via_hole_diameter": 0.3,
+      "rounded_corner_radius": 5,
+      "connectors": {
+        "left": false,
+        "right": false,
+        "bottom": true,
+        "top": false
+      }
+    }
+  },
+  "modules": [
+    {
+      "name": "jacdac_connector_0.1",
+      "position": {
+        "x": 0,
+        "y": -35
+      },
+      "rotation": 180
+    },
+    {
+      "position": {
+        "x": 32,
+        "y": 20
+      },
+      "rotation": 0,
+      "name": "vm_light_sensor_0.3"
+    },
+    {
+      "position": {
+        "x": -8,
+        "y": 23
+      },
+      "rotation": 0,
+      "name": "vm_jacdaptor_0.2"
+    },
+    {
+      "position": {
+        "x": -25,
+        "y": -12
+      },
+      "rotation": -90,
+      "name": "vm_rotary_button_0.3"
+    },
+    {
+      "position": {
+        "x": 29,
+        "y": -13
+      },
+      "rotation": 90,
+      "name": "vm_keycap_button_0.3"
+    },
+    {
+      "position": {
+        "x": 2,
+        "y": -12
+      },
+      "rotation": 0,
+      "name": "vm_rgb_ring_0.3"
+    }
+  ]
+}
