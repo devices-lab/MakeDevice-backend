@@ -426,6 +426,10 @@ class BusRouter(Router):
                         zone_center = zone_centers[zone_idx]
                         zone_sockets[zone_center].append((net_name, socket_pos))
                         break
+
+        # Print all zone sockets for debugging
+        for zone_center, sockets in zone_sockets.items():
+            print(f"Zone center: {zone_center}, Sockets: {sockets}")
         
         # Track which sockets have been added to groups
         added_sockets = set()
@@ -514,6 +518,10 @@ class BusRouter(Router):
         ordered_socket_groups = OrderedDict()
         for zone_center in sorted_zones:
             ordered_socket_groups[zone_center] = socket_groups[zone_center]
+
+        # Print ordered socket groups for debugging
+        for zone_center, groups in ordered_socket_groups.items():
+            print(f"Ordered zone center: {zone_center}, Groups: {groups}")
         
         return ordered_socket_groups
     
@@ -541,6 +549,7 @@ class BusRouter(Router):
                 i = 0
                 
                 # Process all sockets in the group
+                print(f"Socket group length: {len(socket_group)}")
                 while i < len(socket_group):
                     socket = socket_group[i]
                     net_name, socket_pos = socket
