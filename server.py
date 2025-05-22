@@ -63,9 +63,9 @@ def begin_routing():
         
 
         # Execute the run function with the provided data
-        failed = run(file_number=file_number, run_from_server=True)
+        routing_result = run(file_number=file_number, run_from_server=True)
 
-        if failed:
+        if routing_result["failed"]:
             # Clear progress
             with open("./progress.txt", 'w') as file:
                 file.write(str(0))
@@ -88,7 +88,7 @@ def begin_routing():
             result = {"message": "Processing completed, but no output.zip was generated"}
             print("failed to send output.zip")
         # Return the result
-        return jsonify({"success": True, "result": result})     
+        return jsonify({"success": True, "result": result, "jlc_order_url": routing_result["jlc_order_url"]})
     
     except Exception as e:
         
