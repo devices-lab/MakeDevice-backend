@@ -1,4 +1,5 @@
-## Create a virtual environement and install required libraries
+## Setup
+### Create a virtual environement and install required libraries
 
 1. Create a virual environment with `python3 -m venv venv`
 2. Activate it with `source venv/bin/activate`
@@ -12,9 +13,12 @@ You must use Python version `3.11`, or lower, othewsie it won't work with some o
 
 In the case this tools doesn't change your Python version (happens on an M-chip Mac), add `eval "$(pyenv init --path)"` to your ~/.zshrc and re-open the terminal.
 
-## Running the server
+### Firmware
+Clone [picotool](https://github.com/raspberrypi/picotool.git) into `./picotool/` and follow [the steps](https://github.com/raspberrypi/picotool/blob/master/README.md) to build it. It is a requirement for producing .uf2 files, which are used for flashing boards with the rp2040 virtual module. 
 
-Run the program with `python3 run.py`
+### Running the server
+
+Run the backend server with `python3 server.py`. You could run an offline test case instead such as `python3 run.py office-vm_net_map_0.3`
 
 ## Editing the data, i.e. configurations, modules, etc.
 
