@@ -88,7 +88,7 @@ def begin_routing():
             result = {"message": "Processing completed, but no output.zip was generated"}
             print("failed to send output.zip")
         # Return the result
-        return jsonify({"success": True, "result": result, "jlc_order_url": routing_result["jlc_order_url"]})
+        return jsonify({"success": True, "result": result, "order_urls": routing_result["order_urls"]})
     
     except Exception as e:
         
