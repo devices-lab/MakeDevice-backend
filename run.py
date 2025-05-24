@@ -8,7 +8,7 @@ from bus_router import BusRouter
 from generate import generate
 from process import merge_stacks, compress_directory
 from consolidate import consolidate_component_files
-from upload import upload_jlc, upload_euro
+from upload import upload_jlc, upload_euro, upload_aisler
 
 import warnings
 import sys
@@ -124,9 +124,11 @@ def run(file_number: str, run_from_server: bool = False) -> dict:
     firmware.run()
 
     # Upload the files to JLCPCB and Eurocircuits
+    print("🟢 Uploading files to fabrication services")
     order_urls = {
         "jlc": upload_jlc(),
         "euro": upload_euro(),
+        "aisler": upload_aisler(),
     }
 
     return {
