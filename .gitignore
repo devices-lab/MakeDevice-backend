@@ -1,3 +1,4 @@
+.vscode/
 
 # MacOS
 .DS_Store
@@ -17,6 +18,10 @@ firmware/firmware.json
 output.zip
 debug/*.png
 progress.txt
+data/data_9999.json
+picotool/
+*.mp4
+pyrightconfig.json
 
 # Cache 
 __pycache__/

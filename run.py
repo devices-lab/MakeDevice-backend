@@ -121,7 +121,11 @@ def run(file_number: str, run_from_server: bool = False) -> dict:
 
     # Generate the firmware files for microbit/rp2040 brain to flash
     # all virtual modules
-    firmware.run()
+    try:
+        firmware.run()
+        print("🟢 Generated firmware files")
+    except Exception as e:
+        print("🔴 Failed to generate firmware files:", e)
 
     # Upload the files to JLCPCB and Eurocircuits
     print("🟢 Uploading files to fabrication services")

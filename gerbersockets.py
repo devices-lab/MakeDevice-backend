@@ -157,6 +157,7 @@ class Sockets(Object):
                 
                 if diameter in diameter_to_net:
                     net_name = diameter_to_net[diameter]
+                    print(net_name)
                     
                     # Extract raw location coordinates
                     raw_location = self._get_raw_location_from_object(obj)

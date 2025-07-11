@@ -186,11 +186,11 @@ def convert_firmware(target_bin):
         # Check if picotool is in the folder
         if not os.path.exists("picotool"):
             raise FileNotFoundError(
-                "Error: ./picotool folder not found. Please git clone and build it first. https://github.com/raspberrypi/picotool"
+                "❌ Error: ./picotool folder not found. Please git clone and build it first. https://github.com/raspberrypi/picotool"
             )
         if not os.path.exists("picotool/build/picotool"):
             raise FileNotFoundError(
-                "Error: ./picotool/build/picotool not found. Please build it first."
+                "❌ Error: ./picotool/build/picotool not found. Please build it first."
             )
 
         output_file = target_bin.replace(".bin", ".uf2")
@@ -199,6 +199,11 @@ def convert_firmware(target_bin):
 
     elif "MICROBIT" in target_bin:
         output_file = target_bin.replace(".bin", ".hex")
+
+        if shutil.which("objcopy") is None:
+            raise FileNotFoundError(
+                "❌ Error: 'objcopy' is not installed or not found in PATH. Please install binutils."
+            )
         convert_command = f"objcopy --input-target=binary --output-target=ihex {target_bin} {output_file}"
 
     else:
@@ -226,7 +231,7 @@ def run():
 
     # office-vm_net_map - new version numbers
     # json_input = """
-    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.2", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.3", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.3", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.3", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
+    # { "modules": [ { "name": "jacdac_connector_0.1", "nets": [  ] }, { "name": "vm_light_sensor_0.3", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.2", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.3", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.3", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.3", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
     # office-vm_net_map

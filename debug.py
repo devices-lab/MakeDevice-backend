@@ -1,10 +1,12 @@
 import os
+import sys
 import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from gerber_writer import DataLayer, Path
 from pathlib import Path as PathLib
 from typing import Dict, List, Tuple, Union
+from matplotlib.colors import ListedColormap
 
 frame_index = 0
 do_video = False
@@ -33,7 +35,7 @@ def show_grid(grid, points=None, title="Grid display"):
     plt.legend()
     plt.show()
 
-def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
+def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution):
     """
     Displays the grid with keep out zones, route indices (shown on grid as lines), and socket locations.
 
@@ -45,13 +47,24 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
         resolution (float): The resolution of the grid, for scaling the socket and segment coordinates.
     """
     scale = 2
-    plt.figure(figsize=((grid.shape[1] * scale) / 100, (grid.shape[0] * scale) / 100))  # Set the figure size
+    plt.figure(figsize=((keepout_grid.shape[1] * scale) / 100, (keepout_grid.shape[0] * scale) / 100))  # Set the figure size
 
-    plt.gcf().patch.set_facecolor('black')
+    plt.gcf().patch.set_facecolor('none') # Transparent (instead of 'black')
     plt.axis('off')
 
-    extent = [0, grid.shape[1], 0, grid.shape[0]]
-    plt.imshow(grid, cmap='binary', interpolation='nearest', extent=None)  # Display the grid
+    colors = [(1, 1, 1, 0), (0, 0, 0, 1)]  # white transparent for 0s, black for 1s
+    new_cmap = ListedColormap(colors)
+
+    # empty_grid is just the first and last pixel of the grid, so two pixels
+    # this is to ensure the image starts at its full size, so it doesn't change size when traces are drawn
+    empty_grid = np.zeros((keepout_grid.shape[0], keepout_grid.shape[1], 4), dtype=float)  # RGBA format
+
+
+
+    # Draw the top left, and bottom right pixels of the image, to ensure its size won't change
+    plt.imshow(empty_grid, cmap=new_cmap, interpolation='nearest', extent=None)
+    # Draw the actual keepouts (comment out for transparent image)
+    plt.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
     
     # Define colors for different nets, ensure there's a default color if net not listed
     set_colors = {
@@ -70,7 +83,7 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
     colors = lambda key: set_colors[key] if key in set_colors else set_colors['default']
 
     # Center coordinates for plotting
-    center_x, center_y = grid.shape[1] // 2, grid.shape[0] // 2
+    center_x, center_y = keepout_grid.shape[1] // 2, keepout_grid.shape[0] // 2
 
     # Add the socket locations to the plot, categorized by type
     for net_type, positions in socket_locations.items():
@@ -80,10 +93,10 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
             plot_y = (center_x + int(x / resolution))
 
             # Invert the x axis to match the traditional Cartesian coordinate system
-            plot_x = grid.shape[0] - plot_x
+            plot_x = keepout_grid.shape[0] - plot_x
 
             # plt.scatter(plot_y, plot_x, c=colors(net_type), s=100, label=net_type, alpha=0.3)
-            plt.scatter(plot_y, plot_x, c=colors(net_type), s=10, alpha=0.8)
+            plt.scatter(plot_y, plot_x, c=colors(net_type), s=10, alpha=1.0)
 
      # Draw the routes
     for net_type, paths in routes.items():
@@ -91,12 +104,12 @@ def show_grid_routes_sockets(grid, routes, socket_locations, resolution):
             if path:  # Ensure there is a valid path
                 # print(path)
                 path_x, path_y, path_z = zip(*path)  # Coordinates are directly usable, no need for center adjustment
-                plt.plot(path_x, path_y, c=colors(net_type), linewidth=2, alpha=0.6)  # Use the same color as the sockets
+                plt.plot(path_x, path_y, c=colors(net_type), linewidth=2, alpha=1.0)  # Use the same color as the sockets
 
     # Group lavels with the same name
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys())
+    # handles, labels = plt.gca().get_legend_handles_labels()
+    # by_label = dict(zip(labels, handles))
+    # plt.legend(by_label.values(), by_label.keys())
 
     plt.grid(False)
 
@@ -117,7 +130,7 @@ def frame(plt):
         for file in os.listdir("debug"):
             os.remove(f"debug/{file}")
 
-    plt.savefig(f"debug/frame_{frame_index}.png")
+    plt.savefig(f"debug/frame_{frame_index}.png", transparent=True)
     frame_index += 1
 
 def video(name=""):
