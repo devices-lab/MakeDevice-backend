@@ -30,25 +30,34 @@ RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
     cmake .. -DPICO_SDK_PATH=../../pico-sdk && \
     make
 
-# Install python dependencies
+# Clone pico-sdk and build picotool, then remove pico-sdk
+RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
+    git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
+    cd picotool && mkdir build && cd build && \
+    cmake .. -DPICO_SDK_PATH=/pico-sdk && \
+    make && \ 
+    cd /app && rm -rf /pico-sdk
+
+# Copy just requirements.txt first to leverage Docker layer cache
 COPY requirements.txt .
+# Install dependencies — cached unless requirements.txt changes
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all files into the container
+# Copy all your files into the container
+# Place this as low in the file as possible since calling this invalidates the docker layer cache
 COPY . .
 
 # Expose the port the server runs on
 EXPOSE 3333
 
+# Flask: Run the app (dev)
 # Set environment variables
 # ENV FLASK_APP=app.py
 # ENV FLASK_RUN_HOST=0.0.0.0
-
-# Run the app
 # -u for unbuffered output, so print statements appear in real-time
 # CMD ["python3", "-u", "server.py"] 
 
-# Run flask server using Gunicorn for production
+# Gunicorn: Run the app (production)
 # gunicorn server:app --workers 1 --bind 0.0.0.0:8000 --timeout 300
 # Only one worker process—no concurrency issues (since we're writing files, can't be concurrent)
 CMD ["gunicorn", "server:app", "--workers", "1", "--bind", "0.0.0.0:3333"]

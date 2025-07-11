@@ -1,0 +1,3 @@
+# Make sure these are ignored so they don't overwrite the docker ones
+picotool/
+pico-sdk/
