@@ -17,25 +17,12 @@ RUN apt-get update && apt-get install -y \
     libstdc++-arm-none-eabi-newlib \
     && rm -rf /var/lib/apt/lists/*
 
-# Install picotool in the "picotool" directory in the repo
-RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
-    (cd picotool && mkdir build && cd build && cmake .. && make)
-
-# Install picotool in the "picotool" directory in the repo, and its pico-sdk dependency
-RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
-    git clone https://github.com/raspberrypi/pico-sdk.git && \
-    cd pico-sdk && git submodule update --init && cd .. && \
-    cd picotool && \
-    mkdir build && cd build && \
-    cmake .. -DPICO_SDK_PATH=../../pico-sdk && \
-    make
-
-# Clone pico-sdk and build picotool, then remove pico-sdk
-RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
-    git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
+# Clone pico-sdk and picotool, then build picotool with PICO_SDK_PATH, then remove pico-sdk
+RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
+    git clone https://github.com/raspberrypi/picotool.git picotool && \
     cd picotool && mkdir build && cd build && \
     cmake .. -DPICO_SDK_PATH=/pico-sdk && \
-    make && \ 
+    make && \
     cd /app && rm -rf /pico-sdk
 
 # Copy just requirements.txt first to leverage Docker layer cache
