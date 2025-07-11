@@ -1,11 +1,44 @@
-## Setup
-### Create a virtual environement and install required libraries
+# MakeDevice Backend
 
-1. Create a virual environment with `python3 -m venv venv`
-2. Activate it with `source venv/bin/activate`
-3. Install dependencies `python3 -m pip install -r requirements.txt`
+## Setup (automatic)
 
-You must use Python version `3.11`, or lower, othewsie it won't work with some outdated dependencies (such as `gerbonara`). To control Python versions you may use the `pyenv` tool.
+On each git push to main, a workflow builds a docker image. This can be downloaded to run the production server locally with no setup.
+1. Start the docker service `sudo service docker start`
+2. Pull the latest container package `docker pull ghcr.io/devices-lab/makedevice-backend:latest`
+3. Run the container `docker run -p 3333:3333 ghcr.io/devices-lab/makedevice-backend:latest`
+
+>[!CAUTION]
+> To free up space by permanently deleting ALL docker containers, run `docker system prune --all --volumes --force`
+
+## Setup (manual)
+
+### 1. Install dependencies for `objcopy` and `picotool`
+```sh
+sudo apt-get install \
+    binutils \
+    build-essential \
+    cmake \
+    git \
+    libusb-1.0-0-dev \
+    pkg-config \
+    gcc-arm-none-eabi \
+    libnewlib-arm-none-eabi \
+    libstdc++-arm-none-eabi-newlib
+```
+
+
+### 2. Install `picotool` to `./pictool/` (using temporary dependency `pico-sdk`)
+```sh
+git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git pico-sdk && \
+    git clone https://github.com/raspberrypi/picotool.git picotool && \
+    cd picotool && mkdir build && cd build && \
+    cmake .. -DPICO_SDK_PATH=../../pico-sdk && \
+    make && \
+    rm -rf ../../pico-sdk && cd ../..
+```
+
+### 3. Switch to python 3.11
+You must use Python version `3.11`, or lower, otherwise it won't work with some outdated dependencies (such as `gerbonara`). To control Python versions you may use the `pyenv` tool.
 
 1. `brew install pyenv`
 2. `pyenv install 3.11.0`
@@ -13,22 +46,36 @@ You must use Python version `3.11`, or lower, othewsie it won't work with some o
 
 In the case this tools doesn't change your Python version (happens on an M-chip Mac), add `eval "$(pyenv init --path)"` to your ~/.zshrc and re-open the terminal.
 
-### Firmware
-Clone [picotool](https://github.com/raspberrypi/picotool.git) into `./picotool/` and follow [the steps](https://github.com/raspberrypi/picotool/blob/master/README.md) to build it. It is a requirement for producing .uf2 files, which are used for flashing boards with the rp2040 virtual module. 
+### 4. Install dependencies to a virtual python environment
+1. Create a virtual environment with `python3 -m venv venv`
+2. Activate it with `source venv/bin/activate`
+3. Install dependencies `python3 -m pip install -r requirements.txt`
 
-### Running the server
+## Usage
+### Running offline
 
-Run the backend server with `python3 server.py`. You could run an offline test case instead such as `python3 run.py office-vm_net_map_0.3`
+1. Activate the virtual python environment with `source venv/bin/activate`
+2. Run an offline test case for a JSON from `data/`, such as `python3 run.py office-vm_net_map_0.3`
+ - You could instead run `python3 run.py office-vm_net_map_0.3 video` to generate a video of the test case
 
-## Editing the data, i.e. configurations, modules, etc.
+### Running as a server
 
-See the [`/test_data`](./test_data) directory
+1. Activate the virtual python environment with `source venv/bin/activate`
+2. Run the Flask server with `python3 -u server.py`
+ - Alternatively, run the production server with `gunicorn server:app --workers 4 --bind 0.0.0.0:3333 --capture-output --log-level debug`
 
-## Progress and updates
+<br>
+
+## Other 
+### Editing the data, i.e. configurations, modules, etc.
+
+See the [`/data`](./data) directory
+
+### Progress and updates
 
 See [CHANGELOG](./changelog) for latest updates and progress
 
-## Ideas in progress
+### Ideas in progress
 
 #### JSON for each module
 
