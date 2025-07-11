@@ -1,4 +1,7 @@
-# MakeDevice Backend
+# MakeDevice-backend
+When given a `.MakeDevice` project file by the [MakeDevice frontend](https://github.com/devices-lab/MakeDevice-new), this backend performs auto-routing and generation of Gerber files, drill data, BOM, CPL, and firmware.
+
+<img width="600" src="https://github.com/user-attachments/assets/603726ab-d6e2-4ed4-a5c3-d4bd21213c41" />
 
 ## Setup (automatic)
 
