@@ -16,12 +16,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install picotool in the "picotool" directory in the repo
 RUN git clone https://github.com/raspberrypi/picotool.git picotool && \
-    cd picotool && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make && \
-    cd ../.. &&
+    (cd picotool && mkdir build && cd build && cmake .. && make)
 
 # Install dependencies
 COPY requirements.txt .
