@@ -37,6 +37,9 @@ COPY . .
 # Expose the port the server runs on
 EXPOSE 3333
 
+# Try to fix print()s not showing up immediately in the logs
+ENV PYTHONUNBUFFERED=1
+
 # Flask: Run the app (dev)
 # Set environment variables
 # ENV FLASK_APP=app.py
@@ -46,8 +49,13 @@ EXPOSE 3333
 
 # Gunicorn: Run the app (production)
 # gunicorn server:app --workers 1 --bind 0.0.0.0:8000 --timeout 300
-# Only one worker process—no concurrency issues (since we're writing files, can't be concurrent)
-CMD ["gunicorn", "server:app", "--workers", "1", "--bind", "0.0.0.0:3333"]
+# Only one worker process to avoid concurrency issues (since we're writing files, can't be concurrent)
+CMD ["gunicorn", "server:app", "--workers", "4", "--bind", "0.0.0.0:3333", "--capture-output", "--log-level", "debug"]
 
+# To run the gitub built container image locally, do:
 #docker pull ghcr.io/devices-lab/makedevice-backend:latest
 #docker run -p 3333:3333 ghcr.io/devices-lab/makedevice-backend:latest
+
+# To get requirements.txt with the bare minimum, do:
+# pip install pipreqs
+# pipreqs . --force
