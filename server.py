@@ -34,8 +34,12 @@ def update_progress(board: Board):
 
 @app.route('/progress', methods=['GET'])
 def get_progress():
-    with open("./progress.txt", 'r') as file:
-        progress = file.read()
+    # If the progress file does not exist
+    if os.path.exists("./progress.txt"):
+        with open("./progress.txt", 'r') as file:
+            progress = file.read()
+    else:
+        progress = 0
     print(f"🔵 Getting progress: {progress}")
     millis = datetime.datetime.now().timestamp()
     return jsonify({"progress": progress, "timestamp": millis})

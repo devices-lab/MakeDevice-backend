@@ -101,9 +101,8 @@ def run(file_number: str, run_from_server: bool = False) -> dict:
     generate(board)
     merge_stacks(board.modules, board.name)
     consolidate_component_files(board.modules, board.name)
-    compress_directory("output")
 
-    # "PASS" and "FAIL" substrings are checked for by test.py]
+    # "PASS" and "FAIL" substrings are checked for by test.py
     all = sockets.get_socket_count()
     connected = board.connected_sockets_count
 
@@ -124,8 +123,11 @@ def run(file_number: str, run_from_server: bool = False) -> dict:
     try:
         firmware.run()
         print("🟢 Generated firmware files")
+        compress_directory("output")
     except Exception as e:
         print("🔴 Failed to generate firmware files:", e)
+
+    compress_directory("output")
 
     # Upload the files to JLCPCB and Eurocircuits
     print("🟢 Uploading files to fabrication services")
