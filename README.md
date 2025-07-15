@@ -5,7 +5,7 @@ When given a `.MakeDevice` project file by the [MakeDevice frontend](https://git
 
 ## Setup (automatic)
 
-On each git push to main, a workflow builds a docker image. This can be downloaded to run the production server locally with no setup.
+On each push to main, a github workflow builds a docker image. This can be downloaded to run the production server locally with no setup.
 1. Start the docker service `sudo service docker start`
 2. Pull the latest container package `docker pull ghcr.io/devices-lab/makedevice-backend:latest`
 3. Run the container `docker run -p 3333:3333 ghcr.io/devices-lab/makedevice-backend:latest`
@@ -30,7 +30,7 @@ sudo apt-get install \
 ```
 
 
-### 2. Install `picotool` to `./pictool/` (using temporary dependency `pico-sdk`)
+### 2. Install `picotool` to `./picotool/` (using temporary dependency `pico-sdk`)
 ```sh
 git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git pico-sdk && \
     git clone https://github.com/raspberrypi/picotool.git picotool && \
@@ -64,7 +64,7 @@ In the case this tools doesn't change your Python version (happens on an M-chip 
 ### Running as a server
 
 1. Activate the virtual python environment with `source venv/bin/activate`
-2. Run the Flask server with `python3 -u server.py`
+2. Run the Flask development server with `python3 -u server.py`
  - Alternatively, run the production server with `gunicorn server:app --workers 4 --bind 0.0.0.0:3333 --capture-output --log-level debug`
 
 <br>

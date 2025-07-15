@@ -1,3 +1,4 @@
-# Make sure these are ignored so they don't overwrite the docker ones
+# Make sure these are ignored when copying so they don't overwrite the ones in our container
 picotool/
 pico-sdk/
+storage/

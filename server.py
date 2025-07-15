@@ -9,6 +9,9 @@ import base64
 import traceback
 from board import Board
 import datetime
+import uuid
+
+from server_types import RoutingStartRequest, RoutingStartResponse, RoutingStartResponseResult
 
 # Add the parent directory to the Python path if needed
 sys.path.append(str(Path(__file__).parent))
@@ -18,6 +21,54 @@ CORS(app)  # Enable CORS for all routes
 
 # Could be anything really, necessary for reading, the file writtien within the request cycle
 file_number = 9999
+
+# The user doesn't need to know about these sorts of errors, enough to throw them and check the logs
+def validate_endpoint(data, endpoint):
+    if data.get("endpoint") != endpoint:
+        raise ValueError(f"Invalid endpoint: {data.get('endpoint')}. Expected: {endpoint}")
+
+# TODO: Implement these new endpoints properly
+@app.route('/routingStart', methods=['POST'])
+def routing_start():
+    data: RoutingStartRequest = request.get_json(force=True)
+    validate_endpoint(data, "routingStart")
+
+    job_id = str(uuid.uuid4())
+    print(f"🔵 Starting routing with job ID: {job_id}")
+
+    # Parse project JSON into a Dictionary
+    project = json.loads(data["project"])
+
+    print(project)
+
+    # TODO: Somehow trigger routing while responding to the client
+    # run() or whatever
+
+    response: RoutingStartResponse = {
+        "endpoint": "routingStart",
+        "result": {
+            "jobId": job_id
+        }
+    }
+    return jsonify(response), 200
+
+
+# TODO: Implement these new endpoints properly
+@app.route('/pcbArtifact', methods=['POST'])
+def pcb_artifact():
+    # NOTE: Still use status code 200 for application-level errors, since we want the custom error message
+    return jsonify({"endpoint": "pcbArtifact", "error": { "message": "PCB artifact endpoint is not implemented yet."}}), 200
+
+# TODO: Implement these new endpoints properly
+@app.route('/routingProgress', methods=['POST'])
+def routing_progress():
+    return jsonify({"endpoint": "routingProgress", "error": {"message": "Routing progress endpoint is not implemented yet."}}), 200
+
+"""
+
+ TODO: Everything below here is old and needs removing, but left as reference for the new implementation
+
+"""
 
 def update_progress(board: Board):
     all = board.sockets.get_socket_count()
@@ -44,9 +95,9 @@ def get_progress():
     millis = datetime.datetime.now().timestamp()
     return jsonify({"progress": progress, "timestamp": millis})
 
-@app.route('/run', methods=['POST'])
-def begin_routing():
 
+@app.route('/run', methods=['POST'])
+def being_routing():
     # Check if the request contains JSON data
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
