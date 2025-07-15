@@ -15,17 +15,23 @@ import sys
 import debug
 import firmware
 
-
 # Make sure to run `source venv/bin/activate` first!
-def run(file_number: str, run_from_server: bool = False) -> dict:
+def run(file_number: str, run_from_server: bool = False, job_folder = None) -> dict:
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
 
-    loader = Loader(f"./data/data_{file_number}.json", run_from_server=run_from_server)
-    print("🔵 Using", f"data_{file_number}.json")
+    loader = None
+    if job_folder:
+        # If a specific data file path is provided, use it
+        loader = Loader(job_folder + "/data.json" , run_from_server=run_from_server)
+        print("🔵 Using", job_folder + "/data.json")
+        # TODO: Must somehow append the job_folder to every single file path used throughout the run
+    else:
+        loader = Loader(f"./data/data_{file_number}.json", run_from_server=run_from_server)
+        print("🔵 Using", f"data_{file_number}.json")
 
     if loader.debug:
         print("⚪️ Running in debug mode")
