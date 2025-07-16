@@ -191,6 +191,7 @@ def upload_pcbway():
     # lets us upload files via POST request and responds with a URL to that uploaded
     # file, but I don't think there's a way to give a client a URL that takes them to
     # an order page with that file loaded.
+    raise NotImplementedError()
 
     setup()
 

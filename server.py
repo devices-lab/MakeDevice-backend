@@ -12,7 +12,7 @@ import datetime
 import uuid
 import threading
 
-from server_types import (
+from server_packets import (
     PCBArtifactRequest, 
     PCBArtifactResponse, 
     RoutingProgressRequest, 
@@ -34,6 +34,61 @@ file_number = 9999
 def validate_endpoint(data, endpoint):
     if data.get("endpoint") != endpoint:
         raise ValueError(f"Invalid endpoint: {data.get('endpoint')}. Expected: {endpoint}")
+
+def project_to_legacy_json(project_string):
+    """ 
+    Converts a MakeDevice-new Project JSON string to the legacy format used by the backend.
+    """
+    # Parse the project data as JSON
+    project_json = json.loads(project_string)
+
+    # data_template.json contains lots of fields from the legacy format, we'll use it as a basis for porting
+    # over the data from Project  TODO: Move away from the legacy format completely
+    data_template_file = Path("./data_template.json")
+    data_template = None
+    with open(data_template_file, 'r') as template_file:
+        data_template = json.load(template_file)
+
+    data_template["board"]["name"] = project_json.get("name")
+    data_template["board"]["id"] = project_json.get("id") # New
+    data_template["board"]["last_modified"] = project_json.get("lastModified") # New
+    data_template["board"]["generation_software"]["version"] = str(project_json.get("projectVersion"))
+    data_template["board"]["size"]["x"] = project_json.get("size").get("width")
+    data_template["board"]["size"]["y"] = project_json.get("size").get("height")
+    data_template["configuration"]["fabrication_options"]["rounded_corner_radius"] = project_json.get("pcbOptions").get("cornerRadius")
+    data_template["configuration"]["fabrication_options"]["connectors"]["top"] = project_json.get("pcbOptions").get("connectors").get("top")
+    data_template["configuration"]["fabrication_options"]["connectors"]["bottom"] = project_json.get("pcbOptions").get("connectors").get("bottom")
+
+    # HACK: Hardcoded mapping of all mm_* to ec30_* from modules/
+    # TODO: Store as mm_* in modules/, shouldn't be called ec30_* in modules/, the footprints aren't even generic
+    mm_to_ec30_mapping = {
+        "mm_jacdaptor": "ec30_1x7_r6_mh_0.1",
+        "mm_keycap_button": "ec30_3x2_lr_mh_0.1",
+        "mm_light_sensor": "ec30_2x2_lr_mh_0.1",
+        "mm_rgb_ring": "ec30_3x3_l_mh_0.1",
+        "mm_rotary_button": "ec30_3x2_lr_mh_0.1"
+    }
+
+    # Convert all Project InstanceModules to the legacy format
+    for m in project_json.get("modules"):
+        instance = {
+            "name": m.get("name") + "_" + m.get("version"),
+            "position": {
+                "x": m.get("position").get("x"),
+                "y": -m.get("position").get("y")
+            },
+            "rotation": (360 - m.get("rotation")) % 360,  # Swap rotation direction
+            "id": m.get("id"), # New, but needed for routing feedback
+        }
+        # Convert mounted modules to ec30_*
+        if m.get("name").startswith("mm_"):
+            ec30_name = mm_to_ec30_mapping.get(m.get("name"))
+            if ec30_name:
+                instance["name"] = ec30_name
+
+        data_template["modules"].append(instance)
+
+    return data_template
 
 # TODO: Implement these new endpoints properly
 @app.route('/routingStart', methods=['POST'])
@@ -57,44 +112,12 @@ def routing_start():
         file.write(data["project"])
     print(f"🔵 Project data saved to: {project_file}")
 
-    # Parse the project data as JSON
-    project_json = json.loads(data["project"])
-
-    # data_template.json contains lots of fields from the legacy format, we'll use it as a basis for porting
-    # over the data from Project  TODO: Move away from the legacy format completely
-    data_template_file = Path("./data_template.json")
-    data_template = None
-    with open(data_template_file, 'r') as template_file:
-        data_template = json.load(template_file)
-
-    data_template["board"]["name"] = project_json.get("name")
-    data_template["board"]["id"] = project_json.get("id") # New
-    data_template["board"]["last_modified"] = project_json.get("lastModified") # New
-    data_template["board"]["generation_software"]["version"] = str(project_json.get("projectVersion"))
-    data_template["board"]["size"]["x"] = project_json.get("size").get("width")
-    data_template["board"]["size"]["y"] = project_json.get("size").get("height")
-    data_template["configuration"]["fabrication_options"]["rounded_corner_radius"] = project_json.get("pcbOptions").get("cornerRadius")
-    data_template["configuration"]["fabrication_options"]["connectors"]["top"] = project_json.get("pcbOptions").get("connectors").get("top")
-    data_template["configuration"]["fabrication_options"]["connectors"]["bottom"] = project_json.get("pcbOptions").get("connectors").get("bottom")
-
-    # Convert all Project InstanceModules to the legacy format
-    for m in project_json.get("modules"):
-        # TODO: Map all mm_* to ec30_* from modules/
-        instance = {
-            "name": m.get("name") + "_" + m.get("version"),
-            "position": {
-                "x": m.get("position").get("x"),
-                "y": -m.get("position").get("y")
-            },
-            "rotation": (360 - m.get("rotation")) % 360,  # Swap rotation direction
-            "id": m.get("id"), # New, but needed for routing feedback
-        }
-        data_template["modules"].append(instance)
+    data = project_to_legacy_json(data["project"])
 
     # Write the data template to a file
     data_file = job_folder / "data.json"
     with open(data_file, 'w') as file:
-        json.dump(data_template, file, indent=2)
+        json.dump(data, file, indent=2)
 
     print(f"🔵 Project converted to legacy data format, stored at: {data_file}")
 
