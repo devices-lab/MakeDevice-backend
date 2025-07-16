@@ -573,19 +573,34 @@ class BusRouter(Router):
                     # Route the socket to the bus
                     print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
 
-                    # Progress bar update
+                    # Progress bar update & check keepalive
                     if self.board.loader.run_from_server:
+                        # Calculate progress
                         all = self.board.sockets.get_socket_count()
                         connected = self.board.connected_sockets_count
                         progress = round(float(connected) / float(all), 4) * 100
                         print(f"🔵 Updating progress: {progress}")
+
                         # Write the progress to a file
                         # TODO: A better way to do progress updates?
                         # should get the board variable from a running thread, but that
                         # requires keeping track of what threads are running and what job ids
                         # they have... this is easier
-                        with open(thread_context.job_folder / "progress.txt", 'w') as file:
+                        progress_file = thread_context.job_folder / "progress.txt"
+                        with open(progress_file, 'w') as file:
                             file.write(str(progress))
+
+                        # Compare the keepalive time
+                        keepalive_file = thread_context.job_folder / "keepalive_time"
+                        if not keepalive_file.exists():
+                            print("🔴 'keepalive_time' file missing")
+                        else:
+                            last_write_time = keepalive_file.stat().st_mtime
+                            current_time = progress_file.stat().st_mtime
+
+                            timeout = 7
+                            if current_time - last_write_time > timeout:
+                                raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
 
 
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)

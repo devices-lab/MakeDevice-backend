@@ -123,6 +123,11 @@ def routing_start():
         file.write(data["project"])
     print(f"🔵 Project data saved to: {project_file}")
 
+    # The keepalive file is changed by routingProgress periodically to keep the job alive
+    keepalive_file = job_folder / "keepalive_time"
+    with open(keepalive_file, 'w') as file:
+        file.write("!") # Anything
+
     data = project_to_legacy_json(data["project"])
 
     # Write the data template to a file
@@ -146,6 +151,7 @@ def routing_start():
         }
     }
     return jsonify(response), 200
+
 
 # TODO: Implement these new endpoints properly
 # 
@@ -181,7 +187,15 @@ def routing_progress():
     progress = 0.0
     if os.path.exists(progress_file):
         with open(progress_file, 'r') as file:
-            progress = float(file.read().strip())
+            try:
+                progress = float(file.read().strip())
+            except ValueError:
+                pass
+
+    # The keepalive file is changed to keep the job alive
+    keepalive_file = job_folder_base / job_id / "keepalive_time"
+    with open(keepalive_file, 'w') as file:
+        file.write("!") # Anything
 
     # FIX: How to tell if routing failed? Implement once routing can fail (rather than infinite loop)
     routing_failed = False
