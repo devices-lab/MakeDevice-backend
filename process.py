@@ -7,6 +7,8 @@ from typing import Union, List, Optional
 
 from module import Module
 
+from thread_context import thread_context
+
 def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./modules', output_dir='./output') -> GerberFile | None:
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
@@ -24,7 +26,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./mo
     """
     # Define the directories for input and output
     modules_dir_path = Path(modules_dir)
-    output_dir_path = Path(output_dir)
+    output_dir_path = thread_context.job_folder / Path(output_dir)
 
     # Ensure the directory exists
     output_dir_path.mkdir(parents=True, exist_ok=True)
@@ -85,8 +87,8 @@ def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules'
         
     # Path objects
     modules_dir_path = Path(modules_dir)
-    output_dir_path = Path(output_dir)
-    generated_dir_path = Path(generated_dir)
+    output_dir_path = thread_context.job_folder / Path(output_dir)
+    generated_dir_path = thread_context.job_folder / Path(generated_dir)
     
     # Initialise a dictionary to store the filepaths for the BOM and CPL files for each module
     fabrication_data_filepaths = {
@@ -184,29 +186,7 @@ def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: 
             # Save the transformed source file directly if no target file exists
             source_file.save(target_file_path)
          
-def clear_directories(output_directory: Union[str, Path] = './output', 
-                     generated_directory: Union[str, Path] = './generated'):
-    """
-    Remove the specified output and generated directories if they exist.
-    
-    Parameters:
-        output_dir (str or Path): The path to the output directory to be cleared. 
-                                 Defaults to './output'.
-        generated_dir (str or Path): The path to the generated directory to be cleared. 
-                                    Defaults to './generated'.
-    Returns:
-        None
-    """
-    output_dir_path = Path(output_directory)
-    generated_dir_path = Path(generated_directory)
-   
-    if output_dir_path.exists():
-        shutil.rmtree(output_dir_path)
-    
-    if generated_dir_path.exists():
-        shutil.rmtree(generated_dir_path)
-        
-def compress_directory(directory: Union[str, Path] = "./output"):
+def compress_directory(directory: Union[str, Path]):
     """ 
     Compresses the specified directory into a ZIP file.
     

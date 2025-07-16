@@ -1,27 +1,10 @@
 import requests
 
-file_path = "output.zip"
 
-
-def setup():
-    """
-    Prepares the files for upload.
-    """
-
-    # Check if the zip file exists
-    try:
-        with open("output.zip", "rb") as _:
-            pass
-    except FileNotFoundError:
-        print("🔴 output.zip not found. Please run the script to generate it.")
-        return
-
-
-def upload_jlc():
+def upload_jlc(zip_path: str):
     """
     Submits a zip file to JLCPCB and retrieves the URL to the order page.
     """
-    setup()
 
     # API endpoint
     url = "https://cart.jlcpcb.com/api/overseas-shop-cart/v1/file/uploadGerber"
@@ -34,8 +17,7 @@ def upload_jlc():
         "cache-control": "no-cache",
     }
 
-    global file_path
-    files = {"gerberFile": open(file_path, "rb")}
+    files = {"gerberFile": open(zip_path, "rb")}
 
     """
     Reference headers:
@@ -109,11 +91,10 @@ def upload_jlc():
         print(response.text)
 
 
-def upload_euro():
+def upload_euro(zip_path: str):
     """
     Submits a zip file to Eurocircuits and retrieves the URL to the order page.
     """
-    setup()
 
     # API endpoint
     url = (
@@ -128,8 +109,7 @@ def upload_euro():
         "cache-control": "no-cache",
     }
 
-    global file_path
-    files = {"file": open(file_path, "rb")}
+    files = {"file": open(zip_path, "rb")}
 
     """
     Reference headers:
@@ -182,7 +162,7 @@ def upload_euro():
         print(response.text)
 
 
-def upload_pcbway():
+def upload_pcbway(zip_path: str):
     """
     Submits a zip file to PCBWay and retrieves the URL to the order page.
     """
@@ -193,7 +173,6 @@ def upload_pcbway():
     # an order page with that file loaded.
     raise NotImplementedError()
 
-    setup()
 
     # API endpoint
     url = "https://www.pcbway.com/common/upfile/"
@@ -245,8 +224,7 @@ def upload_pcbway():
 
     """
 
-    global file_path
-    files = {"file": open(file_path, "rb")}
+    files = {"file": open(zip_path, "rb")}
 
     response = requests.post(url, headers=headers, files=files, data=data)
 
@@ -265,11 +243,10 @@ def upload_pcbway():
         print(response.text)
 
 
-def upload_aisler():
+def upload_aisler(zip_path: str):
     """
     Submits a zip file to Aisler and retrieves the URL to the order page.
     """
-    setup()
 
     # First have to do a GET request to get a new project ID/upload URL
     upload_url = None
@@ -341,11 +318,10 @@ def upload_aisler():
     # Aisler has a weird form, couldn't see the content-disposition in chrome network tab
     # so used a packet inspector to find out "upload[file]" and octet-stream (set up SSL
     # decryption, then "Follow HTTP/2 Stream" to see the request)
-    global file_path
     files = {
         "upload[file]": (
             "output.zip",
-            open(file_path, "rb"),
+            open(zip_path, "rb"),
             "application/octet-stream",
         )
     }

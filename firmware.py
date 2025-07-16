@@ -3,7 +3,7 @@ This script generates the firmware needed for the microbit(s) and/or rp2040 brai
 to act as a programmer probe, automatically flashing all virtual module MCUs
 connected via SWDIO traces.
 
-It needs a firmware/firmware.json file with the following structure:
+It needs a firmware.json file with the following structure:
 e.g:
 { modules: [
     { name: "vm_jacdaptor_0.1", nets: [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] },
@@ -36,6 +36,7 @@ import subprocess
 
 binaries = set()
 
+from thread_context import thread_context
 
 def load_json(json_data):
     """Load JSON data and return lists of brain modules and peripherals."""
@@ -86,19 +87,19 @@ def ensure_target_copy(brain_name, index):
     if "jacdaptor" in brain_name:
         base_name = "firmware/microbit-base.bin"
         if index == 0:
-            target_name = "output/MICROBIT.bin"
+            target_name = thread_context.job_folder / "output/MICROBIT.bin"
         else:
-            target_name = f"output/MICROBIT-{index + 1}.bin"
+            target_name = thread_context.job_folder / f"output/MICROBIT-{index + 1}.bin"
     else:
         base_name = "firmware/pico-base.bin"
         if index == 0:
-            target_name = "output/pico.bin"
+            target_name = thread_context.job_folder / "output/pico.bin"
         else:
-            target_name = f"output/pico-{index + 1}.bin"
+            target_name = thread_context.job_folder / f"output/pico-{index + 1}.bin"
 
     # Ensure output directory exists
-    if not os.path.exists("output"):
-        os.makedirs("output")
+    if not os.path.exists(thread_context.job_folder / "output"):
+        os.makedirs(thread_context.job_folder / "output")
 
     # Check if the source firmware file exists
     if not os.path.exists(base_name):
@@ -182,7 +183,7 @@ def convert_firmware(target_bin):
     """Convert the firmware binary to the required format for uploading to a programmer."""
 
     # Determine output filename based on type
-    if "pico" in target_bin:
+    if "pico" in str(target_bin):
         # Check if picotool is in the folder
         if not os.path.exists("picotool"):
             raise FileNotFoundError(
@@ -193,18 +194,18 @@ def convert_firmware(target_bin):
                 "❌ Error: ./picotool/build/picotool not found. Please build it first."
             )
 
-        output_file = target_bin.replace(".bin", ".uf2")
+        output_file = str(target_bin).replace(".bin", ".uf2")
         # convert_command = f"uf2conv {target_bin} --family RP2040 -o {output_file}" #uf2 won't upload correctly for some reason
-        convert_command = f"picotool/build/picotool uf2 convert {target_bin} {output_file} --family rp2040"
+        convert_command = f"picotool/build/picotool uf2 convert {str(target_bin)} {output_file} --family rp2040"
 
-    elif "MICROBIT" in target_bin:
-        output_file = target_bin.replace(".bin", ".hex")
+    elif "MICROBIT" in str(target_bin):
+        output_file = str(target_bin).replace(".bin", ".hex")
 
         if shutil.which("objcopy") is None:
             raise FileNotFoundError(
                 "❌ Error: 'objcopy' is not installed or not found in PATH. Please install binutils."
             )
-        convert_command = f"objcopy --input-target=binary --output-target=ihex {target_bin} {output_file}"
+        convert_command = f"objcopy --input-target=binary --output-target=ihex {str(target_bin)} {output_file}"
 
     else:
         raise ValueError(
@@ -279,8 +280,8 @@ def run():
     # { "modules": [ { "name": "rp2040_connector_0.1", "nets": [ "SWDIO_10" ] },{ "name": "jacdac_connector_0.1", "nets": [ "SWDIO_10" ] }, { "name": "vm_light_sensor_0.2", "nets": [ "SWDIO_8", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_jacdaptor_0.1", "nets": [ "SWDIO_8", "SWDIO_1", "SWDIO_6", "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rotary_button_0.2", "nets": [ "SWDIO_1", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_keycap_button_0.2", "nets": [ "SWDIO_6", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] }, { "name": "vm_rgb_ring_0.2", "nets": [ "SWDIO_3", "JD_PWR", "GND", "JD_DATA", "SWCLK", "RESET" ] } ] }
     # """
 
-    # Load JSON data from firmware/firmware.json
-    with open("firmware/firmware.json", "r") as f:
+    # Load JSON data from firmware.json
+    with open(thread_context.job_folder / "firmware.json", "r") as f:
         json_input = f.read()
 
     json_data = json.loads(json_input)
@@ -290,7 +291,7 @@ def run():
             convert_firmware(binary)
         except (FileNotFoundError, ValueError, RuntimeError) as e:
             print(e)
-            sys.exit(1)
+            raise(e)
 
 
 if __name__ == "__main__":

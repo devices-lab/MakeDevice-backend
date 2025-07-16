@@ -1,4 +1,4 @@
-from process import merge_layers, clear_directories
+from process import merge_layers
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
@@ -8,25 +8,38 @@ from bus_router import BusRouter
 from generate import generate
 from process import merge_stacks, compress_directory
 from consolidate import consolidate_component_files
-from upload import upload_jlc, upload_euro, upload_aisler
 
 import warnings
 import sys
 import debug
 import firmware
 
+from pathlib import Path
+from thread_context import thread_context
+
 # Make sure to run `source venv/bin/activate` first!
-def run(file_number: str, run_from_server: bool = False, job_folder = None) -> dict:
+def run(file_number: str, run_from_server: bool = False, job_id = None, job_folder = None) -> dict:
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
 
+    # NOTE: job_id will always be a fresh job, no need to clear old files
+    thread_context.job_id = job_id
+    thread_context.job_folder = Path(job_folder)
+
+    # Only allow calling run() from within a thread, with a job_id and job_folder
+    # TODO: Change the rest of the code to reflect these decisions
+    if (not hasattr(thread_context, "job_folder")):
+        raise RuntimeError("run() must be called from within a thread")
+    if (job_id is None or job_folder is None):
+        raise NotImplementedError("run() can't be called without job_id and job_folder parameters")
+
     loader = None
-    if job_folder:
+    if True: #if job_folder
         # If a specific data file path is provided, use it
-        loader = Loader(job_folder + "/data.json" , run_from_server=run_from_server)
+        loader = Loader(thread_context.job_folder / "data.json" , run_from_server=run_from_server)
         print("🔵 Using", job_folder + "/data.json")
         # TODO: Must somehow append the job_folder to every single file path used throughout the run
     else:
@@ -35,10 +48,6 @@ def run(file_number: str, run_from_server: bool = False, job_folder = None) -> d
 
     if loader.debug:
         print("⚪️ Running in debug mode")
-
-    # Clear out ./output and ./generated directories
-    clear_directories()
-    print("🟢 Cleared out `/output` and `/generated` directories")
 
     board = Board(loader)
 
@@ -86,7 +95,7 @@ def run(file_number: str, run_from_server: bool = False, job_folder = None) -> d
 
     # Generate JSON containing module/net mappings needed for MCU programming
     json = board.get_programming_json()
-    with open("firmware/firmware.json", "w") as json_file:
+    with open(thread_context.job_folder / "firmware.json", "w") as json_file:
         json_file.write(json)
     print("🟢 Generated MCU programming firmware JSON file")
 
@@ -129,23 +138,17 @@ def run(file_number: str, run_from_server: bool = False, job_folder = None) -> d
     try:
         firmware.run()
         print("🟢 Generated firmware files")
-        compress_directory("output")
+        compress_directory(thread_context.job_folder / "output")
     except Exception as e:
         print("🔴 Failed to generate firmware files:", e)
 
-    compress_directory("output")
+    compress_directory(thread_context.job_folder / "output")
 
-    # Upload the files to JLCPCB and Eurocircuits
-    print("🟢 Uploading files to fabrication services")
-    order_urls = {
-        "jlc": upload_jlc(),
-        "euro": upload_euro(),
-        "aisler": upload_aisler(),
-    }
+    print("🟢 Finished job ID: ", thread_context.job_id)
 
     return {
         "failed": failed,
-        "order_urls": order_urls,
+        # "order_urls": order_urls,
     }
 
 

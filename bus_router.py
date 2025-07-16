@@ -13,6 +13,8 @@ from objects import Point, Segment
 
 from router import Router
 import debug
+
+from thread_context import thread_context
     
 class BusRouter(Router):
     """
@@ -571,9 +573,20 @@ class BusRouter(Router):
                     # Route the socket to the bus
                     print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
 
+                    # Progress bar update
                     if self.board.loader.run_from_server:
-                        from server import update_progress
-                        update_progress(self.board)
+                        all = self.board.sockets.get_socket_count()
+                        connected = self.board.connected_sockets_count
+                        progress = round(float(connected) / float(all), 4) * 100
+                        print(f"🔵 Updating progress: {progress}")
+                        # Write the progress to a file
+                        # TODO: A better way to do progress updates?
+                        # should get the board variable from a running thread, but that
+                        # requires keeping track of what threads are running and what job ids
+                        # they have... this is easier
+                        with open(thread_context.job_folder / "progress.txt", 'w') as file:
+                            file.write(str(progress))
+
 
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                     

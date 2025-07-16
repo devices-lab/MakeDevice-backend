@@ -6,6 +6,8 @@ from gerbersockets import Sockets, Zones
 from module import Module
 from layer import Layer
 from objects import Point
+
+from thread_context import thread_context
     
 class Board:
     def __init__(self, loader: Loader, sockets: Optional[Sockets] = None, zones: Optional[Zones] = None):
@@ -68,8 +70,8 @@ class Board:
 
     def _ensure_directories(self) -> None:
         """Ensure that the output and generated directories exist"""
-        output_dir = Path("output")
-        generated_dir = Path("generated")
+        output_dir = thread_context.job_folder / Path("output")
+        generated_dir = thread_context.job_folder / Path("generated")
         
         if not output_dir.exists():
             output_dir.mkdir()

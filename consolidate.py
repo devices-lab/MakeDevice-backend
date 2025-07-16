@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple
 import math
 
 from module import Module
+from thread_context import thread_context
 
 def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output') -> None:
     """
@@ -22,7 +23,7 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     """
     # Convert paths to Path objects
     modules_dir_path = Path(modules_dir)
-    output_dir_path = Path(output_dir)
+    output_dir_path = thread_context.job_folder / Path(output_dir)
     
     # Ensure output directory exists
     output_dir_path.mkdir(parents=True, exist_ok=True)

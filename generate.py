@@ -4,7 +4,11 @@ from datetime import datetime
 
 from board import Board
 
+from thread_context import thread_context
+
 def generate(board: Board, output_dir="./generated"):
+    output_dir = thread_context.job_folder / output_dir
+
     _generate_graphics(board, output_dir)
     _generate_drill(board, output_dir)
     _generate_outline(board, output_dir)
@@ -90,7 +94,7 @@ def _generate_graphics(board: Board, output_dir) -> None:
         with open(file_path, 'w') as file:
             file.write(gerber.dumps_gerber())
     
-def _generate_drill(board: Board, output_dir="./generated") -> None:
+def _generate_drill(board: Board, output_dir) -> None:
     """
     Generates an Excellon drill file for plated through holes (PTH).
     
@@ -138,7 +142,7 @@ def _generate_drill(board: Board, output_dir="./generated") -> None:
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
-def _generate_outline(board: Board, output_dir="./output"):
+def _generate_outline(board: Board, output_dir):
     """
     Generates a Gerber file for the board outline with rounded corners.
     
