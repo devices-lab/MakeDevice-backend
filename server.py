@@ -328,46 +328,6 @@ def pcb_artifact():
     # NOTE: Still use status code 200 for application-level errors, since we want the custom error message
     return jsonify(response), 200
 
-from flask import send_file
-import shutil
-
-@app.route('/downloadZipOfStorageFolder', methods=['POST'])
-def download_zip_of_storage_folder():
-    """
-    Endpoint to download the entire storage folder as a zip file.
-    Automatically triggers browser download.
-    """
-    try:
-        # Define paths
-        storage_folder = Path("./storage")
-        zip_filename = f"storage_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-        zip_filepath = storage_folder.parent / zip_filename  # Save zip outside storage to avoid nesting
-
-        # Create the zip archive
-        shutil.make_archive(zip_filepath.with_suffix('').as_posix(), 'zip', storage_folder)
-
-        # Send the file as a downloadable attachment
-        response = send_file(
-            zip_filepath,
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name=zip_filename
-        )
-
-        # Optional: clean up after sending
-        @response.call_on_close
-        def cleanup():
-            try:
-                os.remove(zip_filepath)
-            except Exception as e:
-                print(f"⚠️ Failed to delete temp zip file: {e}")
-
-        return response
-
-    except Exception as e:
-        print(f"🔴 Error creating zip of storage folder: {e}")
-        return jsonify({"error": "Failed to create zip of storage folder"}), 500
-
 # Setup server
 if __name__ == '__main__':
     # Default to port 5000 or use environment variable if specified
