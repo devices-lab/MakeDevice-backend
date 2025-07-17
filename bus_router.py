@@ -603,9 +603,15 @@ class BusRouter(Router):
                                 if current_time - last_write_time > timeout:
                                     raise Exception(f"Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
 
+                            # Also abandon the job if there's more than 150 images in the routing_imgs folder
+                            routing_imgs_folder = thread_context.job_folder / "routing_imgs"
+                            if routing_imgs_folder.exists() and len(list(routing_imgs_folder.glob("*.png"))) > 150:
+                                raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
+
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                         
+                        # Capture each frame
                         if debug.do_video:
                             debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
                                 self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
@@ -680,6 +686,7 @@ class BusRouter(Router):
             with open(error_file, 'w') as file:
                 file.write(str(e))
 
+        # Capture the last frame too
         if debug.do_video:
             debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
                 self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 

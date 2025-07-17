@@ -22,6 +22,7 @@ data/data_9999.json
 picotool/
 *.mp4
 pyrightconfig.json
+storage/
 
 # Cache 
 __pycache__/

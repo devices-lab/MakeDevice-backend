@@ -9,7 +9,9 @@ from typing import Dict, List, Tuple, Union
 from matplotlib.colors import ListedColormap
 
 frame_index = 0
-do_video = False
+do_video = True
+
+from thread_context import thread_context
 
 def generate_test_grid(dimensions):
     width, height = dimensions
@@ -59,25 +61,25 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
     # this is to ensure the image starts at its full size, so it doesn't change size when traces are drawn
     empty_grid = np.zeros((keepout_grid.shape[0], keepout_grid.shape[1], 4), dtype=float)  # RGBA format
 
-
-
     # Draw the top left, and bottom right pixels of the image, to ensure its size won't change
     plt.imshow(empty_grid, cmap=new_cmap, interpolation='nearest', extent=None)
     # Draw the actual keepouts (comment out for transparent image)
-    plt.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
+    # plt.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
     
     # Define colors for different nets, ensure there's a default color if net not listed
-    set_colors = {
-        'JD_PWR': 'red',
-        'JD_GND': 'white',
-        'JD_DATA': 'yellow',
-        'GND': 'white', 
-        'SWCLK': 'blue',
-        'SWDIO~': 'green',
-        'SWDIO~^': 'lightgreen',
-        'RESET': 'orange',
-        'default': 'gray'
-    }
+    # set_colors = {
+    #     'JD_PWR': 'red',
+    #     'JD_GND': 'white',
+    #     'JD_DATA': 'yellow',
+    #     'GND': 'white', 
+    #     'SWCLK': 'blue',
+    #     'SWDIO~': 'green',
+    #     'SWDIO~^': 'lightgreen',
+    #     'RESET': 'orange',
+    #     'default': 'gray'
+    # }
+
+    set_colors = { 'default': 'black' }
 
     # Default color for a different key
     colors = lambda key: set_colors[key] if key in set_colors else set_colors['default']
@@ -104,7 +106,7 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
             if path:  # Ensure there is a valid path
                 # print(path)
                 path_x, path_y, path_z = zip(*path)  # Coordinates are directly usable, no need for center adjustment
-                plt.plot(path_x, path_y, c=colors(net_type), linewidth=2, alpha=1.0)  # Use the same color as the sockets
+                plt.plot(path_x, path_y, c=colors(net_type), linewidth=1, alpha=1.0, antialiased=False)  # Use the same color as the sockets
 
     # Group lavels with the same name
     # handles, labels = plt.gca().get_legend_handles_labels()
@@ -121,16 +123,16 @@ def frame(plt):
     """
     Saves the current plot as a frame for a video.
     """
+    # FIX: Look into possibility of frame_index >0 when starting
     global frame_index
-    if frame_index == 0:
-        # Make the folder if it doesn't exist
-        os.makedirs("debug", exist_ok=True)
+    routing_imgs_folder = thread_context.job_folder / "routing_imgs"
+    # Make the folder if it doesn't exist
+    os.makedirs(routing_imgs_folder, exist_ok=True)
 
-        # Empty the debug folder in a safe way (not rm
-        for file in os.listdir("debug"):
-            os.remove(f"debug/{file}")
-
-    plt.savefig(f"debug/frame_{frame_index}.png", transparent=True)
+    try:
+        plt.savefig(routing_imgs_folder / f"{frame_index}.png", transparent=True)
+    except Exception as e:
+        print(f"🔴 Error saving frame {frame_index}: {e}")
     frame_index += 1
 
 def video(name=""):
