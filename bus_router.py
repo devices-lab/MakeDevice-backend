@@ -602,6 +602,11 @@ class BusRouter(Router):
                             if current_time - last_write_time > timeout:
                                 raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
 
+                        # Also abandon the job if there's more than 150 images in the routing_imgs folder
+                        routing_imgs_folder = thread_context.job_folder / "routing_imgs"
+                        if routing_imgs_folder.exists() and len(list(routing_imgs_folder.glob("*.png"))) > 150:
+                            raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
+
 
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                     
