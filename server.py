@@ -197,14 +197,23 @@ def routing_progress():
     with open(keepalive_file, 'w') as file:
         file.write("!") # Anything
 
-    # FIX: How to tell if routing failed? Implement once routing can fail (rather than infinite loop)
-    routing_failed = False
+    # Check for routing failure
+    error_file = job_folder_base / job_id / "error.txt"
+    routing_failed = os.path.exists(error_file)
+    error_message = ""
+
+    if routing_failed:
+        try:
+            with open(error_file, 'r') as file:
+                error_message = file.read().strip()
+        except:
+            error_message = "Unknown routing error occurred"
 
     if routing_failed:
         response: RoutingProgressResponse = {
             "endpoint": "routingProgress",
             "error": {
-                "message": "Increase spacing between modules or increase the board size.",
+                "message": error_message,
                 "failedModuleIds": [],  # TODO: Implement
                 "succeededModuleIds": [],  # TODO: Implement
             }

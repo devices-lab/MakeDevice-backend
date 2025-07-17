@@ -1,0 +1,1 @@
+ socket at (13.0, -5.75) in group 0 (first socket, cannot backtrack)
