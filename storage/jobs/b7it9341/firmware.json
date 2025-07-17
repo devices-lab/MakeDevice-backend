@@ -1,0 +1,1 @@
+{ "modules": [ { "name": "vm_jacdaptor_0.2", "nets": [ "SWDIO_8", "SWDIO_1", "GND", "JD_PWR", "RESET", "JD_DATA", "SWCLK" ] }, { "name": "vm_light_sensor_0.3", "nets": [ "SWDIO_8", "GND", "JD_PWR", "RESET", "JD_DATA", "SWCLK" ] }, { "name": "vm_rgb_led_0.3", "nets": [ "SWDIO_1", "GND", "JD_PWR", "RESET", "JD_DATA", "SWCLK" ] } ] }

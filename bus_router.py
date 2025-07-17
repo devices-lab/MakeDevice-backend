@@ -528,148 +528,157 @@ class BusRouter(Router):
         return ordered_socket_groups
     
     def route(self) -> None:
-        # Get all of the sockets for the tracks layer
-        sockets_data = self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets)
-        
-        # Get the total number of sockets
-        total_sockets = sum(len(positions) for positions in sockets_data.values())
-        
-        # Group them by zone, and orientation (in a row, or in a column)
-        zones_data = self.board.zones.get_data()
-        
-        # Group sockets by zone edges and order them top-to-bottom or left-to-right
-        grouped_sockets = self._group_sockets(sockets_data, zones_data)
-        
-        socket_count = 1
-        
-        for zone_center, socket_groups in grouped_sockets.items():
+        try:
+            # Get all of the sockets for the tracks layer
+            sockets_data = self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets)
             
-            module_name = self.board.get_module_name_from_position(zone_center)
+            # Get the total number of sockets
+            total_sockets = sum(len(positions) for positions in sockets_data.values())
             
-            # For each group of sockets
-            for group_idx, socket_group in enumerate(socket_groups):
-                i = 0
+            # Group them by zone, and orientation (in a row, or in a column)
+            zones_data = self.board.zones.get_data()
+            
+            # Group sockets by zone edges and order them top-to-bottom or left-to-right
+            grouped_sockets = self._group_sockets(sockets_data, zones_data)
+            
+            socket_count = 1
+            
+            for zone_center, socket_groups in grouped_sockets.items():
                 
-                # Process all sockets in the group
-                print(f"Socket group length: {len(socket_group)}")
-                while i < len(socket_group):
-                    socket = socket_group[i]
-                    net_name, socket_pos = socket
+                module_name = self.board.get_module_name_from_position(zone_center)
+                
+                # For each group of sockets
+                for group_idx, socket_group in enumerate(socket_groups):
+                    i = 0
                     
-                    # Check if this socket has already failed
-                    socket_key = (net_name, tuple(socket_pos))
-
-                    # Get the bus for this net
-                    bus = self.bus_segments.get(net_name)
-                    if not bus:
-                        print(f"🔴 No bus found for net {net_name}")
-                        i += 1
-                        socket_count += 1
-                        continue
-                    
-                    # Find nearest point on the bus
-                    bus_point = self._get_point_on_bus(socket_pos, bus)
-                    
-                    # Route the socket to the bus
-                    print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
-
-                    # Progress bar update & check keepalive
-                    if self.board.loader.run_from_server:
-                        # Calculate progress
-                        all = self.board.sockets.get_socket_count()
-                        connected = self.board.connected_sockets_count
-                        progress = round(float(connected) / float(all), 4) * 100
-                        print(f"🔵 Updating progress: {progress}")
-
-                        # Write the progress to a file
-                        # TODO: A better way to do progress updates?
-                        # should get the board variable from a running thread, but that
-                        # requires keeping track of what threads are running and what job ids
-                        # they have... this is easier
-                        progress_file = thread_context.job_folder / "progress.txt"
-                        with open(progress_file, 'w') as file:
-                            file.write(str(progress))
-
-                        # Compare the keepalive time
-                        keepalive_file = thread_context.job_folder / "keepalive_time"
-                        if not keepalive_file.exists():
-                            print("🔴 'keepalive_time' file missing")
-                        else:
-                            last_write_time = keepalive_file.stat().st_mtime
-                            current_time = progress_file.stat().st_mtime
-
-                            timeout = 7
-                            if current_time - last_write_time > timeout:
-                                raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
-
-
-                    path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
-                    
-                    if debug.do_video:
-                        debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
-                            self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
-                            self.board.loader.resolution)
-                    
-                    if path:
-                        print(f"🟢 Found path for socket at {socket_pos} to bus\n")
+                    # Process all sockets in the group
+                    print(f"Socket group length: {len(socket_group)}")
+                    while i < len(socket_group):
+                        socket = socket_group[i]
+                        net_name, socket_pos = socket
                         
-                        # Add path indices
-                        self.paths_indices[net_name].append(path)
-                        
-                        # Add to routed sockets count
-                        self.board.connected_sockets_count += 1                
-                        
-                        # Move to the next socket
-                        i += 1
-                        socket_count += 1
-                    else:                        
-                        # If this is the first socket in the group, routing failed
-                        if i == 0:
-                            print(f"🔴 Routing failed for the first socket in group and cannot backtrack\n")
+                        # Check if this socket has already failed
+                        socket_key = (net_name, tuple(socket_pos))
+
+                        # Get the bus for this net
+                        bus = self.bus_segments.get(net_name)
+                        if not bus:
+                            print(f"🔴 No bus found for net {net_name}")
                             i += 1
                             socket_count += 1
                             continue
                         
-                        # Otherwise, we can backtrack
-                        print(f"🟠 Backtracking in group {group_idx} at socket {i}")
+                        # Find nearest point on the bus
+                        bus_point = self._get_point_on_bus(socket_pos, bus)
                         
-                        # Get the previously routed socket
-                        previous_socket = socket_group[i-1]
-                        previous_net, previous_pos = previous_socket
+                        # Route the socket to the bus
+                        print(f"🔵 Routing socket {socket_count}/{total_sockets} for net {net_name} for module {module_name}")
+
+                        # Progress bar update & check keepalive
+                        if self.board.loader.run_from_server:
+                            # Calculate progress
+                            all = self.board.sockets.get_socket_count()
+                            connected = self.board.connected_sockets_count
+                            progress = round(float(connected) / float(all), 4) * 100
+                            print(f"🔵 Updating progress: {progress}")
+
+                            # Write the progress to a file
+                            # TODO: A better way to do progress updates?
+                            # should get the board variable from a running thread, but that
+                            # requires keeping track of what threads are running and what job ids
+                            # they have... this is easier
+                            progress_file = thread_context.job_folder / "progress.txt"
+                            with open(progress_file, 'w') as file:
+                                file.write(str(progress))
+
+                            # Compare the keepalive time
+                            keepalive_file = thread_context.job_folder / "keepalive_time"
+                            if not keepalive_file.exists():
+                                print("🔴 'keepalive_time' file missing")
+                            else:
+                                last_write_time = keepalive_file.stat().st_mtime
+                                current_time = progress_file.stat().st_mtime
+
+                                timeout = 7
+                                if current_time - last_write_time > timeout:
+                                    raise Exception(f"Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
+
+
+                        path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                         
-                        # Remove its path
-                        for path_idx, path in enumerate(self.paths_indices.get(previous_net, [])):
-                            # Check if this path connects to the socket we're removing
-                            socket_indices = self._coordinates_to_indices(previous_pos[0], previous_pos[1])
-                            if path and path[0][0] == socket_indices[0] and path[0][1] == socket_indices[1]:
-                                # Also remove the via at the end of the path
-                                connection_point = path[-1]
-                                for via_idx, via in enumerate(self.vias_indices.get(previous_net, [])):
-                                    if via[0] == connection_point[0] and via[1] == connection_point[1]:
-                                        del self.vias_indices[previous_net][via_idx]
-                                        break
-                                
-                                # Now remove the path
-                                del self.paths_indices[previous_net][path_idx]
-                                
-                                # Decrement connected sockets count
-                                self.board.connected_sockets_count -= 1
-                                socket_count -= 1
-                                
-                                break
+                        if debug.do_video:
+                            debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
+                                self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
+                                self.board.loader.resolution)
                         
-                        # Reverse the order from i-1 to the end
-                        remaining = socket_group[i-1:]
-                        remaining.reverse()
-                        socket_group[i-1:] = remaining
-                        print(f"🟢 Reversed routing order for the remaining sockets in group")
-                    
-                        # Restart from the previous socket position
-                        i = i - 1
+                        if path:
+                            print(f"🟢 Found path for socket at {socket_pos} to bus\n")
+                            
+                            # Add path indices
+                            self.paths_indices[net_name].append(path)
+                            
+                            # Add to routed sockets count
+                            self.board.connected_sockets_count += 1                
+                            
+                            # Move to the next socket
+                            i += 1
+                            socket_count += 1
+                        else:                        
+                            # If this is the first socket in the group, routing failed
+                            if i == 0:
+                                i += 1
+                                socket_count += 1
+                                # continue
+                                raise Exception(f" socket at {socket_pos} in group {group_idx} (first socket, cannot backtrack)")
+                            
+                            # Otherwise, we can backtrack
+                            print(f"🟠 Backtracking in group {group_idx} at socket {i}")
+                            
+                            # Get the previously routed socket
+                            previous_socket = socket_group[i-1]
+                            previous_net, previous_pos = previous_socket
+                            
+                            # Remove its path
+                            for path_idx, path in enumerate(self.paths_indices.get(previous_net, [])):
+                                # Check if this path connects to the socket we're removing
+                                socket_indices = self._coordinates_to_indices(previous_pos[0], previous_pos[1])
+                                if path and path[0][0] == socket_indices[0] and path[0][1] == socket_indices[1]:
+                                    # Also remove the via at the end of the path
+                                    connection_point = path[-1]
+                                    for via_idx, via in enumerate(self.vias_indices.get(previous_net, [])):
+                                        if via[0] == connection_point[0] and via[1] == connection_point[1]:
+                                            del self.vias_indices[previous_net][via_idx]
+                                            break
+                                    
+                                    # Now remove the path
+                                    del self.paths_indices[previous_net][path_idx]
+                                    
+                                    # Decrement connected sockets count
+                                    self.board.connected_sockets_count -= 1
+                                    socket_count -= 1
+                                    
+                                    break
+                            
+                            # Reverse the order from i-1 to the end
+                            remaining = socket_group[i-1:]
+                            remaining.reverse()
+                            socket_group[i-1:] = remaining
+                            print(f"🟢 Reversed routing order for the remaining sockets in group")
+                        
+                            # Restart from the previous socket position
+                            i = i - 1
+            
+            # Convert traces and vias indices to segments (also adds to board layers)
+            self._convert_trace_indices_to_segments()
+            self._convert_via_indexes_to_points()
         
-        # Convert traces and vias indices to segments (also adds to board layers)
-        self._convert_trace_indices_to_segments()
-        self._convert_via_indexes_to_points()
+        except Exception as e:
+            print(f"🔴 Routing failed: {e}")
+    
+            # Write error to file, just like the progress.txt
+            error_file = thread_context.job_folder / "error.txt"
+            with open(error_file, 'w') as file:
+                file.write(str(e))
 
         if debug.do_video:
             debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 

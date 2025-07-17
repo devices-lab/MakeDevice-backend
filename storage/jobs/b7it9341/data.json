@@ -1,0 +1,126 @@
+{
+  "board": {
+    "name": "MakeDevice",
+    "generation_software": {
+      "vendor": "Devices-Lab",
+      "application": "MakeDevice",
+      "version": "0.2"
+    },
+    "size": {
+      "x": 76,
+      "y": 57
+    },
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "debug": true,
+    "id": "fa34a27e-09f4-451c-bc9e-0e2339ac3e82",
+    "last_modified": "2025-07-17T15:23:48.850Z"
+  },
+  "configuration": {
+    "routing_options": {
+      "resolution": 0.25,
+      "allow_diagonal_traces": true,
+      "allow_overlap": false,
+      "algorithm": "a_star"
+    },
+    "gerbersockets_options": {
+      "layer_name": "GerberSockets.gbr",
+      "keep_out_zone_aperture_diameter": 0.1,
+      "net_diameter_map": {
+        "JD_PWR": 0.11,
+        "GND": 0.12,
+        "JD_DATA": 0.13,
+        "SWCLK": 0.14,
+        "SWDIO~^": 0.16,
+        "RESET": 0.17,
+        "USB_D_P": 0.18,
+        "USB_D_N": 0.19,
+        "SWDIO~0": 0.2,
+        "SWDIO~1": 0.21,
+        "SWDIO~2": 0.22,
+        "SWDIO~3": 0.23,
+        "SWDIO~4": 0.24,
+        "SWDIO~5": 0.25,
+        "SWDIO~6": 0.26,
+        "SWDIO~7": 0.27,
+        "SWDIO~8": 0.28,
+        "SWDIO~9": 0.29,
+        "SWDIO~10": 0.3
+      },
+      "legacy_sockets": true
+    },
+    "layer_map": {
+      "F_Cu.gtl": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L1,Top,Signal"
+      },
+      "In1_Cu.g2": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L2,Inner,Signal"
+      },
+      "In2_Cu.g3": {
+        "nets": [],
+        "fill": false,
+        "attributes": "Copper,L3,Inner,Signal"
+      },
+      "B_Cu.gbl": {
+        "nets": [
+          "SWDIO~",
+          "SWDIO~^"
+        ],
+        "fill": false,
+        "attributes": "Copper,L4,Bottom,Signal"
+      }
+    },
+    "fabrication_options": {
+      "module_margin": 0,
+      "bus_width": 0.25,
+      "bus_spacing": 0.5,
+      "edge_clearance": 0.5,
+      "track_width": 0.125,
+      "via_diameter": 0.4,
+      "via_hole_diameter": 0.3,
+      "rounded_corner_radius": 5,
+      "connectors": {
+        "top": false,
+        "bottom": false,
+        "left": false,
+        "right": false
+      },
+      "house_name": "JLCPCB"
+    }
+  },
+  "modules": [
+    {
+      "name": "vm_jacdaptor_0.2",
+      "position": {
+        "x": 0,
+        "y": 13
+      },
+      "rotation": 0,
+      "id": "17e5871c-8f21-4566-b1ef-8a6a8451efeb"
+    },
+    {
+      "name": "vm_light_sensor_0.3",
+      "position": {
+        "x": 11,
+        "y": -14
+      },
+      "rotation": 0,
+      "id": "7118ecda-5721-49a0-bbbc-bd005b0cd52e"
+    },
+    {
+      "name": "vm_rgb_led_0.3",
+      "position": {
+        "x": -16,
+        "y": -10
+      },
+      "rotation": 0,
+      "id": "b9b21fbb-4de9-43bd-8f21-807a95efcb00"
+    }
+  ]
+}
