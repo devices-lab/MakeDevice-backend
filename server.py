@@ -331,7 +331,7 @@ def pcb_artifact():
 from flask import send_file
 import shutil
 
-@app.route('/downloadZipOfStorageFolder', methods=['GET'])
+@app.route('/downloadZipOfStorageFolder', methods=['POST'])
 def download_zip_of_storage_folder():
     """
     Endpoint to download the entire storage folder as a zip file.
