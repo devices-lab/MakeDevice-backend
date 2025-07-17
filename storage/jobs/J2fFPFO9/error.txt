@@ -1,1 +1,0 @@
-🔴 Routing failed for socket at (-9.5, 4.25) in group 1 (first socket, cannot backtrack)
