@@ -130,8 +130,8 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
             f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed"
         )
 
-    if debug.do_video:
-        debug.video(name=file_number)
+    # if debug.do_video:
+    #     debug.video(name=file_number)
 
     # Generate the firmware files for microbit/rp2040 brain to flash
     # all virtual modules

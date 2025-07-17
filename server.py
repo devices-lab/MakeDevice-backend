@@ -187,15 +187,35 @@ def routing_progress():
     progress = 0.0
     if os.path.exists(progress_file):
         with open(progress_file, 'r') as file:
-            try:
-                progress = float(file.read().strip())
-            except ValueError:
-                pass
+            progress = float(file.read().strip())
 
     # The keepalive file is changed to keep the job alive
     keepalive_file = job_folder_base / job_id / "keepalive_time"
     with open(keepalive_file, 'w') as file:
         file.write("!") # Anything
+
+    routing_imgs_folder = job_folder_base / job_id / "routing_imgs"
+    routing_image = None
+    if os.path.exists(routing_imgs_folder):
+        # All the routing images
+        routing_images = list(routing_imgs_folder.glob("*.png"))
+        if len(routing_images):
+            # Sort by filename, which is the number
+            routing_images.sort(key=lambda x: int(x.stem))
+            # Get the second highest numbered routing image (since the highest
+            # numbered may not have finished writing to disk yet)
+            # Remove the last one
+            # routing_images = routing_images[:-1]
+            routing_image = routing_images[-1] if len(routing_images) else None
+
+    routing_image_base64 = None
+    if routing_image:
+        try:
+            with open(routing_image, 'rb') as img_file:
+                routing_image_data = img_file.read()
+            routing_image_base64 = base64.b64encode(routing_image_data).decode('utf-8')
+        except Exception as e:
+            print(f"🔴 Error reading routing image {routing_image}: {e}")
 
     # FIX: How to tell if routing failed? Implement once routing can fail (rather than infinite loop)
     routing_failed = False
@@ -216,6 +236,7 @@ def routing_progress():
             "result": {
                 "progress": progress,
                 "completed": finished_success,
+                "routingImage": str(routing_image_base64),
                 # TODO: Implement bus width left and right
             }
         }

@@ -588,7 +588,7 @@ class BusRouter(Router):
                         # they have... this is easier
                         progress_file = thread_context.job_folder / "progress.txt"
                         with open(progress_file, 'w') as file:
-                            file.write(str(progress))
+                            file.write(str(round(progress, 2)))
 
                         # Compare the keepalive time
                         keepalive_file = thread_context.job_folder / "keepalive_time"
@@ -605,6 +605,7 @@ class BusRouter(Router):
 
                     path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                     
+                    # Capture each frame
                     if debug.do_video:
                         debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
                             self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
@@ -671,6 +672,7 @@ class BusRouter(Router):
         self._convert_trace_indices_to_segments()
         self._convert_via_indexes_to_points()
 
+        # Capture the last frame too
         if debug.do_video:
             debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
                 self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
