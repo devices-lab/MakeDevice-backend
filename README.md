@@ -78,6 +78,8 @@ See the [`/data`](./data) directory
 
 See [CHANGELOG](./changelog) for latest updates and progress
 
+There is a GitHub project (Kanban board) for [MakeDevice planning](https://github.com/orgs/devices-lab/projects/1), with features and their integration status.
+
 ### Ideas in progress
 
 #### JSON for each module
