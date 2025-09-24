@@ -1,12 +1,15 @@
 import os
 import sys
 import subprocess
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from gerber_writer import DataLayer, Path
 from pathlib import Path as PathLib
 from typing import Dict, List, Tuple, Union
 from matplotlib.colors import ListedColormap
+
+matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib
 
 frame_index = 0
 do_video = True
