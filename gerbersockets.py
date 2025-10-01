@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, Optional
 import json
-
+from collections import defaultdict
+    
 from gerbonara.graphic_objects import Line
 from gerbonara.apertures import CircleAperture
 from debug import plot_sockets, plot_zones
@@ -113,13 +114,15 @@ class Sockets(Object):
             gerber: Optional GerberFile object from gerbonara
         """
         super().__init__(loader, gerber)
-        self.socket_locations: Dict[str, List[Tuple[float, float]]] = {}
+        self.socket_locations: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
         
         if self.loader and self.gerber:
-            self.extract_socket_locations()
+            self.extract_ASCII_socket_locations()
     
-    def extract_socket_locations(self) -> Dict[str, List[Tuple[float, float]]]:
+    def extract_legacy_socket_locations(self) -> Dict[str, List[Tuple[float, float]]]:
         """
+        DEPRECATED: Use extract_ASCII_socket_locations() instead.
+        
         Extracts the locations of the Gerber Sockets from a Gerber file.
         Validates that socket locations align with the grid resolution.
         
@@ -190,7 +193,85 @@ class Sockets(Object):
             raise ValueError(error_msg)
             
         return self.socket_locations
-    
+
+    def extract_ASCII_socket_locations(self) -> Dict[str, List[Tuple[float, float]]]:
+        """
+        Extracts socket locations from Gerber objects using encoded ASCII identifiers.
+
+        This method scans the loaded Gerber data for zero-length lines (interpreted as "circles")
+        with specific aperture diameters that encode ASCII characters. It decodes these diameters
+        to reconstruct net names and associates each net name with its corresponding (x, y) position.
+
+        Returns:
+            Dict[str, List[Tuple[float, float]]]: A dictionary mapping each decoded net name to a list
+            of (x, y) positions where sockets for that net are located.
+
+        Raises:
+            ValueError: If no Gerber data is loaded or the Gerber object lacks the required attributes.
+
+        Notes:
+            - The encoding expects diameters in the format "0.iippp", where 'ii' is an index and 'ppp'
+              is the ASCII code of the character.
+            - Only diameters matching the expected format and value ranges are decoded.
+            - Socket locations are stored in the `socket_locations` attribute as a defaultdict(list).
+        """
+        if not self.gerber or not hasattr(self.gerber, "objects"):
+            raise ValueError("No Gerber data loaded.")
+
+        # Ensure storage is a defaultdict(list)
+        if not hasattr(self, "socket_locations") or not isinstance(self.socket_locations, defaultdict):
+            self.socket_locations = defaultdict(list)
+
+        # 1–2. Collect zero-length lines as “circles”
+        circles = defaultdict(list)  # (x, y) -> List[float diameter]
+        for obj in self.gerber.objects:
+            if isinstance(obj, Line) and obj.x1 == obj.x2 and obj.y1 == obj.y2:
+                ap = getattr(obj, "aperture", None)
+                d = getattr(ap, "diameter", None)
+                if d is not None:
+                    # Optional: quantize to avoid float-key fragmentation
+                    pos = (obj.x1, obj.y1)
+                    circles[pos].append(float(d))
+
+        for pos, dlist in circles.items():
+            # Identifier present?
+            if not any(abs(d - 0.00999) < 1e-6 for d in dlist):
+                continue
+
+            decoded: List[Tuple[int, str]] = []
+            seen_indices = set()
+
+            for d in dlist:
+                s = f"{d:.5f}"
+                if s == "0.00999":
+                    continue
+                # Expect "0.iippp" with exactly 5 decimals -> len("0.01071") == 7
+                if not (s.startswith("0.") and len(s) == 7):
+                    continue
+                ii_str, ppp_str = s[2:4], s[4:7]
+                try:
+                    ii = int(ii_str)
+                    code = int(ppp_str)
+                except ValueError:
+                    continue
+                if not (1 <= ii <= 99 and 32 <= code <= 127):
+                    continue
+                if ii in seen_indices:
+                    continue
+                seen_indices.add(ii)
+                decoded.append((ii, chr(code)))
+
+            if not decoded:
+                continue
+
+            decoded.sort(key=lambda t: t[0])
+            net_name = "".join(ch for _, ch in decoded)
+            self.socket_locations[net_name].append(pos)
+            # Optionally: print or log discovery
+            # print(f"Found socket for net '{net_name}' at {pos}")
+
+        return dict(self.socket_locations)
+
     def get_socket_count(self, net_name: str = None) -> int:
         """
         Get the number of sockets for a specific net or all nets.
@@ -390,23 +471,25 @@ class Zones(Object):
         if not self.loader:
             raise ValueError("Loader with configuration not provided.")
         
-        keep_out_zone_aperture_diameter = self.loader.keep_out_zone_aperture_diameter
+        # keep_out_zone_aperture_diameter = self.loader.keep_out_zone_aperture_diameter
         module_margin = self.loader.module_margin
         resolution = self.resolution
         
         # Extract Line objects with the specified aperture diameter
-        lines = [obj for obj in self.gerber.objects if isinstance(obj, Line) and 
-             isinstance(obj.aperture, CircleAperture) and 
-             abs(obj.aperture.diameter - keep_out_zone_aperture_diameter) < 1e-4]
+        raw_lines = []
+        for obj in getattr(self.gerber, "objects", []):
+                if isinstance(obj, Line):
+                    if not (obj.x1 == obj.x2 and obj.y1 == obj.y2):
+                        raw_lines.append(obj)
 
         self.zone_rectangles = []
         used_indices = set()
         alignment_errors = []
 
         def find_continuation(current_index):
-            current_line = lines[current_index]
+            current_line = raw_lines[current_index]
             x2, y2 = current_line.x2, current_line.y2
-            for index, line in enumerate(lines):
+            for index, line in enumerate(raw_lines):
                 if index not in used_indices and index != current_index:
                     # Check connection
                     if (abs(line.x1 - x2) < 1e-4 and abs(line.y1 - y2) < 1e-4) or \
@@ -414,7 +497,7 @@ class Zones(Object):
                         return index
             return None
 
-        for index, line in enumerate(lines):
+        for index, line in enumerate(raw_lines):
             if index in used_indices:
                 continue
                 
@@ -430,7 +513,7 @@ class Zones(Object):
                     break
 
             if len(rectangle_indices) == 4:
-                rectangle_lines = [lines[i] for i in rectangle_indices]
+                rectangle_lines = [raw_lines[i] for i in rectangle_indices]
                 # Check if the rectangle is closed
                 if (abs(rectangle_lines[0].x1 - rectangle_lines[-1].x2) < 1e-4 and 
                     abs(rectangle_lines[0].y1 - rectangle_lines[-1].y2) < 1e-4):
@@ -472,6 +555,8 @@ class Zones(Object):
                 error_msg += f"  Point: {point}, Resolution: {res}\n"
             raise ValueError(error_msg)
             
+        print(f"🟢 Extracted {len(self.zone_rectangles)} keep-out zones")
+        
         return self.zone_rectangles
     
     def get_zone_count(self) -> int:
