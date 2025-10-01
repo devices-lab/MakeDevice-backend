@@ -1,0 +1,37 @@
+{
+  "name": "mm_rotary_button",
+  "version": "0.4",
+  "displayName": "Rotary control",
+  "description": "A single rotary encoder with button action",
+  "size": {
+    "width": 39,
+    "height": 26,
+    "depth": 3
+  },
+  "ec30": {
+    "width": 3,
+    "height": 2,
+    "connectors": {
+      "left": 1,
+      "right": 1
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "rotary_button"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2025-03-28",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}
