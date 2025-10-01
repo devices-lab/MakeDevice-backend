@@ -253,6 +253,7 @@ def routing_progress():
         return jsonify(response), 200
 
 
+# TODO: Implement these new endpoints properly
 @app.route('/pcbArtifact', methods=['POST'])
 def pcb_artifact():
     data: PCBArtifactRequest = request.get_json(force=True)

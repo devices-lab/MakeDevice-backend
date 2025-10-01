@@ -9,7 +9,7 @@ from module import Module
 
 from thread_context import thread_context
 
-def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./backend_module_data', output_dir='./output') -> GerberFile | None:
+def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./modules', output_dir='./output') -> GerberFile | None:
     """
     Merges specified layers from multiple module configurations into a single Gerber file.
     Parameters:
@@ -37,7 +37,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./ba
     # Process each module
     for module in modules:
         # Path to the module's directory within the /gerbers directory
-        module_path = modules_dir_path / module.name / 'gerbers'
+        module_path = modules_dir_path / module.name
 
         # Check if the directory exists
         if not module_path.exists() or not module_path.is_dir():
@@ -69,8 +69,8 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./ba
     else:
         print(f"🔴 No files matching '{layer_name}' were processed.")
         return None
-
-def merge_stacks(modules: List[Module], board_name: str, modules_dir='./backend_module_data', output_dir='./output', generated_dir='./generated') -> None:
+            
+def merge_stacks(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output', generated_dir='./generated') -> None:
     """
     Merges Gerber stacks (sets of files) from multiple modules into a single output directory and applies necessary transformations.
     
@@ -100,7 +100,7 @@ def merge_stacks(modules: List[Module], board_name: str, modules_dir='./backend_
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     for module in modules:
-        module_dir_path = modules_dir_path / module.name / 'gerbers'
+        module_dir_path = modules_dir_path / module.name
 
         if not module_dir_path.exists() or not module_dir_path.is_dir():
             print(f"🔴 Module not found: '{module_dir_path}'")

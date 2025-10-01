@@ -6,7 +6,7 @@ import math
 from module import Module
 from thread_context import thread_context
 
-def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./backend_module_data', output_dir='./output') -> None:
+def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./modules', output_dir='./output') -> None:
     """
     Consolidates BOM files from multiple modules into a single BOM file,
     and updates the corresponding CPL (pick and place) files with adjusted positions.
@@ -44,7 +44,7 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     
     # First pass: collect all reference designators and assign unique ones
     for module_idx, module in enumerate(modules):
-        module_path = modules_dir_path / module.name / 'assembly'
+        module_path = modules_dir_path / module.name
         
         # Check if the module directory exists
         if not module_path.exists() or not module_path.is_dir():
@@ -75,7 +75,7 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     
     # Second pass: Process CPL files with updated reference designators
     for module_idx, module in enumerate(modules):
-        module_path = modules_dir_path / module.name / 'assembly'
+        module_path = modules_dir_path / module.name
         
         if not module_path.exists() or not module_path.is_dir():
             continue
@@ -121,7 +121,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
         with open(cpl_file_path, 'r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                designator = row.get("Ref", "").strip()
+                designator = row.get("Designator", "").strip()
                 if designator:
                     cpl_refs.add(designator)
                     cpl_data[designator] = row
@@ -269,7 +269,7 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
             # Process each component
             for row in reader:
                 # Get the original values
-                designator = row.get("Ref", "").strip()
+                designator = row.get("Designator", "").strip()
                 if not designator:
                     continue
                 
@@ -284,9 +284,9 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
                 new_ref = ref_mapping[component_key]
                 
                 # Get placement data
-                mid_x = float(row.get("PosX", 0))
-                mid_y = float(row.get("PosY", 0))
-                rotation = float(row.get("Rot", 0))
+                mid_x = float(row.get("Mid X", 0))
+                mid_y = float(row.get("Mid Y", 0))
+                rotation = float(row.get("Rotation", 0))
                 
                 # Apply module rotation and position offset
                 new_x, new_y, new_rotation = transform_coordinates(
@@ -296,10 +296,10 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
                 
                 # Create a new row with transformed data and new designator
                 updated_row = row.copy()
-                updated_row["Ref"] = new_ref
-                updated_row["PosX"] = f"{new_x:.6f}"
-                updated_row["PosY"] = f"{new_y:.6f}"
-                updated_row["Rot"] = f"{new_rotation:.6f}"
+                updated_row["Designator"] = new_ref
+                updated_row["Mid X"] = f"{new_x:.6f}"
+                updated_row["Mid Y"] = f"{new_y:.6f}"
+                updated_row["Rotation"] = f"{new_rotation:.6f}"
                 
                 # Store the CPL entry with the new reference as the key
                 cpl_entries[new_ref] = {
@@ -413,48 +413,35 @@ def write_consolidated_bom(component_groups: Dict, output_dir_path: Path, board_
 def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name: str) -> None:
     """
     Writes the consolidated CPL data to a CSV file.
-
+    
     Parameters:
         cpl_entries (Dict): Dictionary of CPL entries with new reference designators as keys.
         output_dir_path (Path): Output directory path.
         board_name (str): Name of the output board.
-
+    
     Returns:
         None
     """
     if not cpl_entries:
         print("🟠 No CPL data to write to consolidated CPL file.")
         return
-
-    # Define old-to-new column mapping
-    # HACK: JLCPCB wants these specific column names, that are different to what KiCad exports by default
-    old_to_new = {
-        "Ref": "Designator",
-        "Val": "Val",
-        "Package": "Package",
-        "PosX": "Mid X",
-        "PosY": "Mid Y",
-        "Rot": "Rotation",
-        "Layer": "Layer"
-    }
-    # List of new field names in order
-    fieldnames = ["Designator", "Val", "Package", "Mid X", "Mid Y", "Rotation", "Layer"]
-
+    
+    # Get the fieldnames from the first entry to ensure consistent format
+    first_entry = next(iter(cpl_entries.values()))
+    fieldnames = first_entry.get("fieldnames", ["Designator", "Val", "Package", "Mid X", "Mid Y", "Rotation", "Layer"])
+    
     output_file_path = output_dir_path / f"CPL_{board_name}-top-pos.csv"
-
+    
     try:
         with open(output_file_path, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-
+            
             for _, entry in cpl_entries.items():
-                old_row = entry["row"]
-                # Create new row using the mapping
-                new_row = {new_k: old_row.get(old_k, "") for old_k, new_k in old_to_new.items()}
-                writer.writerow(new_row)
-
+                # Write the row data
+                writer.writerow(entry["row"])
+        
         print(f"🟢 Consolidated CPL written to: {output_file_path}")
-
+    
     except Exception as e:
         print(f"🔴 Error writing consolidated CPL file: {e}")
-

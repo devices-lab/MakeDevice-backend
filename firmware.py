@@ -169,7 +169,7 @@ def process_firmware(json_data):
                     processed_swdio.add(swdio_net)
 
                     match_mod = find_matching_module(swdio_net, peripherals)
-                    sub_bin = f"backend_module_data/{match_mod['name']}/firmware/{match_mod['name']}.bin"
+                    sub_bin = f"modules/{match_mod['name']}/firmware.bin"
 
                     replace_firmware(target_bin, sub_bin, swdio_net.split("_")[1])
             binaries.add(target_bin)

@@ -1,6 +1,0 @@
-Ref,Val,Package,PosX,PosY,Rot,Side
-"3D1","~","3D_placeholder",0.000000,0.000000,0.000000,top
-"MH1","jacdac_hole_DATA_MH1","jacdac_hole_DATA_MH1",35.000000,11.000001,-90.000000,top
-"MH2","jacdac_hole_GND_MH2","jacdac_hole_GND_MH2",-35.000000,1.000000,175.000000,top
-"MH3","jacdac_hole_PWR_MH3","jacdac_hole_PWR_MH3",-35.000000,11.000000,-85.000000,top
-"MH4","jacdac_hole_GND_MH4","jacdac_hole_GND_MH4",35.000000,1.000001,5.000000,top
