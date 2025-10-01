@@ -1,0 +1,25 @@
+{
+  "name": "vm_keycap_button_row",
+  "version": "0.4",
+  "displayName": "Keycap button row",
+  "description": "A row of six Cherry MX keycap buttons",
+  "size": {
+    "width": 127,
+    "height": 16.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "keycap_button"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2025-03-31",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

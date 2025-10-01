@@ -1,0 +1,25 @@
+{
+  "name": "vm_rotary_button",
+  "version": "0.4",
+  "displayName": "Rotary control",
+  "description": "A single rotary encoder with button action",
+  "size": {
+    "width": 26,
+    "height": 16.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "James Hahn",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "rotary_button"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2025-03-28",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}
