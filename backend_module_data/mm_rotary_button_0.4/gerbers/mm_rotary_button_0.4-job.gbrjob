@@ -3,9 +3,9 @@
     "GenerationSoftware": {
       "Vendor": "KiCad",
       "Application": "Pcbnew",
-      "Version": "9.0.4"
+      "Version": "9.0.5"
     },
-    "CreationDate": "2025-10-01T23:04:28+01:00"
+    "CreationDate": "2025-10-03T12:11:26+01:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
@@ -44,12 +44,12 @@
     },
     {
       "Path": "mm_rotary_button-In1_Cu.g1",
-      "FileFunction": "Copper,L5,Inr",
+      "FileFunction": "Copper,L2,Inr",
       "FilePolarity": "Positive"
     },
     {
       "Path": "mm_rotary_button-In2_Cu.g2",
-      "FileFunction": "Copper,L7,Inr",
+      "FileFunction": "Copper,L3,Inr",
       "FilePolarity": "Positive"
     },
     {

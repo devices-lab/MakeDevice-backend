@@ -3,15 +3,15 @@
     "GenerationSoftware": {
       "Vendor": "KiCad",
       "Application": "Pcbnew",
-      "Version": "9.0.4"
+      "Version": "9.0.5"
     },
-    "CreationDate": "2025-10-01T23:04:10+01:00"
+    "CreationDate": "2025-10-03T12:11:08+01:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "vm_jacdaptor",
       "GUID": "766d5f6a-6163-4646-9170-746f722e6b69",
-      "Revision": "0.3"
+      "Revision": "0.4"
     },
     "Size": {
       "X": 59.05,
@@ -27,9 +27,7 @@
       "PadToPad": 0.2,
       "PadToTrack": 0.2,
       "TrackToTrack": 0.2,
-      "MinLineWidth": 0.2,
-      "TrackToRegion": 0.2,
-      "RegionToRegion": 0.2
+      "MinLineWidth": 0.25
     }
   ],
   "FilesAttributes": [
