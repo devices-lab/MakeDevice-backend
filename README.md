@@ -19,7 +19,7 @@ On each push to main, a github workflow builds a docker image. This can be downl
 3. Run the container `docker run -p 3333:3333 ghcr.io/devices-lab/makedevice-backend:latest`
 
 >[!CAUTION]
-> To free up space by permanently deleting ALL docker containers, run `docker system prune --all --volumes --force`
+> To free up space by permanently deleting ALL docker containers, images, volumes (not just MakeDevice ones), you can run `docker system prune --all --volumes --force`
 
 ## Setup (manual)
 
