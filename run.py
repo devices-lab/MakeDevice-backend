@@ -141,8 +141,7 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
         compress_directory(thread_context.job_folder / "output")
     except Exception as e:
         print("🔴 Failed to generate firmware files:", e)
-
-    compress_directory(thread_context.job_folder / "output")
+        compress_directory(thread_context.job_folder / "output")
 
     print("🟢 Finished job ID: ", thread_context.job_id)
 
