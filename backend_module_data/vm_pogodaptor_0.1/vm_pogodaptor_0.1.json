@@ -1,0 +1,25 @@
+{
+  "name": "vm_pogodaptor",
+  "version": "0.1",
+  "displayName": "micro:bit Pogodaptor",
+  "description": "Pogo pin connector for the BBC micro:bit",
+  "size": {
+    "width": 54,
+    "height": 12,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "brain"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "nRF52833",
+  "lastUpdateDate": "2025-10-14",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}
