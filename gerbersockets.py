@@ -2,8 +2,11 @@ from typing import Dict, List, Tuple, Optional
 import json
 from collections import defaultdict
     
+from gerbonara import GerberFile
 from gerbonara.graphic_objects import Line
 from gerbonara.apertures import CircleAperture
+
+from loader import Loader
 from debug import plot_sockets, plot_zones
 
 class Object:
@@ -12,17 +15,17 @@ class Object:
     for Sockets and Zones.
     """
     
-    def __init__(self, loader=None, gerber=None):
+    def __init__(self, loader: Loader, gerber: GerberFile = None):
         """
         Initialize the base PCB object.
         
         Parameters:
-            loader: The PCB data loader with configuration settings
+            loader: The PCB data loader with configuration
             gerber: Optional GerberFile object from gerbonara
         """
         self.loader = loader
         self.gerber = gerber
-        self.resolution = loader.resolution if loader else 0.1
+        self.resolution = loader.resolution
     
     def _round_to_resolution(self, value: float, resolution: float = None) -> float:
         """
@@ -104,8 +107,8 @@ class Sockets(Object):
     Handles the extraction and management of socket locations from Gerber files.
     Provides methods to process and access socket data organized by net.
     """
-    
-    def __init__(self, loader=None, gerber=None):
+
+    def __init__(self, loader: Loader, gerber: GerberFile = None):
         """
         Initialize the Sockets processor.
         
@@ -118,81 +121,6 @@ class Sockets(Object):
         
         if self.loader and self.gerber:
             self.extract_ASCII_socket_locations()
-    
-    def extract_legacy_socket_locations(self) -> Dict[str, List[Tuple[float, float]]]:
-        """
-        DEPRECATED: Use extract_ASCII_socket_locations() instead.
-        
-        Extracts the locations of the Gerber Sockets from a Gerber file.
-        Validates that socket locations align with the grid resolution.
-        
-        Returns:
-            Dict[str, List[Tuple[float, float]]]: A dictionary containing net names as keys 
-            and a list of socket locations as values.
-            
-        Raises:
-            ValueError: If any socket location is not aligned with the resolution grid.
-        """
-        if not self.gerber:
-            raise ValueError("Gerber file not provided.")
-        
-        if not self.loader:
-            raise ValueError("Loader with configuration not provided.")
-        
-        net_diameter_map = self.loader.net_diameter_map
-        legacy_sockets = self.loader.legacy_sockets
-            
-        diameter_to_net = {value: key for key, value in net_diameter_map.items()}
-        self.socket_locations = {}
-        alignment_errors = []
-        
-        if not self.gerber.objects:
-            print("No objects found in the GerberSocket file.")
-            return self.socket_locations
-        
-        for obj in self.gerber.objects:
-            if hasattr(obj, 'aperture') and isinstance(obj.aperture, CircleAperture):
-                diameter = obj.aperture.diameter
-
-                if diameter == 0.15:
-                    print("🟡 Legacy SWDIO~ socket detected with diameter 0.15mm.")
-                    raise ValueError("Legacy socket detected with diameter 0.15mm.")
-                
-                if diameter in diameter_to_net:
-                    net_name = diameter_to_net[diameter]
-                    print(net_name)
-                    
-                    # Extract raw location coordinates
-                    raw_location = self._get_raw_location_from_object(obj)
-                    
-                    if raw_location:
-                        x_raw, y_raw = raw_location
-                        
-                        # Check if the raw coordinates align with the resolution grid
-                        if not self._is_aligned_with_resolution(x_raw) or \
-                           not self._is_aligned_with_resolution(y_raw):
-                            alignment_errors.append((net_name, (x_raw, y_raw), self.resolution))
-                        
-                        # Round to resolution for storage
-                        rounded_location = (
-                            self._round_to_resolution(x_raw),
-                            self._round_to_resolution(y_raw)
-                        )
-                        
-                        self.socket_locations.setdefault(net_name, []).append(rounded_location)
-                elif diameter != 0.1:
-                    print(f"🔴 Socket with diameter {diameter} didn't match any in the net diameter map.")
-                    raise ValueError(f"Socket with diameter {diameter} didn't match any in the net diameter map.")
-
-        
-        # Raise error if alignment issues were found
-        if alignment_errors:
-            error_msg = "The following socket locations are not aligned with the resolution grid:\n"
-            for net, loc, res in alignment_errors:
-                error_msg += f"  Net: {net}, Location: {loc}, Resolution: {res}\n"
-            raise ValueError(error_msg)
-            
-        return self.socket_locations
 
     def extract_ASCII_socket_locations(self) -> Dict[str, List[Tuple[float, float]]]:
         """
@@ -267,8 +195,6 @@ class Sockets(Object):
             decoded.sort(key=lambda t: t[0])
             net_name = "".join(ch for _, ch in decoded)
             self.socket_locations[net_name].append(pos)
-            # Optionally: print or log discovery
-            # print(f"Found socket for net '{net_name}' at {pos}")
 
         return dict(self.socket_locations)
 
@@ -435,7 +361,7 @@ class Zones(Object):
     Provides methods to process and access zone data.
     """
     
-    def __init__(self, loader=None, gerber=None):
+    def __init__(self, loader: Loader =None, gerber=None):
         """
         Initialize the Zones processor.
         
@@ -450,6 +376,7 @@ class Zones(Object):
         if self.loader and self.gerber:
             self.extract_keep_out_zones()
     
+    # FIXME: This is just a mess, can we simplify it? It's pretty sloppy right now
     def extract_keep_out_zones(self, debug=False) -> List[Tuple]:
         """
         Extracts and returns a list of rectangles representing the keep-out zones from the given Gerber object.
@@ -471,11 +398,10 @@ class Zones(Object):
         if not self.loader:
             raise ValueError("Loader with configuration not provided.")
         
-        # keep_out_zone_aperture_diameter = self.loader.keep_out_zone_aperture_diameter
         module_margin = self.loader.module_margin
         resolution = self.resolution
         
-        # Extract Line objects with the specified aperture diameter
+        # Extract Line objects
         raw_lines = []
         for obj in getattr(self.gerber, "objects", []):
                 if isinstance(obj, Line):
