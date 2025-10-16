@@ -15,53 +15,27 @@ class Object:
     for Sockets and Zones.
     """
     
-    def __init__(self, loader: Loader, gerber: GerberFile = None):
+    def __init__(self, loader: Loader, gerber: GerberFile):
         """
         Initialize the base PCB object.
         
         Parameters:
             loader: The PCB data loader with configuration
-            gerber: Optional GerberFile object from gerbonara
+            gerber: GerberFile object from gerbonara
         """
         self.loader = loader
         self.gerber = gerber
         self.resolution = loader.resolution
     
-    def _round_to_resolution(self, value: float, resolution: float = None) -> float:
-        """
-        Rounds a value to the nearest multiple of the resolution.
-        
-        Parameters:
-            value: The value to round
-            resolution: The resolution to round to (defaults to self.resolution)
-            
-        Returns:
-            float: The rounded value
-        """
-        if resolution is None:
-            resolution = self.resolution
-        return round(value / resolution) * resolution
+    def _round_to_resolution(self, value: float) -> float:
+        return round(value / self.resolution) * self.resolution
     
-    def _is_aligned_with_resolution(self, value: float, resolution: float = None) -> bool:
-        """
-        Checks if a value is aligned with the resolution grid (is a multiple of resolution).
-        
-        Parameters:
-            value: The value to check
-            resolution: The resolution to check against (defaults to self.resolution)
-            
-        Returns:
-            bool: True if the value is aligned with the resolution grid, False otherwise
-        """
-        if resolution is None:
-            resolution = self.resolution
-            
+    def _is_aligned_with_resolution(self, value: float) -> bool:
         # Account for floating point precision issues
-        remainder = abs(value) % resolution
+        remainder = abs(value) % self.resolution
         epsilon = 1e-4  # Small tolerance for floating point comparisons
-        
-        return remainder < epsilon or abs(remainder - resolution) < epsilon
-    
+        return remainder < epsilon or abs(remainder - self.resolution) < epsilon
+
     def _get_raw_location_from_object(self, obj) -> Optional[Tuple[float, float]]:
         """
         Extract raw location coordinates from a Gerber object based on its type.
@@ -108,7 +82,7 @@ class Sockets(Object):
     Provides methods to process and access socket data organized by net.
     """
 
-    def __init__(self, loader: Loader, gerber: GerberFile = None):
+    def __init__(self, loader: Loader, gerber: GerberFile):
         """
         Initialize the Sockets processor.
         
@@ -198,7 +172,7 @@ class Sockets(Object):
 
         return dict(self.socket_locations)
 
-    def get_socket_count(self, net_name: str = None) -> int:
+    def get_socket_count(self, net_name: str = "") -> int:
         """
         Get the number of sockets for a specific net or all nets.
         
@@ -360,8 +334,8 @@ class Zones(Object):
     Handles the extraction and management of keep-out zones from Gerber files.
     Provides methods to process and access zone data.
     """
-    
-    def __init__(self, loader: Loader =None, gerber=None):
+
+    def __init__(self, loader: Loader, gerber: GerberFile):
         """
         Initialize the Zones processor.
         

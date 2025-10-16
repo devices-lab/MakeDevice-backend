@@ -44,7 +44,7 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     
     # First pass: collect all reference designators and assign unique ones
     for module_idx, module in enumerate(modules):
-        module_path = modules_dir_path / module.name / 'assembly'
+        module_path = modules_dir_path / f"{module.name}_{module.version}" / 'assembly'
         
         # Check if the module directory exists
         if not module_path.exists() or not module_path.is_dir():
@@ -75,7 +75,7 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     
     # Second pass: Process CPL files with updated reference designators
     for module_idx, module in enumerate(modules):
-        module_path = modules_dir_path / module.name / 'assembly'
+        module_path = modules_dir_path / f"{module.name}_{module.version}" / 'assembly'
         
         if not module_path.exists() or not module_path.is_dir():
             continue
@@ -132,7 +132,6 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
             
             # Get the fieldnames to ensure we maintain the original format
             fieldnames = reader.fieldnames
-            print("fieldnames: ", fieldnames)
             
             if not fieldnames:
                 print(f"🔴 Invalid BOM file format for: {bom_file_path}")
@@ -157,8 +156,9 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                     
                     # Create a unique key for this specific instance
                     # Include module_idx to handle duplicate modules
-                    component_key = f"{module_idx}:{module.name}:{ref}"
-                    
+                    module_name_version = f"{module.name}_{module.version}"
+                    component_key = f"{module_idx}:{module_name_version}:{ref}"
+
                     # Generate a new unique reference designator
                     # Extract the prefix (e.g., "R" from "R1") and number
                     prefix = ''.join(c for c in ref if not c.isdigit())
@@ -183,7 +183,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                         "LCSC Part": lcsc_part,
                         "original_reference": ref,
                         "new_reference": new_ref,
-                        "module_name": module.name,
+                        "module_name": module_name_version,
                         "module_idx": module_idx,
                         "fieldnames": fieldnames
                     }
@@ -274,7 +274,8 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
                     continue
                 
                 # Generate the component key for lookup
-                component_key = f"{module_idx}:{module.name}:{designator}"
+                module_name_version = f"{module.name}_{module.version}"
+                component_key = f"{module_idx}:{module_name_version}:{designator}"
                 
                 # Skip if this component doesn't have a mapped reference
                 if component_key not in ref_mapping:

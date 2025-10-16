@@ -106,7 +106,7 @@ def _generate_drill(board: Board, output_dir) -> None:
         None
     """
     
-    via_hole_diameter = board.loader.fabrication_options['via_hole_diameter']    
+    via_hole_diameter = board.loader.via_hole_diameter  
     
     # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -162,14 +162,12 @@ def _generate_outline(board: Board, output_dir):
     origin_y = board.origin['y']
     
     # Get the rounding radius
-    rounding_radius = board.loader.fabrication_options['rounded_corner_radius']
+    rounding_radius = board.loader.rounded_corner_radius
     
     # Get connector information
-    left_connector = board.loader.connectors['left']
-    right_connector = board.loader.connectors['right']
-    bottom_connector = board.loader.connectors['bottom']
-    top_connector = board.loader.connectors['top']
-    connector_width = 16 # Width of the connector in mm - hardcoded for now
+    bottom_connector = board.loader.connector_bottom
+    top_connector = board.loader.connector_top
+    CONNECTOR_WIDTH = 16 # Width of the connector in mm - hardcoded for now
 
     # Calculate the board boundaries.
     xmin = origin_x - board.width / 2
@@ -189,18 +187,15 @@ def _generate_outline(board: Board, output_dir):
     
     # Bottom edge
     if bottom_connector:
-        path.lineto((origin_x - connector_width / 2, ymin))
-        path.moveto((origin_x + connector_width / 2, ymin))
+        path.lineto((origin_x - CONNECTOR_WIDTH / 2, ymin))
+        path.moveto((origin_x + CONNECTOR_WIDTH / 2, ymin))
     path.lineto((xmax - rounding_radius, ymin))
     
     # Bottom-right corner
     if rounding_radius > 0:
         path.arcto((xmax, ymin + rounding_radius), (xmax - rounding_radius, ymin + rounding_radius), '+')
     
-    # Right edge
-    if right_connector:
-        path.lineto((xmax, origin_y - connector_width / 2))
-        path.moveto((xmax, origin_y + connector_width / 2))
+    # Right edge 
     path.lineto((xmax, ymax - rounding_radius))
     
     # Top-right corner
@@ -209,8 +204,8 @@ def _generate_outline(board: Board, output_dir):
     
     # Top edge
     if top_connector:
-        path.lineto((origin_x + connector_width / 2, ymax))
-        path.moveto((origin_x - connector_width / 2, ymax))
+        path.lineto((origin_x + CONNECTOR_WIDTH / 2, ymax))
+        path.moveto((origin_x - CONNECTOR_WIDTH / 2, ymax))
     path.lineto((xmin + rounding_radius, ymax))
     
     # Top-left corner
@@ -218,9 +213,6 @@ def _generate_outline(board: Board, output_dir):
         path.arcto((xmin, ymax - rounding_radius), (xmin + rounding_radius, ymax - rounding_radius), '+')
     
     # Left edge
-    if left_connector: 
-        path.lineto((xmin, origin_y + connector_width / 2))
-        path.moveto((xmin, origin_y - connector_width / 2))
     path.lineto((xmin, ymin + rounding_radius))
     
     # Bottom-left corner

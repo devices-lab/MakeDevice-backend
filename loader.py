@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Union, List, Tuple
+from typing import Any, Dict, List
 from pathlib import Path
 
 class Loader:
@@ -7,11 +7,59 @@ class Loader:
     Handles loading data from JSON sent from MakeDevice
     """
     
-    def __init__(self, file_path: Union[str, Path], run_from_server: bool = False):
-        """Initialize with path to JSON file"""
-        self.file_path = Path(file_path)
-        self.data: Dict[str, Any] = {}        
-        self.run_from_server = run_from_server
+    def __init__(self, file_path: Path):
+        """Initialize with a path to project file"""
+        self.file_path = file_path
+        self.data: Dict[str, Any] = {}
+        # TODO: not sure where this property is used, everything by default is from server, so will set to True   
+        self.run_from_server = True # TODO: find out where this is necessary
+        
+        # TODO: Default values, originally included in the legacy JSON format - move them into a separate place later
+        self.generation_software = {
+            "vendor": "Devices-Lab",
+            "application": "MakeDevice",
+            "version": "0.3"
+        }
+        self.origin = {'x': 0, 'y': 0}
+        self.debug = False
+        self.resolution = 0.25
+        self.allow_diagonal_traces = True
+        self.allow_overlap = False
+        self.algorithm = "a_star"
+        self.gerbersockets_layer_name = "GerberSockets.gbr"
+        self.layer_map = {
+            "F_Cu.gtl": {
+                "nets": [],
+                "fill": False,
+                "attributes": "Copper,L1,Top,Signal"
+            },
+            "In1_Cu.g2": {
+                "nets": [],
+                "fill": False,
+                "attributes": "Copper,L2,Inner,Signal"
+            },
+            "In2_Cu.g3": {
+                "nets": [],
+                "fill": False,
+                "attributes": "Copper,L3,Inner,Signal"
+            },
+            "B_Cu.gbl": {
+                "nets": [
+                    "SWDIO~",
+                    "SWDIO~^"
+                ],
+                "fill": False,
+                "attributes": "Copper,L4,Bottom,Signal"
+            }
+        }
+        self.module_margin = 0
+        self.bus_width = 0.25
+        self.bus_spacing = 0.5
+        self.edge_clearance = 0.5
+        self.track_width = 0.125
+        self.via_diameter = 0.4
+        self.via_hole_diameter = 0.3
+        
         self._load()
         
     def _load(self) -> None:
@@ -21,170 +69,63 @@ class Loader:
                 self.data = json.load(file)
 
         except FileNotFoundError:
-            raise FileNotFoundError(f"File {self.file_path} not found.")
+            raise FileNotFoundError(f"🔴 Project file could not be found: {self.file_path}")
         except json.JSONDecodeError:
-            raise ValueError(f"File {self.file_path} is not a valid JSON.")
+            raise ValueError(f"🔴 File {self.file_path} is not a valid JSON (.MakeDevice file)")
     
-    # -------------------- BOARD --------------------------
+    # -------------------- PROJECT DATA (from main JSON) --------------------------
+
     @property
-    def board(self) -> List[Dict[str, Any]]:
-        """Get board information"""
-        return self.data['board']
-    
+    def id(self) -> str:
+        """Get the project ID"""
+        return self.data.get('id', '')
+
     @property
     def name(self) -> str:
-        """Get the board name"""
-        return self.data['board']['name']
-    
-    @property
-    def generation_software(self) -> Dict[str, str]:
-        """Get the generation software info"""
-        return self.data['board']['generation_software']
-    
+        """Get the project name"""
+        return self.data.get('name', '')
+
     @property
     def size(self) -> Dict[str, float]:
         """Get the board size"""
-        return self.data['board']['size']
-    
-    @property
-    def origin(self) -> Dict[str, int]:
-        """Get the board origin"""
-        return self.data['board']['origin']
-    
-    @property
-    def debug(self) -> bool:
-        """Get the debug flag"""
-        return bool(self.data['board'].get('debug', False))
-    
-    # ---------------- CONFIGURATION ------------------------
-    
-    @property
-    def configuration(self) -> Dict[str, Any]:
-        """Get the full configuration object"""
-        return self.data['configuration']
-    
-    @property
-    def resolution(self) -> float:
-        """Get the resolution setting"""
-        return self.data['configuration']['routing_options']['resolution']
+        return self.data.get('size', {})
 
     @property
-    def allow_diagonal_traces(self) -> bool:
-        """Get whether diagonal traces are allowed"""
-        return bool(self.data['configuration']['routing_options'].get('allow_diagonal_traces', False))
-    
-    @property
-    def allow_overlap(self) -> bool:
-        """Get whether trace overlap for the same net is allowed"""
-        return bool(self.data['configuration']['routing_options'].get('allow_overlap', False))
-    
-    @property
-    def algorithm(self) -> str:
-        """Get the routing algorithm"""
-        return self.data['configuration']['routing_options']['algorithm']
+    def width(self) -> float:
+        """Get the board width"""
+        return self.data.get('size', {}).get('width', 0)
 
     @property
-    def gerbersockets_layer_name(self) -> str:
-        """Get the GerberSockets layer name"""
-        return self.data['configuration']['gerbersockets_options']['layer_name']
+    def height(self) -> float:
+        """Get the board height"""
+        return self.data.get('size', {}).get('height', 0)
 
     @property
-    def keep_out_zone_aperture_diameter(self) -> Dict[str, float]:
-        """Get tool diameter used to trace out the keep-out zones"""
-        return self.data['configuration']['gerbersockets_options']['keep_out_zone_aperture_diameter']
-
-    @property
-    def net_diameter_map(self) -> Dict[str, float]:
-        """Get the socket diameter mapping"""
-        return self.data['configuration']['gerbersockets_options']['net_diameter_map']
-    
-    @property
-    def legacy_sockets(self) -> bool:
-        """Get whether legacy sockets are enabled"""
-        return bool(self.data['configuration']['gerbersockets_options'].get('legacy_sockets', False))
-    
-    @property
-    def layer_map(self) -> Dict[str, Dict[str, Any]]:
-        """Get the layer mapping configuration"""
-        return self.data['configuration']['layer_map']
-    
-    @property
-    def fabrication_options(self) -> Dict[str, Any]:
-        """Get fabrication options"""
-        return self.data['configuration']['fabrication_options']
-
-    @property
-    def module_margin(self) -> Dict[str, float]:
-        """Get margin around the keep-out zones"""
-        return self.data['configuration']['fabrication_options']['module_margin']
-
-    @property
-    def bus_width(self) -> float:
-        """Get bus width"""
-        return self.data['configuration']['fabrication_options']['bus_width']
-
-    @property
-    def bus_spacing(self) -> float:
-        """Get bus spacing"""
-        return self.data['configuration']['fabrication_options']['bus_spacing']
-
-    @property
-    def edge_clearance(self) -> float:
-        """Get edge clearance"""
-        return self.data['configuration']['fabrication_options']['edge_clearance']
-
-    @property
-    def track_width(self) -> float:
-        """Get track width"""
-        return self.data['configuration']['fabrication_options']['track_width']
-
-    @property
-    def via_diameter(self) -> float:
-        """Get via diameter"""
-        return self.data['configuration']['fabrication_options']['via_diameter']
-
-    @property
-    def via_hole_diameter(self) -> float:
-        """Get via hole diameter"""
-        return self.data['configuration']['fabrication_options']['via_hole_diameter']
+    def fabrication_house(self) -> str:
+        """Get fabrication house"""
+        return self.data.get('pcbOptions', {}).get('fabricationHouse', '')
 
     @property
     def rounded_corner_radius(self) -> float:
-        """Get rounded corner radius"""
-        return self.data['configuration']['fabrication_options']['rounded_corner_radius']
-    
+        """Get corner radius"""
+        return self.data.get('pcbOptions', {}).get('cornerRadius', 0)
+
     @property
     def connectors(self) -> Dict[str, bool]:
         """Get connector settings"""
-        return self.data['configuration']['fabrication_options'].get('connectors', {})
-
-    @property
-    def connector_left(self) -> bool:
-        """Get whether left connector is enabled"""
-        connectors = self.connectors
-        return bool(connectors.get('left', False))
-
-    @property
-    def connector_right(self) -> bool:
-        """Get whether right connector is enabled"""
-        connectors = self.connectors
-        return bool(connectors.get('right', False))
-
-    @property
-    def connector_bottom(self) -> bool:
-        """Get whether bottom connector is enabled"""
-        connectors = self.connectors
-        return bool(connectors.get('bottom', False))
+        return self.data.get('pcbOptions', {}).get('connectors', {})
 
     @property
     def connector_top(self) -> bool:
         """Get whether top connector is enabled"""
-        connectors = self.connectors
-        return bool(connectors.get('top', False))
-    
-    # -------------------- MODULES ------------------------
+        return bool(self.data.get('pcbOptions', {}).get('connectors', {}).get('top', False))
+
+    @property
+    def connector_bottom(self) -> bool:
+        """Get whether bottom connector is enabled"""
+        return bool(self.data.get('pcbOptions', {}).get('connectors', {}).get('bottom', False))
 
     @property
     def modules(self) -> List[Dict[str, Any]]:
         """Get modules list"""
-        return self.data['modules']
+        return self.data.get('modules', [])

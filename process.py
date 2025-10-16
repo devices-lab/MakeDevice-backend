@@ -37,7 +37,7 @@ def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./ba
     # Process each module
     for module in modules:
         # Path to the module's directory within the /gerbers directory
-        module_path = modules_dir_path / module.name / 'gerbers'
+        module_path = modules_dir_path / f"{module.name}_{module.version}" / 'gerbers'
 
         # Check if the directory exists
         if not module_path.exists() or not module_path.is_dir():
@@ -100,7 +100,7 @@ def merge_stacks(modules: List[Module], board_name: str, modules_dir='./backend_
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     for module in modules:
-        module_dir_path = modules_dir_path / module.name / 'gerbers'
+        module_dir_path = modules_dir_path / f"{module.name}_{module.version}" / 'gerbers'
 
         if not module_dir_path.exists() or not module_dir_path.is_dir():
             print(f"🔴 Module not found: '{module_dir_path}'")

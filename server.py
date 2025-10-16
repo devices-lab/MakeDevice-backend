@@ -6,12 +6,10 @@ from flask_cors import CORS
 from run import run
 import json
 import base64
-import traceback
-from board import Board
-import datetime
 import threading
 import random
 import string
+
 from upload import upload_jlc, upload_euro, upload_aisler
 
 from server_packets import (
@@ -29,73 +27,13 @@ sys.path.append(str(Path(__file__).parent))
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Could be anything really, necessary for reading, the file writtien within the request cycle
-file_number = 9999
-
 # NOTE: /app/storage is the persistent storage folder in the docker container
 job_folder_base = Path("./storage/jobs")
 
 # The user doesn't need to know about these sorts of errors, enough to throw them and check the logs
-def validate_endpoint(data, endpoint):
+def validate_endpoint(data: RoutingStartRequest, endpoint: str):
     if data.get("endpoint") != endpoint:
         raise ValueError(f"Invalid endpoint: {data.get('endpoint')}. Expected: {endpoint}")
-
-def project_to_legacy_json(project_string):
-    """ 
-    Converts a MakeDevice-new Project JSON string to the legacy format used by the backend.
-    """
-    # Parse the project data as JSON
-    project_json = json.loads(project_string)
-
-    # data_template.json contains lots of fields from the legacy format, we'll use it as a basis for porting
-    # over the data from Project  TODO: Move away from the legacy format completely
-    data_template_file = Path("./data_template.json")
-    data_template = None
-    with open(data_template_file, 'r') as template_file:
-        data_template = json.load(template_file)
-
-    # WARN: Unclear if custom names are supported, since all our previous data files were just called MakeDevice
-    # data_template["board"]["name"] = project_json.get("name")
-    data_template["board"]["id"] = project_json.get("id") # New
-    data_template["board"]["last_modified"] = project_json.get("lastModified") # New
-    data_template["board"]["generation_software"]["version"] = str(project_json.get("projectVersion"))
-    data_template["board"]["size"]["x"] = project_json.get("size").get("width")
-    data_template["board"]["size"]["y"] = project_json.get("size").get("height")
-    data_template["configuration"]["fabrication_options"]["rounded_corner_radius"] = project_json.get("pcbOptions").get("cornerRadius")
-    data_template["configuration"]["fabrication_options"]["connectors"]["top"] = project_json.get("pcbOptions").get("connectors").get("top")
-    data_template["configuration"]["fabrication_options"]["connectors"]["bottom"] = project_json.get("pcbOptions").get("connectors").get("bottom")
-    data_template["configuration"]["fabrication_options"]["house_name"] = project_json.get("pcbOptions").get("fabricationHouse") # New, needed for uploading
-
-    # HACK: Hardcoded mapping of all mm_* to ec30_* from modules/
-    # TODO: Store as mm_* in modules/, shouldn't be called ec30_* in modules/, the footprints aren't even generic
-    mm_to_ec30_mapping = {
-        "mm_jacdaptor": "ec30_1x7_r6_mh_0.1",
-        "mm_keycap_button": "ec30_3x2_lr_mh_0.1",
-        "mm_light_sensor": "ec30_2x2_lr_mh_0.1",
-        "mm_rgb_ring": "ec30_3x3_l_mh_0.1",
-        "mm_rotary_button": "ec30_3x2_lr_mh_0.1"
-    }
-
-    # Convert all Project InstanceModules to the legacy format
-    for m in project_json.get("modules"):
-        instance = {
-            "name": m.get("name") + "_" + m.get("version"),
-            "position": {
-                "x": m.get("position").get("x"),
-                "y": -m.get("position").get("y")
-            },
-            "rotation": (360 - m.get("rotation")) % 360,  # Swap rotation direction
-            "id": m.get("id"), # New, but needed for routing feedback
-        }
-        # Convert mounted modules to ec30_*
-        if m.get("name").startswith("mm_"):
-            ec30_name = mm_to_ec30_mapping.get(m.get("name"))
-            if ec30_name:
-                instance["name"] = ec30_name
-
-        data_template["modules"].append(instance)
-
-    return data_template
 
 def generate_id(length=8): # Was using import uuid, but this is simpler
     chars = string.ascii_letters + string.digits  # A-Z, a-z, 0-9
@@ -118,31 +56,21 @@ def routing_start():
     print(f"🔵 Created output folder: {output_folder}")
 
     # Create a file to store the project data
-    project_file = output_folder / "project.MakeDevice"
-    with open(project_file, 'w') as file:
+    project_file_path = output_folder / "project.MakeDevice"
+    with open(project_file_path, 'w') as file:
         file.write(data["project"])
-    print(f"🔵 Project data saved to: {project_file}")
+    print(f"🔵 Project data saved to: {project_file_path}")
 
     # The keepalive file is changed by routingProgress periodically to keep the job alive
     keepalive_file = job_folder / "keepalive_time"
     with open(keepalive_file, 'w') as file:
         file.write("!") # Anything
 
-    data = project_to_legacy_json(data["project"])
-
-    # Write the data template to a file
-    data_file = job_folder / "data.json"
-    with open(data_file, 'w') as file:
-        json.dump(data, file, indent=2)
-
-    print(f"🔵 Project converted to legacy data format, stored at: {data_file}")
-
     print(f"🔵 Starting routing with job ID: {job_id}")
-
 
     # TODO: Trigger routing in a different thread to allow responding to the client
     # run() or whatever, and create a temp working folder for the job_id
-    threading.Thread(target=run, args=("from_server", True, job_id, str(job_folder))).start()
+    threading.Thread(target=run, args=(job_id, job_folder)).start()
 
     response: RoutingStartResponse = {
         "endpoint": "routingStart",
@@ -151,7 +79,6 @@ def routing_start():
         }
     }
     return jsonify(response), 200
-
 
 # TODO: Implement these new endpoints properly
 # 
@@ -253,6 +180,7 @@ def routing_progress():
         return jsonify(response), 200
 
 
+# TODO: Split the artifact download and the fabrication house upload into two endpoints
 @app.route('/pcbArtifact', methods=['POST'])
 def pcb_artifact():
     data: PCBArtifactRequest = request.get_json(force=True)

@@ -18,7 +18,9 @@ from pathlib import Path
 from thread_context import thread_context
 
 # Make sure to run `source venv/bin/activate` first!
-def run(file_number: str, run_from_server: bool = False, job_id = None, job_folder = None) -> dict:
+def run(job_id: str, job_folder: Path) -> dict:
+    
+    # TODO: would be nice to have error reporting more centrally defined
     print("🟢 = OK")
     print("🟡 = WARNING")
     print("🔴 = ERROR")
@@ -26,35 +28,36 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
     print("🔵 = INFO\n")
 
     # NOTE: job_id will always be a fresh job, no need to clear old files
+    # Only allow calling run() from within a thread, with a job_id and job_folder
+
     thread_context.job_id = job_id
     thread_context.job_folder = Path(job_folder)
 
-    # Only allow calling run() from within a thread, with a job_id and job_folder
     # TODO: Change the rest of the code to reflect these decisions
     if (not hasattr(thread_context, "job_folder")):
         raise RuntimeError("run() must be called from within a thread")
     if (job_id is None or job_folder is None):
         raise NotImplementedError("run() can't be called without job_id and job_folder parameters")
 
-    loader = None
-    if True: #if job_folder
-        # If a specific data file path is provided, use it
-        loader = Loader(thread_context.job_folder / "data.json" , run_from_server=run_from_server)
-        print("🔵 Using", job_folder + "/data.json")
-        # TODO: Must somehow append the job_folder to every single file path used throughout the run
-    else:
-        loader = Loader(f"./data/data_{file_number}.json", run_from_server=run_from_server)
-        print("🔵 Using", f"data_{file_number}.json")
-
-    if loader.debug:
-        print("⚪️ Running in debug mode")
-
+    # If a specific data file path is provided, use it
+    project_file_path = thread_context.job_folder / "output/project.MakeDevice"
+    loader = Loader(project_file_path)
+    
+    print("🔵 Using", project_file_path.name)
+    
+    # TODO: Must somehow append the job_folder to every single file path used throughout the run
+    
     board = Board(loader)
 
     # Merge the GerberSockets layers from all individual modules
     gerbersockets_layer = merge_layers(
         board.modules, loader.gerbersockets_layer_name, board.name
     )
+    
+    if gerbersockets_layer is None:
+        print("🔴 No GerberSockets layer found in any module")
+        return {"failed": True}
+    
     print("🟢 Merged", loader.gerbersockets_layer_name, "layers")
 
     # Get the locations of the sockets
@@ -103,15 +106,19 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
     top_layer = board.get_layer("F_Cu.gtl")
     bottom_layer = board.get_layer("B_Cu.gbl")
 
-    left_router = BusRouter(
-        board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
-    )
-    left_router.route()
+    if top_layer and bottom_layer is not None:
+        left_router = BusRouter(
+            board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
+        )
+        left_router.route()
 
-    right_router = BusRouter(
-        board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
-    )
-    right_router.route()
+        right_router = BusRouter(
+            board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
+        )
+        right_router.route()
+    else:   
+        print("🔴 Could not find both top and bottom layers for routing")
+        return {"failed": True}
 
     generate(board)
     merge_stacks(board.modules, board.name)
@@ -121,20 +128,19 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
     all = sockets.get_socket_count()
     connected = board.connected_sockets_count
 
-    failed = False
     if (all - connected) == 0:
         print(f"✅ PASS: All {connected} GerberSockets routed successfully")
     else:
-        failed = True
         print(
             f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed"
         )
+        return {"failed": True}
 
+    # Generate a debugging video of the routing
     # if debug.do_video:
     #     debug.video(name=file_number)
 
-    # Generate the firmware files for microbit/rp2040 brain to flash
-    # all virtual modules
+    # Generate the firmware files for microbit/RP2040 module to flash all Jacdac-based SMT32 virtual modules
     try:
         firmware.run()
         print("🟢 Generated firmware files")
@@ -146,18 +152,16 @@ def run(file_number: str, run_from_server: bool = False, job_id = None, job_fold
     print("🟢 Finished job ID: ", thread_context.job_id)
 
     return {
-        "failed": failed,
-        # "order_urls": order_urls,
+        "failed": False
     }
 
-
-if __name__ == "__main__":
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        if len(sys.argv) > 1:
-            if len(sys.argv) > 2:
-                if sys.argv[2] == "video":
-                    debug.do_video = True
-            run(sys.argv[1])  # e.g 'python3 run.py 5-flip'
-        else:
-            run("5")
+# if __name__ == "__main__":
+#     with warnings.catch_warnings():
+#         warnings.simplefilter("ignore")
+#         if len(sys.argv) > 1:
+#             if len(sys.argv) > 2:
+#                 if sys.argv[2] == "video":
+#                     debug.do_video = True
+#             run(sys.argv[1])  # e.g 'python3 run.py 5-flip'
+#         else:
+#             run("5")

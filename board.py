@@ -23,10 +23,10 @@ class Board:
         self.name: str = loader.name
         self.generation_software: Dict[str, str] = loader.generation_software
         self.size: Dict[str, float] = loader.size
-        self.width: float = self.size['x']
-        self.height: float = self.size['y']
+        self.width: float = loader.width
+        self.height: float = loader.height
         self.dimensions: Tuple[float, float] = (self.width, self.height)
-        self.origin: Dict[str, float] = loader.origin
+        self.origin: Dict[str, int] = loader.origin
         self.origin_x: float = self.origin['x']
         self.origin_y: float = self.origin['y']
         self.resolution: float = loader.resolution
@@ -87,11 +87,12 @@ class Board:
         for module_data in self.loader.modules:
             # Get module properties
             name = module_data.get('name')
+            version = module_data.get('version')
             position = (module_data['position']['x'], module_data['position']['y'])
             rotation = module_data.get('rotation')
                     
             # Create Module object
-            module = Module(name=name, position=position, rotation=rotation)
+            module = Module(name=name, version=version, position=position, rotation=rotation)
             self.modules.append(module)
             
     def _add_layers_from_loader(self) -> None:
