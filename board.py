@@ -527,7 +527,7 @@ class Board:
         module_nets = self.get_module_nets()
         len_modules = len(module_nets)
         for i, module in enumerate(module_nets):
-            json += '{ "name": "' + module.name + '", "nets": [ '
+            json += '{ "name": "' + module.name + "_" + module.version + '", "nets": [ '
             len_nets = len(module_nets[module])
             for j in range(len_nets):
                 if j == len_nets - 1:
