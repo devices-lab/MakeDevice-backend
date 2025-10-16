@@ -10,8 +10,6 @@ from process import merge_stacks, compress_directory
 from consolidate import consolidate_component_files
 
 import warnings
-import sys
-import debug
 import firmware
 
 from pathlib import Path
@@ -22,7 +20,7 @@ def run(job_id: str, job_folder: Path) -> dict:
     
     # TODO: would be nice to have error reporting more centrally defined
     print("🟢 = OK")
-    print("🟡 = WARNING")
+    print("🟠 = WARNING")
     print("🔴 = ERROR")
     print("⚪️ = DEBUG")
     print("🔵 = INFO\n")
@@ -120,25 +118,21 @@ def run(job_id: str, job_folder: Path) -> dict:
         print("🔴 Could not find both top and bottom layers for routing")
         return {"failed": True}
 
-    generate(board)
-    merge_stacks(board.modules, board.name)
-    consolidate_component_files(board.modules, board.name)
+    # Suppress warnings from Gerbonara during generation
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        generate(board)
+        merge_stacks(board.modules, board.name)
+        consolidate_component_files(board.modules, board.name)
 
-    # "PASS" and "FAIL" substrings are checked for by test.py
     all = sockets.get_socket_count()
     connected = board.connected_sockets_count
 
     if (all - connected) == 0:
-        print(f"✅ PASS: All {connected} GerberSockets routed successfully")
+        print(f"🟢 All {connected} GerberSockets routed successfully")
     else:
-        print(
-            f"❌ FAIL: GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed"
-        )
+        print(f"🔴 GerberSockets routing incomplete for {all - connected} socket. {connected}/{all} completed")
         return {"failed": True}
-
-    # Generate a debugging video of the routing
-    # if debug.do_video:
-    #     debug.video(name=file_number)
 
     # Generate the firmware files for microbit/RP2040 module to flash all Jacdac-based SMT32 virtual modules
     try:
@@ -154,14 +148,3 @@ def run(job_id: str, job_folder: Path) -> dict:
     return {
         "failed": False
     }
-
-# if __name__ == "__main__":
-#     with warnings.catch_warnings():
-#         warnings.simplefilter("ignore")
-#         if len(sys.argv) > 1:
-#             if len(sys.argv) > 2:
-#                 if sys.argv[2] == "video":
-#                     debug.do_video = True
-#             run(sys.argv[1])  # e.g 'python3 run.py 5-flip'
-#         else:
-#             run("5")
