@@ -216,9 +216,9 @@ def pcb_artifact():
     if should_upload:
         try:
             # Get the fabrication house used when routing the job
-            with open(job_folder_base / job_id / "data.json", 'r') as data_file:
+            with open(job_folder_base / job_id / "output/project.MakeDevice", 'r') as data_file:
                 data_json = json.load(data_file)
-            fabrication_house = data_json.get("configuration").get("fabrication_options").get("house_name")
+            fabrication_house = data_json.get("pcbOptions", {}).get("fabricationHouse", "")
 
             print("🟢 Uploading files to fabrication service")
 
