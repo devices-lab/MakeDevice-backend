@@ -436,7 +436,7 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
         "PosX": "Mid X",
         "PosY": "Mid Y",
         "Rot": "Rotation",
-        "Layer": "Layer"
+        "Side": "Layer"
     }
     # List of new field names in order
     fieldnames = ["Designator", "Val", "Package", "Mid X", "Mid Y", "Rotation", "Layer"]
