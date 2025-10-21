@@ -33,16 +33,16 @@ class Loader:
                 "fill": False,
                 "attributes": "Copper,L1,Top,Signal"
             },
-            "In1_Cu.g2": {
-                "nets": [],
-                "fill": False,
-                "attributes": "Copper,L2,Inner,Signal"
-            },
-            "In2_Cu.g3": {
-                "nets": [],
-                "fill": False,
-                "attributes": "Copper,L3,Inner,Signal"
-            },
+            # "In1_Cu.g2": {
+            #     "nets": [],
+            #     "fill": False,
+            #     "attributes": "Copper,L2,Inner,Signal"
+            # },
+            # "In2_Cu.g3": {
+            #     "nets": [],
+            #     "fill": False,
+            #     "attributes": "Copper,L3,Inner,Signal"
+            # },
             "B_Cu.gbl": {
                 "nets": [
                     "SWDIO~",
