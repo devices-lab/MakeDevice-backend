@@ -114,8 +114,14 @@ def routing_progress():
     progress = 0.0
     if os.path.exists(progress_file):
         with open(progress_file, 'r') as file:
-            progress = float(file.read().strip())
-
+            content = file.read().strip()
+            if content:  # FIXED: This caused errors previously, now set to only convert if not empty
+                try:
+                    progress = float(content)
+                except ValueError:
+                    print(f"🔴 Warning: Invalid progress value in {progress_file}: '{content}'")
+                    progress = 0.0
+            
     # The keepalive file is changed to keep the job alive
     keepalive_file = job_folder_base / job_id / "keepalive_time"
     with open(keepalive_file, 'w') as file:
