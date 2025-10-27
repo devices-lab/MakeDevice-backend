@@ -1,0 +1,25 @@
+{
+  "name": "vm_i2c_resistors",
+  "version": "0.1",
+  "displayName": "I2C pull-up resistors",
+  "description": "Pull-up resistors for I2C interface",
+  "size": {
+    "width": 3.5,
+    "height": 3.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "pull_up_resistor"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-18",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "vm_i2c_motion_sensor",
+  "version": "0.1",
+  "displayName": "I2C motion sensor",
+  "description": "6 DOF motion sensor with I2C interface",
+  "size": {
+    "width": 6,
+    "height": 6,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "motion_sensor",
+    "gyroscope",
+    "accelerometer"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-18",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

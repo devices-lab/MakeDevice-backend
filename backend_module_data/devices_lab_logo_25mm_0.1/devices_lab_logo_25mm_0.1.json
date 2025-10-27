@@ -1,0 +1,27 @@
+{
+  "name": "devices_lab_logo_25mm",
+  "version": "0.1",
+  "displayName": "Devices Lab logo",
+  "description": "Logo for Devices Lab projects (25mm wide)",
+  "size": {
+    "width": 25,
+    "height": 5,
+    "depth": 0
+  },
+  "designer": {
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "logo",
+    "decoration",
+    "branding",
+    "devices-lab"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-22",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "vm_i2c_smtso_adaptor",
+  "version": "0.1",
+  "displayName": "I2C micro:bit connector",
+  "description": "SMTSO connector with I2C interface",
+  "size": {
+    "width": 51,
+    "height": 14,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "brain"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "nRF52833",
+  "lastUpdateDate": "2025-10-18",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}

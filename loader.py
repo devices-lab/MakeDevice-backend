@@ -108,7 +108,7 @@ class Loader:
     @property
     def rounded_corner_radius(self) -> float:
         """Get corner radius"""
-        return 2.0 # HACK: Fixed value for now, because frontend doesn't allow adjusting it
+        return 3.0 # HACK: Fixed value for now, because frontend doesn't allow adjusting it
         # return self.data.get('pcbOptions', {}).get('cornerRadius', 0)
 
     @property

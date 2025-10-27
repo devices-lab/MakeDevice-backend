@@ -1,0 +1,27 @@
+{
+  "name": "vm_i2c_pulse_oximeter",
+  "version": "0.1",
+  "displayName": "I2C heart rate sensor",
+  "description": "Pulse oximeter and heart rate sensor with I2C interface",
+  "size": {
+    "width": 20,
+    "height": 13.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "heart_rate",
+    "spo2_sensor",
+    "proximity_sensor"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-18",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

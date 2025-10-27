@@ -1,0 +1,4 @@
+Ref,Val,Package,PosX,PosY,Rot,Side
+"C1","100nF","C0603",1.900000,1.100000,90.000000,top
+"C2","100nF","C0603",-1.500000,-2.000000,0.000000,top
+"U1","LSM6DSL","LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y",-0.800000,0.500000,0.000000,top

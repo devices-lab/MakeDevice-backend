@@ -1,0 +1,26 @@
+{
+  "name": "vm_i2c_oled_display",
+  "version": "0.1",
+  "displayName": "I2C OLED display",
+  "description": "OLED display with I2C interface attached with 4-pin male header",
+  "size": {
+    "width": 28,
+    "height": 29,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "oled_display",
+    "display"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-22",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

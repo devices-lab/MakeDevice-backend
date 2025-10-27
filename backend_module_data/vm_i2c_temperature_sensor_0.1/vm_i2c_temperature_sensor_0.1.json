@@ -1,0 +1,25 @@
+{
+  "name": "vm_i2c_temperature_sensor",
+  "version": "0.1",
+  "displayName": "I2C temperature sensor",
+  "description": "Temperature sensor with I2C interface",
+  "size": {
+    "width": 3.5,
+    "height": 6,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "temperature_sensor"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "lastUpdateDate": "2025-10-23",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}
