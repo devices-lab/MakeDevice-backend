@@ -1,0 +1,28 @@
+{
+  "name": "rp2040_pico",
+  "version": "0.1",
+  "displayName": "RP2040 \"Pico\" module",
+  "description": "Microcontroller module with I2C exposed",
+  "size": {
+    "width": 24,
+    "height": 32.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "microcontroller",
+    "development board",
+    "brain",
+    "RP2040"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "RP2040",
+  "lastUpdateDate": "2025-12-27",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}
