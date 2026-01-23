@@ -1,0 +1,44 @@
+version: "3.8"
+
+# Docker compose.yml for deploying the makedevice-api container, and the two other 
+# containers which handle logs and automatic fetching of new versions from github
+
+services:
+  makedevice-backend:
+    container_name: makedevice-backend
+    image: ghcr.io/devices-lab/makedevice-backend:latest
+    ports:
+      - "3333:3333"
+    volumes:
+      - /docker/vols/makedevice-api:/app/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/3333'"]  # exits 0 when can open tcp connection toport 3333
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+        reservations:
+          memory: 512M
+
+  watchtower:
+    container_name: makedevice-backend-watchtower
+    image: containrrr/watchtower:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: makedevice-backend --interval 300 --cleanup
+    restart: unless-stopped
+
+  dozzle:
+    container_name: makedevice-backend-dozzle
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /docker/vols/dozzle/data:/data
+    ports:
+      - 8080:8080
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
