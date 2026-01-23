@@ -11,6 +11,7 @@ from matplotlib.colors import ListedColormap
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.collections import LineCollection
 
 matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib (since server-side image generation. No UI)
 
@@ -43,6 +44,10 @@ def show_grid(grid, points=None, title="Grid display"):
     plt.legend()
     plt.show()
 
+# Precompute static colormap once
+# white transparent for 0s, black for 1s
+TRANSPARENT_CMAP = ListedColormap([(1, 1, 1, 0), (0, 0, 0, 1)])
+
 def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution):
     """
     Displays the grid with keep out zones, route indices (shown on grid as lines), and socket locations.
@@ -55,27 +60,21 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
         resolution (float): The resolution of the grid, for scaling the socket and segment coordinates.
     """
     scale = 2
+    H, W = keepout_grid.shape
 
     # Create a figure WITHOUT using pyplot (non‑UI, no global state)
-    fig = Figure(figsize=((keepout_grid.shape[1] * scale) / 100,
-                          (keepout_grid.shape[0] * scale) / 100))
-    canvas = FigureCanvas(fig)
+    fig = Figure(figsize=((W * scale) / 100, (H * scale) / 100), dpi=100) # Ensure DPI is 100 for correct scale
     ax = fig.add_subplot(111)
 
     # Transparent background
     fig.patch.set_facecolor('none')
     ax.axis('off')
 
-    # Colormap
-    colors = [(1, 1, 1, 0), (0, 0, 0, 1)] # white transparent for 0s, black for 1s
-    new_cmap = ListedColormap(colors)
-
     # empty_grid is just the first and last pixel of the grid, so two pixels
     # this is to ensure the image starts at its full size, so it doesn't change size when traces are drawn
-    empty_grid = np.zeros((keepout_grid.shape[0], keepout_grid.shape[1], 4), dtype=float)
-
+    empty_grid = np.zeros((H, W, 4), dtype=float)
     # Draw the top left, and bottom right pixels of the image, to ensure its size won't change
-    ax.imshow(empty_grid, cmap=new_cmap, interpolation='nearest')
+    ax.imshow(empty_grid, cmap=TRANSPARENT_CMAP, interpolation='nearest')
 
     # Draw the actual keepouts (comment out for transparent image)
     # ax.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
@@ -93,41 +92,64 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
     #     'default': 'gray'
     # }
 
-    # Color selection
+    # Same color logic
     set_colors = {'default': 'black'}
     color_for = lambda key: set_colors.get(key, set_colors['default'])
 
-    # Center coordinates
-    center_x = keepout_grid.shape[1] // 2
-    center_y = keepout_grid.shape[0] // 2
+    # Same coordinate transforms
+    center_x = W // 2
+    center_y = H // 2
 
-    # Add the socket locations to the plot, categorized by type
+    # Batched socket plotting per net
     for net_type, positions in socket_locations.items():
-        for (x, y) in positions:
-            # Adjust coordinates for the plot: shifting origin to the center of the grid
-            plot_x = center_y + int(y / resolution) # Adjust for numpy's row-major order (flip x and y)
-            plot_y = center_x + int(x / resolution)
+        if not positions:
+            continue
 
-            # Invert the x axis to match the traditional Cartesian coordinate system
-            plot_x = keepout_grid.shape[0] - plot_x
+        positions = np.array(positions)
+        xs = positions[:, 0]
+        ys = positions[:, 1]
 
-            # ax.scatter(plot_y, plot_x, c=colors(net_type), s=100, label=net_type, alpha=0.3)
-            ax.scatter(plot_y, plot_x, c=color_for(net_type), s=10, alpha=1.0)
+        # Adjust coordinates for the plot: shifting origin to the center of the grid
+        plot_x = center_y + (ys / resolution).astype(int)
+        plot_y = center_x + (xs / resolution).astype(int)
 
-    # Plot routes
+        # Invert the x axis to match the traditional Cartesian coordinate system
+        plot_x = H - plot_x
+
+        # One plot call per net (instead of many scatter calls)
+        ax.plot(
+            plot_y, plot_x,
+            'o',
+            markersize=2,
+            color=color_for(net_type),
+            alpha=1.0,
+            antialiased=False
+        )
+
+    # Optimized route plotting (LineCollection per net)
     for net_type, paths in routes.items():
+        segments = []
+
         for path in paths:
-            if path: # Ensure there is a valid path
-                path_x, path_y, path_z = zip(*path) # Coordinates are directly usable, no need for center adjustment
-                ax.plot(path_x, path_y, c=color_for(net_type),
-                        linewidth=1, alpha=1.0, antialiased=False) # Use the same color as the sockets
+            if not path: # Ensure there is a valid path
+                continue
+            path = np.array(path) # Coordinates are directly usable, no need for center adjustment
+            segments.append(path[:, :2])  # x,y only
+
+        if segments:
+            lc = LineCollection(
+                segments,
+                colors=color_for(net_type), # Use the same color as the sockets
+                linewidths=1,
+                antialiased=False
+            )
+            ax.add_collection(lc)
 
     fig.tight_layout(pad=0)
 
     frame(fig)
-
-    # IMPORTANT: free memory
     fig.clear()
+
 
 def frame(fig):
     """
