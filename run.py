@@ -28,8 +28,11 @@ def run(job_id: str, job_folder: Path) -> dict:
     # NOTE: job_id will always be a fresh job, no need to clear old files
     # Only allow calling run() from within a thread, with a job_id and job_folder
 
+    # NOTE: Set thread context variables, instead of using global variables
+    # !!!!!!!================DO NOT USE global variables in ANY code, since those are shared between all threads=================!!!!!!
     thread_context.job_id = job_id
     thread_context.job_folder = Path(job_folder)
+    thread_context.frame_index = 0
 
     # TODO: Change the rest of the code to reflect these decisions
     if (not hasattr(thread_context, "job_folder")):

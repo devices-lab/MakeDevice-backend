@@ -15,7 +15,6 @@ from matplotlib.collections import LineCollection
 
 matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib (since server-side image generation. No UI)
 
-frame_index = 0
 do_video = True
 
 from thread_context import thread_context
@@ -155,17 +154,15 @@ def frame(fig):
     """
     Saves the current plot as a frame for a video.
     """
-    # FIX: Look into possibility of frame_index >0 when starting
-    global frame_index
     routing_imgs_folder = thread_context.job_folder / "routing_imgs"
     # Make the folder if it doesn't exist
     os.makedirs(routing_imgs_folder, exist_ok=True)
 
     try:
-        fig.savefig(routing_imgs_folder / f"{frame_index}.png", transparent=True)
+        fig.savefig(routing_imgs_folder / f"{thread_context.frame_index}.png", transparent=True)
     except Exception as e:
-        print(f"🔴 Error saving frame {frame_index}: {e}")
-    frame_index += 1
+        print(f"🔴 Error saving frame {thread_context.frame_index}: {e}")
+    thread_context.frame_index += 1
 
     fig.clear() # Fix memory leak
 
@@ -175,7 +172,7 @@ def video(name=""):
     """
 
     # Target a 10 second video
-    rate = float(frame_index) / 10.0
+    rate = float(thread_context.frame_index) / 10.0
 
     subprocess.run(
         f"ffmpeg -y -framerate {rate} -i debug/frame_%d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -preset veryfast debug_{name}.mp4",

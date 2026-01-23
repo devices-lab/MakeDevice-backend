@@ -34,8 +34,6 @@ import os
 import sys
 import subprocess
 
-binaries = set()
-
 from thread_context import thread_context
 
 def load_json(json_data):
@@ -146,7 +144,7 @@ def replace_firmware(target_bin, sub_bin, swdio_num):
     print(f"Firmware replaced for SWDIO_{swdio_num} in {target_bin} using {sub_bin}")
 
 
-def process_firmware(json_data):
+def process_firmware(json_data, binaries):
     """Main function to process firmware replacements for each brain."""
     try:
         brains, peripherals = load_json(json_data)
@@ -285,7 +283,10 @@ def run():
         json_input = f.read()
 
     json_data = json.loads(json_input)
-    process_firmware(json_data)
+
+    binaries = set()
+
+    process_firmware(json_data, binaries)
     for binary in binaries:
         try:
             convert_firmware(binary)
