@@ -1,0 +1,24 @@
+{
+  "name": "mm_raspberry_pi_pico",
+  "version": "0.1",
+  "displayName": "Raspberry Pi Pico",
+  "description": "Socket for the Raspberry Pi Pico",
+  "size": {
+    "width": 32,
+    "height": 52,
+    "depth": 0
+  },
+  "designer": {
+    "company": "Raspberry Pi"
+  },
+  "functionality": [
+    "brain"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "RP2040",
+  "lastUpdateDate": "2026-22-01",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}
