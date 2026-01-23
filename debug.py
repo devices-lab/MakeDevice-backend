@@ -9,7 +9,10 @@ from pathlib import Path as PathLib
 from typing import Dict, List, Tuple, Union
 from matplotlib.colors import ListedColormap
 
-matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib (since server-side image generation. No UI)
 
 frame_index = 0
 do_video = True
@@ -52,22 +55,30 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
         resolution (float): The resolution of the grid, for scaling the socket and segment coordinates.
     """
     scale = 2
-    plt.figure(figsize=((keepout_grid.shape[1] * scale) / 100, (keepout_grid.shape[0] * scale) / 100))  # Set the figure size
 
-    plt.gcf().patch.set_facecolor('none') # Transparent (instead of 'black')
-    plt.axis('off')
+    # Create a figure WITHOUT using pyplot (non‑UI, no global state)
+    fig = Figure(figsize=((keepout_grid.shape[1] * scale) / 100,
+                          (keepout_grid.shape[0] * scale) / 100))
+    canvas = FigureCanvas(fig)
+    ax = fig.add_subplot(111)
 
-    colors = [(1, 1, 1, 0), (0, 0, 0, 1)]  # white transparent for 0s, black for 1s
+    # Transparent background
+    fig.patch.set_facecolor('none')
+    ax.axis('off')
+
+    # Colormap
+    colors = [(1, 1, 1, 0), (0, 0, 0, 1)] # white transparent for 0s, black for 1s
     new_cmap = ListedColormap(colors)
 
     # empty_grid is just the first and last pixel of the grid, so two pixels
     # this is to ensure the image starts at its full size, so it doesn't change size when traces are drawn
-    empty_grid = np.zeros((keepout_grid.shape[0], keepout_grid.shape[1], 4), dtype=float)  # RGBA format
+    empty_grid = np.zeros((keepout_grid.shape[0], keepout_grid.shape[1], 4), dtype=float)
 
     # Draw the top left, and bottom right pixels of the image, to ensure its size won't change
-    plt.imshow(empty_grid, cmap=new_cmap, interpolation='nearest', extent=None)
+    ax.imshow(empty_grid, cmap=new_cmap, interpolation='nearest')
+
     # Draw the actual keepouts (comment out for transparent image)
-    # plt.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
+    # ax.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
     
     # Define colors for different nets, ensure there's a default color if net not listed
     # set_colors = {
@@ -82,47 +93,43 @@ def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution)
     #     'default': 'gray'
     # }
 
-    set_colors = { 'default': 'black' }
+    # Color selection
+    set_colors = {'default': 'black'}
+    color_for = lambda key: set_colors.get(key, set_colors['default'])
 
-    # Default color for a different key
-    colors = lambda key: set_colors[key] if key in set_colors else set_colors['default']
-
-    # Center coordinates for plotting
-    center_x, center_y = keepout_grid.shape[1] // 2, keepout_grid.shape[0] // 2
+    # Center coordinates
+    center_x = keepout_grid.shape[1] // 2
+    center_y = keepout_grid.shape[0] // 2
 
     # Add the socket locations to the plot, categorized by type
     for net_type, positions in socket_locations.items():
         for (x, y) in positions:
             # Adjust coordinates for the plot: shifting origin to the center of the grid
-            plot_x = (center_y + int(y / resolution))  # Adjust for numpy's row-major order (flip x and y)
-            plot_y = (center_x + int(x / resolution))
+            plot_x = center_y + int(y / resolution) # Adjust for numpy's row-major order (flip x and y)
+            plot_y = center_x + int(x / resolution)
 
             # Invert the x axis to match the traditional Cartesian coordinate system
             plot_x = keepout_grid.shape[0] - plot_x
 
-            # plt.scatter(plot_y, plot_x, c=colors(net_type), s=100, label=net_type, alpha=0.3)
-            plt.scatter(plot_y, plot_x, c=colors(net_type), s=10, alpha=1.0)
+            # ax.scatter(plot_y, plot_x, c=colors(net_type), s=100, label=net_type, alpha=0.3)
+            ax.scatter(plot_y, plot_x, c=color_for(net_type), s=10, alpha=1.0)
 
-     # Draw the routes
+    # Plot routes
     for net_type, paths in routes.items():
         for path in paths:
-            if path:  # Ensure there is a valid path
-                # print(path)
-                path_x, path_y, path_z = zip(*path)  # Coordinates are directly usable, no need for center adjustment
-                plt.plot(path_x, path_y, c=colors(net_type), linewidth=1, alpha=1.0, antialiased=False)  # Use the same color as the sockets
+            if path: # Ensure there is a valid path
+                path_x, path_y, path_z = zip(*path) # Coordinates are directly usable, no need for center adjustment
+                ax.plot(path_x, path_y, c=color_for(net_type),
+                        linewidth=1, alpha=1.0, antialiased=False) # Use the same color as the sockets
 
-    # Group lavels with the same name
-    # handles, labels = plt.gca().get_legend_handles_labels()
-    # by_label = dict(zip(labels, handles))
-    # plt.legend(by_label.values(), by_label.keys())
+    fig.tight_layout(pad=0)
 
-    plt.grid(False)
+    frame(fig)
 
-    plt.tight_layout(pad=0)
-    # plt.legend(title='Jacdac nets')
-    frame(plt)
+    # IMPORTANT: free memory
+    fig.clear()
 
-def frame(plt):
+def frame(fig):
     """
     Saves the current plot as a frame for a video.
     """
@@ -133,10 +140,12 @@ def frame(plt):
     os.makedirs(routing_imgs_folder, exist_ok=True)
 
     try:
-        plt.savefig(routing_imgs_folder / f"{frame_index}.png", transparent=True)
+        fig.savefig(routing_imgs_folder / f"{frame_index}.png", transparent=True)
     except Exception as e:
         print(f"🔴 Error saving frame {frame_index}: {e}")
     frame_index += 1
+
+    fig.clear() # Fix memory leak
 
 def video(name=""):
     """
