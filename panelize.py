@@ -94,23 +94,24 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
             target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
 
-            k = 0
-            for i in range(int(count["x"])):
-                for j in range(int(count["y"])):
-                    progress( 0.9 * (layer_index / layer_count) + ( 1 / layer_count ) * ( k / (count["x"] * count["y"]) ) )
-                    k += 1
-                    if (i == 0 and j == 0):
-                        continue  # Skip the original position
+            progress( 0.9 * (layer_index / layer_count))
+            for i in range(1, int(count["x"])):
+                dx = i * step["x"]
+                source.offset(dx, 0) # NOTE: Works with floats despite saying int, don't round
+                target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                target.merge(source)
+                target.save(target_path) # Save is super slow
+                source.offset(-dx, 0)  # Reset position
 
-                    # dx = i * step["x"] + gerber_origin["x"]
-                    # dy = -j * step["y"] - gerber_origin["y"]  # Invert Y axis
-                    dx = i * step["x"]
-                    dy = -j * step["y"]  # Invert Y axis
-                    source.offset(dx, dy) # NOTE: Works with floats despite saying int, don't round
-                    target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
-                    target.merge(source)
-                    target.save(target_path) # Save is super slow
-                    source.offset(-dx, -dy)  # Reset position
+            # Open target as source now to draw whole rows at once for massive speedup
+            source = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+            for j in range(1, int(count["y"])):
+                dy = -j * step["y"]  # Invert Y axis
+                source.offset(0, dy) # NOTE: Works with floats despite saying int, don't round
+                target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                target.merge(source)
+                target.save(target_path) # Save is super slow
+                source.offset(0, -dy)  # Reset position
 
     # Repeat and merge BOM
 
