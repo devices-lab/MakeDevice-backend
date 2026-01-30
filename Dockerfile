@@ -17,6 +17,29 @@ RUN apt-get update && apt-get install -y \
     libstdc++-arm-none-eabi-newlib \
     && rm -rf /var/lib/apt/lists/*
 
+# Install gerborlyze dependencies
+RUN apt-get install -y \
+    libopencv-dev \
+    libpugixml-dev \
+    libpangocairo-1.0-0 \
+    libpango1.0-dev \
+    libcairo2-dev \
+    clang \
+    make \
+    python3 \
+    git \
+    python3-wheel \
+    curl \
+    python3-pip \
+    python3-venv \
+    cargo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install gerborlyze
+RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
+RUN python3 -m pip install svg-flatten-wasi==3.1.6
+RUN cargo install usvg --version 0.34.1
+
 # Clone pico-sdk and picotool, then build picotool with PICO_SDK_PATH, then remove pico-sdk
 RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
     git clone https://github.com/raspberrypi/picotool.git picotool && \
