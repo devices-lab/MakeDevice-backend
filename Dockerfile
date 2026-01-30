@@ -5,6 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install dependencies for objcopy, picotool, and pico-sdk
+# libopencv-dev and onward are for gerborlyze (SmartPanelizer)
 RUN apt-get update && apt-get install -y \
     binutils \
     build-essential \
@@ -14,11 +15,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     gcc-arm-none-eabi \
     libnewlib-arm-none-eabi \
-    libstdc++-arm-none-eabi-newlib \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install gerborlyze dependencies (SmartPanelizer)
-RUN apt-get install -y \
+    libstdc++-arm-none-eabi-newlib \ 
     libopencv-dev \
     libpugixml-dev \
     libpangocairo-1.0-0 \
