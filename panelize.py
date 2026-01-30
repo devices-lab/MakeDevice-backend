@@ -3,9 +3,12 @@ from thread_context import thread_context
 
 # from process import merge_layers
 # from process import merge_stacks
-# from consolidate import consolidate_component_files
+from consolidate import consolidate_component_files
 from process import compress_directory
 from gerber_writer import DataLayer, Path as GPath
+
+from gerbonara import GerberFile, ExcellonFile
+import warnings
 
 import os
 import sys
@@ -20,6 +23,18 @@ def progress(value: float):
     with open(progress_file, 'w') as file:
         file.write(str(value * 100))
 
+
+# TYPE_COPPER = 'copper',
+# TYPE_SOLDERMASK = 'soldermask',
+# TYPE_SILKSCREEN = 'silkscreen',
+# TYPE_SOLDERPASTE = 'solderpaste',
+# TYPE_DRILL = 'drill',
+# TYPE_OUTLINE = 'outline',
+# TYPE_DRAWING = 'drawing',
+# TYPE_GERBER_SOCKETS = 'gerber_sockets',
+# TYPE_BOM = 'bom',
+# TYPE_PLACEMENT = 'placement',
+
 def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     print("🟢 = OK")
     print("🟠 = WARNING")
@@ -29,6 +44,77 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
     thread_context.job_id = job_id
     thread_context.job_folder = Path(job_folder)
+
+    # The Gerber layers we'd like to step, repeat and merge
+    repeat_folder = thread_context.job_folder / "repeat_gerbers"
+    os.makedirs(repeat_folder, exist_ok=True)
+
+    # Output folder for merged gerbers
+    output_folder = thread_context.job_folder / "output"
+    os.makedirs(output_folder, exist_ok=True)
+
+    count = data["fabSpec"]["count"]
+    step = data["fabSpec"]["step"]
+    gerber_origin = data["gerberOrigin"]
+
+    if (len(data["fileTextLayers"]) == 0):
+        print("🔴 No fileTextLayers provided")
+        return {
+            "failed": True
+        }
+
+    # Step, repeat and merge each Gerber and drill layer
+    layer_count = len(data["fileTextLayers"])
+    for layer_index in range(layer_count):
+        layer = data["fileTextLayers"][layer_index]
+
+        side = layer["layer"]["side"] if layer["layer"]["side"] is not None else "none"
+        type = layer["layer"]["type"] if layer["layer"]["type"] is not None else "none"
+        # Write each gerber file to the gerbers folder
+        layer_filename = type + "_" + side + (".gbr" if type != "drill" else ".drl") # NOTE: Expects only one of each type/side combination
+
+        # Skip simple gerber merging for these types
+        if (type == "none" or type == "outline" or type == "drawing" or type == "bom" or type == "placement"):
+            continue
+
+        with open(repeat_folder / layer_filename, 'w') as file:
+            file.write(layer["content"])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            # Step, repeat and merge the layer in gerbers_folder
+            source_path = repeat_folder / layer_filename
+            target_path = output_folder / layer_filename
+            source = GerberFile.open(source_path) if type != "drill" else ExcellonFile.open(source_path)
+            source.offset(gerber_origin["x"], -gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round
+            source.save(target_path)
+
+            print(f"🔵 Stepping and repeating {layer_filename}...")
+
+            target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+
+            k = 0
+            for i in range(int(count["x"])):
+                for j in range(int(count["y"])):
+                    progress( 0.9 * (layer_index / layer_count) + ( 1 / layer_count ) * ( k / (count["x"] * count["y"]) ) )
+                    k += 1
+                    if (i == 0 and j == 0):
+                        continue  # Skip the original position
+
+                    # dx = i * step["x"] + gerber_origin["x"]
+                    # dy = -j * step["y"] - gerber_origin["y"]  # Invert Y axis
+                    dx = i * step["x"]
+                    dy = -j * step["y"]  # Invert Y axis
+                    source.offset(dx, dy) # NOTE: Works with floats despite saying int, don't round
+                    target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                    target.merge(source)
+                    target.save(target_path) # Save is super slow
+                    source.offset(-dx, -dy)  # Reset position
+
+    # Repeat and merge BOM
+
+    # Step, repeat and merge placement files
 
     # Write start request data to files in the job folder
     with open(thread_context.job_folder / "copperTop.svg", 'w') as file:
@@ -40,6 +126,10 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     with open(thread_context.job_folder / "soldermaskBottom.svg", 'w') as file:
         file.write(data["soldermaskBottom"])
 
+    # Make panel folder
+    panel_folder = thread_context.job_folder / "panel"
+    os.makedirs(panel_folder, exist_ok=True)
+
     # Remove venv paths from PATH (svg-flatten set up at system level, not in venv)
     env = os.environ.copy()
     venv_bin = sys.prefix + "/bin"
@@ -47,20 +137,16 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         env["PATH"] = ":".join(p for p in env["PATH"].split(":") if p != venv_bin)
 
     # Turn SVG files into gerber files
-    progress(0.3)
-    subprocess.run(["wasi-svg-flatten", "copperTop.svg", "output/F_Cu.gtl"],
+    progress(0.95)
+    subprocess.run(["wasi-svg-flatten", "copperTop.svg", "panel/copper_top.gbr"],
                cwd=thread_context.job_folder, env=env)
-    progress(0.5)
-    subprocess.run(["wasi-svg-flatten", "copperBot.svg", "output/B_Cu.gbl"],
+    subprocess.run(["wasi-svg-flatten", "copperBot.svg", "panel/copper_bottom.gbr"],
                 cwd=thread_context.job_folder, env=env)
-    progress(0.7)
-    subprocess.run(["wasi-svg-flatten", "soldermaskTop.svg", "output/F_Mask.gts"],
+    subprocess.run(["wasi-svg-flatten", "soldermaskTop.svg", "panel/soldermask_top.gbr"],
                 cwd=thread_context.job_folder, env=env)
-    progress(0.9)
-    subprocess.run(["wasi-svg-flatten", "soldermaskBottom.svg", "output/B_Mask.gbs"],
+    progress(0.99)
+    subprocess.run(["wasi-svg-flatten", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
                 cwd=thread_context.job_folder, env=env)
-
-    output_dir = thread_context.job_folder / "output"
 
     # Use gerber-writer to add board outline
     outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
@@ -141,15 +227,12 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     outline_layer.add_traces_path(path, 0.15, 'Outline')
     
     # Write the Gerber file
-    file_path = os.path.join(output_dir, "Edge_Cuts.gm1")
+    file_path = os.path.join(output_folder, "outline_all.gbr")
     with open(file_path, 'w') as file:
         file.write(outline_layer.dumps_gerber())
 
     # Make via and bite holes (copper's already there for vias)
     via_hole_diameter = data["fabSpec"]["viaHoleDiameter"]
-    
-    # Ensure the output directory exists
-    os.makedirs(output_dir, exist_ok=True)
     
     # Drill file content
     timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -177,7 +260,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     content.append("M30") # End of program
 
     # Save drill file
-    file_path = os.path.join(output_dir, "PTH.drl")
+    file_path = os.path.join(panel_folder, "PTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
@@ -207,20 +290,44 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     content.append("M30") # End of program
 
     # Save drill file
-    file_path = os.path.join(output_dir, "NPTH.drl")
+    file_path = os.path.join(panel_folder, "NPTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
-    # Merge the GerberSockets layers from all individual modules
-    # gerbersockets_layer = merge_layers(
-    #     board.modules, loader.gerbersockets_layer_name, board.name
-    # )
 
-    # Suppress warnings from Gerbonara during generation
-    # with warnings.catch_warnings():
-    #     warnings.simplefilter("ignore")
-    #     generate(board)
-    #     merge_stacks(board.modules, board.name)
+    # Step, repeat and merge each Gerber and drill layer
+    for layer_filename in [
+        "copper_top.gbr", "copper_bottom.gbr", "soldermask_top.gbr", "soldermask_bottom.gbr"
+    ]:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            print(f"🔵 Merging panel layer: {layer_filename}...")
+
+            # Merge the panel layer in gerbers_folder
+            source_path = panel_folder / layer_filename
+            target_path = output_folder / layer_filename
+            source = GerberFile.open(source_path)
+            target = GerberFile.open(target_path)
+            target.merge(source)
+            target.save(target_path)
+
+
+    source_path = panel_folder / "PTH.drl"
+    target_path = output_folder / "drill_all.drl"
+    source = ExcellonFile.open(source_path)
+    target = ExcellonFile.open(target_path)
+    target.merge(source)
+    target.save(target_path)
+
+    source_path = panel_folder / "NPTH.drl"
+    target_path = output_folder / "drill_all.drl"
+    source = ExcellonFile.open(source_path)
+    target = ExcellonFile.open(target_path)
+    target.merge(source)
+    target.save(target_path)
+
+
     #     consolidate_component_files(board.modules, board.name)
 
     compress_directory(thread_context.job_folder / "output")

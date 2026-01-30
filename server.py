@@ -40,7 +40,7 @@ CORS(app)  # Enable CORS for all routes
 job_folder_base = Path("./storage/jobs")
 
 # The user doesn't need to know about these sorts of errors, enough to throw them and check the logs
-def validate_endpoint(data: RoutingStartRequest, endpoint: str):
+def validate_endpoint(data, endpoint: str):
     if data.get("endpoint") != endpoint:
         raise ValueError(f"Invalid endpoint: {data.get('endpoint')}. Expected: {endpoint}")
 

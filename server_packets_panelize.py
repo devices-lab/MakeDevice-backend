@@ -15,18 +15,23 @@ class Vec2(TypedDict):
     y: float
 
 class FabSpec(TypedDict):
+    count: Vec2
+    step: Vec2
     viaHoleDiameter: float
     biteHoleDiameter: float
 
-class StackupLayer(TypedDict):
+class Layer(TypedDict):
     side: str
     type: str
-    gerber: str
+
+class FileTextLayer(TypedDict):
+    layer: Layer
+    content: str
     filename: str
 
 class PanelizeStartRequest(TypedDict):
     endpoint: Literal["panelizeStart"]
-    stackupLayers: NotRequired[dict]
+    fileTextLayers: List[FileTextLayer]
     fabSpec: FabSpec
     boardOutlineD: str
     gerberOrigin: Vec2
