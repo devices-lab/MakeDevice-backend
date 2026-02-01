@@ -41,6 +41,7 @@ class PanelizeStartRequest(TypedDict):
     svgCopperBottom: str
     soldermaskTop: str
     soldermaskBottom: str
+    vcut: str
 
 
 class PanelizeProgressRequest(TypedDict):

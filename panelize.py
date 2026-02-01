@@ -126,6 +126,8 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         file.write(data["soldermaskTop"])
     with open(thread_context.job_folder / "soldermaskBottom.svg", 'w') as file:
         file.write(data["soldermaskBottom"])
+    with open(thread_context.job_folder / "vcut.svg", 'w') as file:
+        file.write(data["vcut"])
 
     # Make panel folder
     panel_folder = thread_context.job_folder / "panel"
@@ -147,6 +149,8 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
                 cwd=thread_context.job_folder, env=env)
     progress(0.99)
     subprocess.run(["wasi-svg-flatten", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
+                cwd=thread_context.job_folder, env=env)
+    subprocess.run(["wasi-svg-flatten", "vcut.svg", "output/vcut_all.gbr"],
                 cwd=thread_context.job_folder, env=env)
 
     # Use gerber-writer to add board outline
@@ -291,7 +295,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     content.append("M30") # End of program
 
     # Save drill file
-    file_path = os.path.join(panel_folder, "NPTH.drl")
+    file_path = os.path.join(output_folder, "NPTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
@@ -313,7 +317,15 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             target.merge(source)
             target.save(target_path)
 
+    # Put vcut on board outline layer (JLC requirement)
+    source_path = output_folder / "vcut_all.gbr"
+    target_path = output_folder / "outline_all.gbr"
+    source = GerberFile.open(source_path)
+    target = GerberFile.open(target_path)
+    target.merge(source)
+    target.save(target_path)
 
+    # Merge drill files  FIXME: Split into seperate PTH and NPTH files?
     source_path = panel_folder / "PTH.drl"
     target_path = output_folder / "drill_all.drl"
     source = ExcellonFile.open(source_path)
@@ -321,12 +333,12 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     target.merge(source)
     target.save(target_path)
 
-    source_path = panel_folder / "NPTH.drl"
-    target_path = output_folder / "drill_all.drl"
-    source = ExcellonFile.open(source_path)
-    target = ExcellonFile.open(target_path)
-    target.merge(source)
-    target.save(target_path)
+    # source_path = panel_folder / "NPTH.drl"
+    # target_path = output_folder / "drill_all.drl"
+    # source = ExcellonFile.open(source_path)
+    # target = ExcellonFile.open(target_path)
+    # target.merge(source)
+    # target.save(target_path)
 
 
     #     consolidate_component_files(board.modules, board.name)
