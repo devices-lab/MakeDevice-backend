@@ -28,7 +28,7 @@ class Layer(TypedDict):
 class FileTextLayer(TypedDict):
     layer: Layer
     content: str
-    filename: str
+    name: str
 
 class PanelizeStartRequest(TypedDict):
     endpoint: Literal["panelizeStart"]

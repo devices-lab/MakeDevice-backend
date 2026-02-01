@@ -72,6 +72,20 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         type = layer["layer"]["type"] if layer["layer"]["type"] is not None else "none"
         # Write each gerber file to the gerbers folder
         layer_filename = type + "_" + side + (".gbr" if type != "drill" else ".drl") # NOTE: Expects only one of each type/side combination
+        if (layer_filename == "drill_all.drl"):
+            # FIXME: How to really make sure PTH and NPTH are identified, kept seperate, and merged correctly?
+            if ("NPTH" in layer["name"]):
+                layer_filename = "NPTH.drl"
+            elif ("PTH" in layer["name"]):
+                layer_filename = "PTH.drl"
+            else:
+                print("🔴 Ambiguous drill layer filename, expected *PTH.drl or *NPTH.drl but got ", layer["name"])
+                return {
+                    "failed": True,
+                    "error": {
+                        "message": "Ambiguous drill layer filename, expected PTH.drl or NPTH.drl but got " + layer["name"]
+                    }
+                }
 
         # Skip simple gerber merging for these types
         if (type == "none" or type == "outline" or type == "drawing" or type == "bom" or type == "placement"):
@@ -301,7 +315,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     content.append("M30") # End of program
 
     # Save drill file
-    file_path = os.path.join(output_folder, "NPTH.drl")
+    file_path = os.path.join(panel_folder, "NPTH.drl")
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
@@ -330,22 +344,22 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     target = GerberFile.open(target_path)
     target.merge(source)
     target.save(target_path)
+    os.remove(source_path)  # Remove seperate vcut file after merging
 
-    # Merge drill files  FIXME: Split into seperate PTH and NPTH files?
+    # Merge PTH drill files
     source_path = panel_folder / "PTH.drl"
-    target_path = output_folder / "drill_all.drl"
+    target_path = output_folder / "PTH.drl"
     source = ExcellonFile.open(source_path)
     target = ExcellonFile.open(target_path)
     target.merge(source)
     target.save(target_path)
 
-    # source_path = panel_folder / "NPTH.drl"
-    # target_path = output_folder / "drill_all.drl"
-    # source = ExcellonFile.open(source_path)
-    # target = ExcellonFile.open(target_path)
-    # target.merge(source)
-    # target.save(target_path)
-
+    source_path = panel_folder / "NPTH.drl"
+    target_path = output_folder / "NPTH.drl"
+    source = ExcellonFile.open(source_path)
+    target = ExcellonFile.open(target_path)
+    target.merge(source)
+    target.save(target_path)
 
     #     consolidate_component_files(board.modules, board.name)
 
