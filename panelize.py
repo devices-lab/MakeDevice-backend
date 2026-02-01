@@ -271,6 +271,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
     # Make bite holes (non-plated)
     bite_hole_diameter = data["fabSpec"]["biteHoleDiameter"]
+    fab_rail_hole_diameter = data["fabSpec"]["fabRailHoleDiameter"]
     content = [
         "M48",
         f"; DRILL file SmartPanelizer date {timestamp}",
@@ -282,6 +283,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         "METRIC",
         "; #@! TA.AperFunction,Non-Plated,NPTH,BiteHole",
         f"T1C{bite_hole_diameter:.3f}",
+        f"T2C{fab_rail_hole_diameter:.3f}",
         "%",
         "G90",
         "G05",
@@ -290,6 +292,10 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
     # Adding drill locations from bite holes
     for drill_hole in data["biteHoles"]:
+        content.append(f"X{drill_hole['x']:.2f}Y{-drill_hole['y']:.2f}")  # Invert Y axis
+
+    content.append("T2")
+    for drill_hole in data["fabRailHoles"]:
         content.append(f"X{drill_hole['x']:.2f}Y{-drill_hole['y']:.2f}")  # Invert Y axis
 
     content.append("M30") # End of program

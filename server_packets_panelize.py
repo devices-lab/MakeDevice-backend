@@ -19,6 +19,7 @@ class FabSpec(TypedDict):
     step: Vec2
     viaHoleDiameter: float
     biteHoleDiameter: float
+    fabRailHoleDiameter: float
 
 class Layer(TypedDict):
     side: str
@@ -37,6 +38,7 @@ class PanelizeStartRequest(TypedDict):
     gerberOrigin: Vec2
     vias: List[Vec2]
     biteHoles: List[Vec2]
+    fabRailHoles: List[Vec2]
     svgCopperTop: str
     svgCopperBottom: str
     soldermaskTop: str
