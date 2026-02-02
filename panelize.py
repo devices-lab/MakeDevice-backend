@@ -392,6 +392,11 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     
     compress_directory(thread_context.job_folder / "output")
 
+    # Write to a text fail indicating zip ready
+    with open(thread_context.job_folder / "zip_ready.txt", 'w') as file:
+        file.write("ready")
+
+
     print("🟢 Finished job ID: ", thread_context.job_id)
 
     return {

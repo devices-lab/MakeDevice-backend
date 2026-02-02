@@ -462,9 +462,12 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
         print("🟠 No CPL data to write to consolidated CPL file.")
         return
 
+    print(cpl_entries)
+
     # Define old-to-new column mapping
     # HACK: JLCPCB wants these specific column names, that are different to what KiCad exports by default
     old_to_new = {
+        "Reference": "Designator",
         "Ref": "Designator",
         "Val": "Val",
         "Package": "Package",
@@ -486,7 +489,15 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
             for _, entry in cpl_entries.items():
                 old_row = entry["row"]
                 # Create new row using the mapping, and defaulting to old key if not found
-                new_row = {new_k: old_row.get(old_k, old_k) for old_k, new_k in old_to_new.items()}
+                new_row = {}
+                for old_key, new_key in old_to_new.items():
+                    old_val = old_row.get(old_key, None)
+                    if old_val is not None:
+                        # Use the 'new' mapped key
+                        new_row[new_key] = old_val
+                    else:
+                        # Assume the old key is valid as-is, so copy it over
+                        new_row[new_key] = old_row.get(old_key, "")
 
                 writer.writerow(new_row)
 

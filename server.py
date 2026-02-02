@@ -214,9 +214,12 @@ def pcb_artifact():
         }
         return jsonify(response), 200
 
-    zip_path = job_folder_base / job_id / "output.zip"
+    job_folder = job_folder_base / job_id
+    zip_path = job_folder / "output.zip"
     # Check if there's an output.zip file
-    if not os.path.exists(zip_path):
+
+    zip_ready = os.path.exists(zip_path) and os.path.exists(job_folder / "zip_ready.txt")
+    if not zip_ready:
         response: PCBArtifactResponse = {
             "endpoint": "pcbArtifact",
             "error": {
