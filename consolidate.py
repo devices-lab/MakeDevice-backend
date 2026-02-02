@@ -485,8 +485,9 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
 
             for _, entry in cpl_entries.items():
                 old_row = entry["row"]
-                # Create new row using the mapping
-                new_row = {new_k: old_row.get(old_k, "") for old_k, new_k in old_to_new.items()}
+                # Create new row using the mapping, and defaulting to old key if not found
+                new_row = {new_k: old_row.get(old_k, old_k) for old_k, new_k in old_to_new.items()}
+
                 writer.writerow(new_row)
 
         print(f"🟢 Consolidated CPL written to: {output_file_path}")
