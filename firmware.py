@@ -34,7 +34,7 @@ import os
 import sys
 import subprocess
 
-from thread_context import thread_context
+import thread_context
 
 def load_json(json_data):
     """Load JSON data and return lists of brain modules and peripherals."""

@@ -7,7 +7,7 @@ from module import Module
 from layer import Layer
 from objects import Point
 
-from thread_context import thread_context
+import thread_context
     
 class Board:
     def __init__(self, loader: Loader, sockets: Optional[Sockets] = None, zones: Optional[Zones] = None):

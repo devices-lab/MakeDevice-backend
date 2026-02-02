@@ -9,6 +9,7 @@ import threading
 import random
 import string
 
+import thread_context
 from upload import upload_jlc, upload_euro, upload_aisler
 
 from server_packets import (
@@ -338,7 +339,7 @@ def panelize_progress():
                     print(f"🔴 Warning: Invalid progress value in {progress_file}: '{content}'")
                     progress = 0.0
             
-    error_message = None
+    error_message = thread_context.error_message
     if error_message:
         response: PanelizeProgressResponse = {
             "endpoint": "panelizeProgress",

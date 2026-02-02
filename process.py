@@ -7,7 +7,7 @@ from typing import Union, List, Optional
 
 from module import Module
 
-from thread_context import thread_context
+import thread_context
 
 def merge_layers(modules:List[Module], layer_name, board_name, modules_dir='./backend_module_data', output_dir='./output') -> GerberFile | None:
     """

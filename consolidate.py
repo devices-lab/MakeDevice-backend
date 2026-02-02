@@ -4,7 +4,14 @@ from typing import List, Dict, Tuple
 import math
 
 from module import Module
-from thread_context import thread_context
+import thread_context
+
+def error(message: str):
+    thread_context.error_message = message
+    print("🔴 ", message)
+    return {
+        "failed": True
+    }
 
 def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./backend_module_data', output_dir='./output') -> None:
     """
@@ -95,6 +102,28 @@ def consolidate_component_files(modules: List[Module], board_name: str, modules_
     # Write consolidated CPL to output file
     write_consolidated_cpl(cpl_entries, output_dir_path, board_name)
 
+def try_col_names(row: Dict, col_names: List[str]) -> str:
+    """
+    Tries to find a column in the row that matches any of the provided column names.
+    
+    Parameters:
+        row (Dict): A dictionary representing a CSV row.
+        col_names (List[str]): A list of possible column names.
+        
+    Returns:
+        str: The value of the first matching column found, or an empty string if none found.
+    """
+    found_col_names = []
+    for col in col_names:
+        if col in row:
+            found_col_names.append(col)
+    if len(found_col_names) == 1:
+        return found_col_names[0]
+    elif len(found_col_names) > 1:
+        error("Multiple matching columns found: " + ", ".join(found_col_names))
+    else:
+        error("No matching columns found among: " + ", ".join(col_names))
+    return ""
 
 def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module, 
                     ref_mapping: Dict, all_components: Dict, used_refs: set, module_idx: int) -> None:
@@ -113,6 +142,11 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
     Returns:
         None
     """
+    # Define accepted column names
+    cpl_ref_col_names = ["Reference", "Ref", "Designator"] # Only seen "Ref" so far
+    bom_ref_col_names = cpl_ref_col_names
+    bom_value_col_names = ["Value", "Val", "Designation"] # Also seen "Comment"
+
     try:
         # First, read the CPL file to get a list of actual components placed
         cpl_refs = set()
@@ -121,9 +155,9 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
         with open(cpl_file_path, 'r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                designator = row.get("Ref", "").strip()
+                designator = row.get(try_col_names(row, cpl_ref_col_names), "").strip()
                 if designator:
-                    cpl_refs.add(designator)
+                    cpl_refs.add(designator) # Does this handle grouped?
                     cpl_data[designator] = row
         
         # Now process the BOM file
@@ -134,15 +168,16 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
             fieldnames = reader.fieldnames
             
             if not fieldnames:
-                print(f"🔴 Invalid BOM file format for: {bom_file_path}")
+                error(f"BOM file not in CSV format: {bom_file_path}")
                 return
             
             # Process each component
             for row in reader:
-                value = row.get("Value", "")
+                value = row.get(try_col_names(row, bom_value_col_names), "").strip()
                 package = row.get("Package", "")
                 lcsc_part = row.get("LCSC Part", "").strip()
-                references = row.get("Reference", "").split(',')
+
+                references = row.get(try_col_names(row, bom_ref_col_names), "").split(',')
                 
                 # Process each reference designator
                 for ref in references:
@@ -189,7 +224,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                     }
     
     except Exception as e:
-        print(f"🔴 Error collecting references from files: {e}")
+        error("Error collecting references from files: {e}")
 
 
 def group_components(all_components: Dict) -> Dict:

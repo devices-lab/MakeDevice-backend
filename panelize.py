@@ -1,9 +1,9 @@
 from pathlib import Path
-from thread_context import thread_context
+import thread_context
 
 # from process import merge_layers
 # from process import merge_stacks
-from consolidate import consolidate_component_files
+from consolidate import collect_references, process_cpl_file, group_components, write_consolidated_bom, write_consolidated_cpl
 from process import compress_directory
 from gerber_writer import DataLayer, Path as GPath
 
@@ -18,10 +18,19 @@ from datetime import datetime
 
 from server_packets_panelize import PanelizeStartRequest
 
+from module import Module
+
 def progress(value: float):
     progress_file = thread_context.job_folder / "progress.txt"
     with open(progress_file, 'w') as file:
         file.write(str(value * 100))
+
+def error(message: str):
+    thread_context.error_message = message
+    print("🔴 ", message)
+    return {
+        "failed": True
+    }
 
 
 # TYPE_COPPER = 'copper',
@@ -58,10 +67,40 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     gerber_origin = data["gerberOrigin"]
 
     if (len(data["fileTextLayers"]) == 0):
-        print("🔴 No fileTextLayers provided")
-        return {
-            "failed": True
-        }
+        return error("No fileTextLayers provided")
+
+
+
+    # Save BOM and placement files to ./assembly
+    assembly_folder = thread_context.job_folder / "assembly"
+    os.makedirs(assembly_folder, exist_ok=True)
+
+    # Find fileTextLayers for BOM and placement
+    bom_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "bom"), None)
+    placement_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "placement"), None)
+
+    missing_file = False
+    if bom_layer is not None:
+        with open(assembly_folder / "BOM.csv", 'w') as file:
+            file.write(bom_layer["content"])
+    else:
+        missing_file = "No BOM layer found"
+    if placement_layer is not None:
+        with open(assembly_folder / "CPL.csv", 'w') as file:
+            file.write(placement_layer["content"])
+    else:
+        missing_file = "No placement layer found"
+
+    if missing_file:
+        return error(missing_file)
+
+    # Repeat and merge BOM
+    # Step, repeat and merge placement files
+    failed = consolidate_component_files(count, step, gerber_origin)
+    if failed.get("failed", False):
+        return failed
+
+
 
     # Step, repeat and merge each Gerber and drill layer
     layer_count = len(data["fileTextLayers"])
@@ -79,13 +118,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             elif ("PTH" in layer["name"]):
                 layer_filename = "PTH.drl"
             else:
-                print("🔴 Ambiguous drill layer filename, expected *PTH.drl or *NPTH.drl but got ", layer["name"])
-                return {
-                    "failed": True,
-                    "error": {
-                        "message": "Ambiguous drill layer filename, expected PTH.drl or NPTH.drl but got " + layer["name"]
-                    }
-                }
+                return error("Ambiguous drill layer filename, expected PTH.drl or NPTH.drl but got " + layer["name"])
 
         # Skip simple gerber merging for these types
         if (type == "none" or type == "outline" or type == "drawing" or type == "bom" or type == "placement"):
@@ -126,10 +159,6 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
                 target.merge(source)
                 target.save(target_path) # Save is super slow
                 source.offset(0, -dy)  # Reset position
-
-    # Repeat and merge BOM
-
-    # Step, repeat and merge placement files
 
     # Write start request data to files in the job folder
     with open(thread_context.job_folder / "copperTop.svg", 'w') as file:
@@ -360,12 +389,80 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     target = ExcellonFile.open(target_path)
     target.merge(source)
     target.save(target_path)
-
-    #     consolidate_component_files(board.modules, board.name)
-
+    
     compress_directory(thread_context.job_folder / "output")
 
     print("🟢 Finished job ID: ", thread_context.job_id)
+
+    return {
+        "failed": False
+    }
+
+def consolidate_component_files(count, step, gerber_origin) -> dict:
+    """
+    Adaptation of same-named function from consolidate.py to work for panelization
+    """
+    # Convert paths to Path objects
+    output_dir = thread_context.job_folder / "output"
+    assembly_dir = thread_context.job_folder / "assembly"
+    bom_file_path = assembly_dir / "BOM.csv"
+    cpl_file_path = assembly_dir / "CPL.csv"
+
+    # Dictionary to store all components with their unique reference designators
+    # ~~Key format: "module_index:module_name:original_ref" -> ensures uniqueness across duplicate modules~~
+    all_components = {}
+    
+    # Dictionary to track reference designator remapping
+    # Key: "module_index:module_name:original_ref", Value: "new_unique_ref"
+    ref_mapping = {}
+    
+    # Dictionary to track the CPL data for each component
+    cpl_entries = {}
+    
+    # Track used reference prefixes to avoid duplicates
+    used_refs = set()
+    
+    modules = []
+
+    # First pass: collect all reference designators and assign unique ones
+    for y_index in range(int(count["y"])):
+        for x_index in range(int(count["x"])):
+
+            # Pretend the user's board is a module to reuse existing code
+            module = Module("panel_board", "1.0", (
+                x_index * step["x"] + gerber_origin["x"],
+                y_index * step["y"] + gerber_origin["y"]
+            ), 0)
+            modules.append(module)
+
+            # Process BOM file and collect references - using module_idx to ensure uniqueness
+            collect_references(
+                bom_file_path, 
+                cpl_file_path, 
+                module, 
+                ref_mapping, 
+                all_components, 
+                used_refs, 
+                len(modules) - 1
+            )
+    print(f"🔵 Created {len(all_components)} component instances from BOM")
+    
+    # Process component grouping (same value and package get same part number)
+    component_groups = group_components(all_components)
+    print(f"🔵 Created {len(component_groups)} groups of same component")
+    
+    # Second pass: Process CPL files with updated reference designators
+    for module_idx, module in enumerate(modules):
+        # Process CPL file with updated references - using module_idx to match with first pass
+        process_cpl_file(cpl_file_path, module, ref_mapping, cpl_entries, module_idx)
+    
+    # Write consolidated BOM to output file
+    write_consolidated_bom(component_groups, output_dir, "panel")
+    os.rename(output_dir / "BOM_panel.csv", output_dir / "full_panel_BOM.csv")
+    
+    # Write consolidated CPL to output file
+    write_consolidated_cpl(cpl_entries, output_dir, "panel")
+    os.rename(output_dir / "CPL_panel-top-pos.csv", output_dir / "full_panel_CPL.csv")
 
     return {
         "failed": False

@@ -17,7 +17,7 @@ matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib (since ser
 
 do_video = True
 
-from thread_context import thread_context
+import thread_context
 
 def generate_test_grid(dimensions):
     width, height = dimensions

@@ -14,7 +14,7 @@ from objects import Point, Segment
 from router import Router
 import debug
 
-from thread_context import thread_context
+import thread_context
     
 class BusRouter(Router):
     """

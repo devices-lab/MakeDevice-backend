@@ -4,7 +4,7 @@ from datetime import datetime
 
 from board import Board
 
-from thread_context import thread_context
+import thread_context
 
 def generate(board: Board, output_dir="./generated"):
     output_dir = thread_context.job_folder / output_dir
