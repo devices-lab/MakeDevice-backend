@@ -274,7 +274,8 @@ def group_components(all_components: Dict) -> Dict:
     
     return component_groups
 
-
+# TODO: We parse the CPL col names here, and then again in write_consolidated_cpl
+# remove duplication and make it clear what col names we match (and allow multiple kinds)
 def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl_entries: Dict, module_idx: int) -> None:
     """
     Processes a CPL file and adjusts positions and rotations based on module placement.
@@ -461,8 +462,6 @@ def write_consolidated_cpl(cpl_entries: Dict, output_dir_path: Path, board_name:
     if not cpl_entries:
         print("🟠 No CPL data to write to consolidated CPL file.")
         return
-
-    print(cpl_entries)
 
     # Define old-to-new column mapping
     # HACK: JLCPCB wants these specific column names, that are different to what KiCad exports by default

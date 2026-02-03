@@ -223,7 +223,7 @@ def pcb_artifact():
         response: PCBArtifactResponse = {
             "endpoint": "pcbArtifact",
             "error": {
-                "message": "Routing still in progress or stuck.",
+                "message": "Artifact zip file is not yet ready.",
             }
         }
         return jsonify(response), 200

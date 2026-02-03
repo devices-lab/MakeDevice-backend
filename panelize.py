@@ -79,26 +79,27 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     bom_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "bom"), None)
     placement_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "placement"), None)
 
-    missing_file = False
+    missing_assembly_data = False
     if bom_layer is not None:
         with open(assembly_folder / "BOM.csv", 'w') as file:
             file.write(bom_layer["content"])
     else:
-        missing_file = "No BOM layer found"
+        missing_assembly_data = "No BOM layer found"
     if placement_layer is not None:
         with open(assembly_folder / "CPL.csv", 'w') as file:
             file.write(placement_layer["content"])
     else:
-        missing_file = "No placement layer found"
+        missing_assembly_data = "No placement layer found"
 
-    if missing_file:
-        return error(missing_file)
+    if missing_assembly_data:
+        print("🟠 " + missing_assembly_data + " - proceeding without assembly data")
 
     # Repeat and merge BOM
     # Step, repeat and merge placement files
-    failed = consolidate_component_files(count, step, gerber_origin)
-    if failed.get("failed", False):
-        return failed
+    if (not missing_assembly_data):
+        failed = consolidate_component_files(count, step, gerber_origin)
+        if failed.get("failed", False):
+            return failed
 
 
 
@@ -109,8 +110,12 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
         side = layer["layer"]["side"] if layer["layer"]["side"] is not None else "none"
         type = layer["layer"]["type"] if layer["layer"]["type"] is not None else "none"
+        if (type in ["drill-pth", "drill-npth"]):
+            type = "drill"
+
         # Write each gerber file to the gerbers folder
         layer_filename = type + "_" + side + (".gbr" if type != "drill" else ".drl") # NOTE: Expects only one of each type/side combination
+        # TODO: We shouldn't be identifying layers here, they should have been pre-identified (side and type properties)
         if (layer_filename == "drill_all.drl"):
             # FIXME: How to really make sure PTH and NPTH are identified, kept seperate, and merged correctly?
             if ("NPTH" in layer["name"]):
@@ -118,7 +123,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             elif ("PTH" in layer["name"]):
                 layer_filename = "PTH.drl"
             else:
-                return error("Ambiguous drill layer filename, expected PTH.drl or NPTH.drl but got " + layer["name"])
+                return error("Ambiguous drills: Expected 'PTH' or 'NPTH' in drill layer filename, but got " + layer["name"])
 
         # Skip simple gerber merging for these types
         if (type == "none" or type == "outline" or type == "drawing" or type == "bom" or type == "placement"):
@@ -176,7 +181,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     panel_folder = thread_context.job_folder / "panel"
     os.makedirs(panel_folder, exist_ok=True)
 
-    # Remove venv paths from PATH (svg-flatten set up at system level, not in venv)
+    # Remove venv paths from PATH to access svg-flatten (svg-flatten is setup at system level, not in venv)
     env = os.environ.copy()
     venv_bin = sys.prefix + "/bin"
     if "site-packages" in sys.prefix or "venv" in sys.prefix:
@@ -349,7 +354,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         file.write('\n'.join(content))
 
 
-    # Step, repeat and merge each Gerber and drill layer
+    # Merge the generated panel layers into the (step and repeated) user gerber layers
     for layer_filename in [
         "copper_top.gbr", "copper_bottom.gbr", "soldermask_top.gbr", "soldermask_bottom.gbr"
     ]:
@@ -464,7 +469,7 @@ def consolidate_component_files(count, step, gerber_origin) -> dict:
     # Write consolidated BOM to output file
     write_consolidated_bom(component_groups, output_dir, "panel")
     os.rename(output_dir / "BOM_panel.csv", output_dir / "full_panel_BOM.csv")
-    
+
     # Write consolidated CPL to output file
     write_consolidated_cpl(cpl_entries, output_dir, "panel")
     os.rename(output_dir / "CPL_panel-top-pos.csv", output_dir / "full_panel_CPL.csv")

@@ -143,7 +143,7 @@ def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: 
             
         # Process all other acceptable file types
         if (not is_board_outline and source_file_path.suffix.upper() not in 
-            ['.GBR', '.DRL', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP']):
+            ['.GBR', '.DRL', '.XLN', '.GTL', '.GBL', '.GTS', '.GBS', '.GTO', '.GBO', '.G2', '.G3', '.GTP', '.GBP']):
             print(f"🟠 Skipping file for merging: {source_file_path}")
             continue
         
@@ -153,7 +153,7 @@ def merge_directories(target_dir_path: Path, source_dir_path: Path, board_name: 
         target_file_path = target_dir_path / new_file_name
 
         # Determine the type of file based on the extension
-        if source_file_path.suffix.upper() == '.DRL':
+        if source_file_path.suffix.upper() == '.DRL' or source_file_path.suffix.upper() == '.XLN':
             source_file = ExcellonFile.open(source_file_path)
             target_file = ExcellonFile.open(target_file_path) if target_file_path.exists() else None
             
