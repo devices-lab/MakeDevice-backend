@@ -35,17 +35,6 @@ def error(message: str):
     # }
 
 
-# TYPE_COPPER = 'copper',
-# TYPE_SOLDERMASK = 'soldermask',
-# TYPE_SILKSCREEN = 'silkscreen',
-# TYPE_SOLDERPASTE = 'solderpaste',
-# TYPE_DRILL = 'drill',
-# TYPE_OUTLINE = 'outline',
-# TYPE_DRAWING = 'drawing',
-# TYPE_GERBER_SOCKETS = 'gerber_sockets',
-# TYPE_BOM = 'bom',
-# TYPE_PLACEMENT = 'placement',
-
 def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     print("🟢 = OK")
     print("🟠 = WARNING")
@@ -396,6 +385,37 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     target = ExcellonFile.open(target_path)
     target.merge(source)
     target.save(target_path)
+
+    # Convert all .gbr to protel extensions (not required, but might help with layer identification)
+    for file in os.listdir(output_folder):
+        if file.endswith(".gbr"):
+            base = os.path.splitext(file)[0]
+            ext = ""
+            if "copper_top" in base:
+                ext = ".GTL"
+            elif "copper_bottom" in base:
+                ext = ".GBL"
+            elif "soldermask_top" in base:
+                ext = ".GTS"
+            elif "soldermask_bottom" in base:
+                ext = ".GBS"
+            elif "silkscreen_top" in base:
+                ext = ".GTO"
+            elif "silkscreen_bottom" in base:
+                ext = ".GBO"
+            elif "outline_all" in base:
+                ext = ".GM1"
+            elif "solderpaste_top" in base:
+                ext = ".GTP"
+            elif "solderpaste_bottom" in base:
+                ext = ".GBP"
+            else:
+                continue  # Skip files that don't match known types
+
+            os.rename(
+                output_folder / file,
+                output_folder / (base + ext)
+            )
     
     compress_directory(thread_context.job_folder / "output")
 
