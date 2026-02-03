@@ -28,9 +28,11 @@ def progress(value: float):
 def error(message: str):
     thread_context.error_message = message
     print("🔴 ", message)
-    return {
-        "failed": True
-    }
+    # Stop the thread when error occurs
+    raise Exception(message)
+    # return {
+    #     "failed": True
+    # }
 
 
 # TYPE_COPPER = 'copper',
@@ -468,11 +470,19 @@ def consolidate_component_files(count, step, gerber_origin) -> dict:
     
     # Write consolidated BOM to output file
     write_consolidated_bom(component_groups, output_dir, "panel")
-    os.rename(output_dir / "BOM_panel.csv", output_dir / "full_panel_BOM.csv")
+    bom_name = "BOM_panel.csv"
+    if (output_dir / bom_name).exists():
+        os.rename(output_dir / bom_name, output_dir / "full_panel_BOM.csv")
+    else:
+        error("Failed to write consolidated BOM file")
 
     # Write consolidated CPL to output file
     write_consolidated_cpl(cpl_entries, output_dir, "panel")
-    os.rename(output_dir / "CPL_panel-top-pos.csv", output_dir / "full_panel_CPL.csv")
+    cpl_name = "CPL_panel-top-pos.csv"
+    if (output_dir / cpl_name).exists():
+        os.rename(output_dir / cpl_name, output_dir / "full_panel_CPL.csv")
+    else:
+        error("Failed to write consolidated CPL file")
 
     return {
         "failed": False

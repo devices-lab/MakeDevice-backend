@@ -9,9 +9,10 @@ import thread_context
 def error(message: str):
     thread_context.error_message = message
     print("🔴 ", message)
-    return {
-        "failed": True
-    }
+    raise Exception(message)
+    # return {
+    #     "failed": True
+    # }
 
 def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./backend_module_data', output_dir='./output') -> None:
     """
