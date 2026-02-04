@@ -115,15 +115,18 @@ def try_col_names(row: Dict, col_names: List[str]) -> str:
         str: The value of the first matching column found, or an empty string if none found.
     """
     found_col_names = []
+    keys = row.keys()
+    keysTrimmed = [k.strip() for k in keys] # Columns had weird whitespace char: '﻿  Value, Ref'
     for col in col_names:
-        if col in row:
+        if col in keysTrimmed:
             found_col_names.append(col)
     if len(found_col_names) == 1:
         return found_col_names[0]
     elif len(found_col_names) > 1:
-        error("Multiple matching columns found: " + ", ".join(found_col_names))
+        error("Multiple matching columns found: " + ", ".join(found_col_names) + " for row with columns: '" + ", ".join(row.keys()) + "'")
     else:
-        error("No matching columns found among: " + ", ".join(col_names))
+        print(row)
+        error("No matching columns found among: '" + ", ".join(col_names) + "' for row with columns: '" + ", ".join(row.keys()) + "'")
     return ""
 
 def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module, 
@@ -153,7 +156,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
         cpl_refs = set()
         cpl_data = {}
         
-        with open(cpl_file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(cpl_file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 designator = row.get(try_col_names(row, cpl_ref_col_names), "").strip()
@@ -162,7 +165,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                     cpl_data[designator] = row
         
         # Now process the BOM file
-        with open(bom_file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(bom_file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             
             # Get the fieldnames to ensure we maintain the original format
@@ -293,7 +296,7 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
         None
     """
     try:
-        with open(cpl_file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(cpl_file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile)
             
             # Get the fieldnames to ensure we maintain the original format
