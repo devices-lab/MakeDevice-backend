@@ -531,6 +531,14 @@ class BusRouter(Router):
             
             # Add multi-socket horizontal groups
             for y, group in y_groups.items():
+                # filter sockets that are already in vertical groups
+                filtered_group = []
+                for socket_info in group:
+                    socket_key = (socket_info[0], tuple(socket_info[1]))
+                    if socket_key not in added_sockets:
+                        filtered_group.append(socket_info)
+                group = filtered_group
+                
                 if len(group) > 1: 
                     # Calculate the average x position for this group
                     avg_x = sum(s[1][0] for s in group) / len(group)
