@@ -52,18 +52,9 @@ class RoutingDebugger:
         self.status_ax = self.fig.add_subplot(panel_grid[1, 0])
         self.fig.canvas.mpl_connect("key_press_event", self._on_key)
         self.fig.canvas.mpl_connect("pick_event", self._on_pick)
-        self.info_text = self.ax.text(
-            0.01,
-            0.99,
-            "",
-            transform=self.ax.transAxes,
-            ha="left",
-            va="top",
-            fontsize=9,
-            color="#2D3748",
-            bbox=dict(facecolor="#FFFFFF", alpha=0.92, edgecolor="#CBD5E0", boxstyle="round,pad=0.5"),
-            zorder=20,
-        )
+        self.fig.canvas.mpl_connect("button_press_event", self._on_click)
+        self.tooltip = None
+        self.highlight_artist = None
         if not has_display:
             self.step_mode = False
 
@@ -104,9 +95,11 @@ class RoutingDebugger:
             self.plt.close(self.fig)
 
     def _on_pick(self, event) -> None:
+        print(f"🔵 Pick event received! Artist type: {type(event.artist)}")
         artist = event.artist
         if artist in self._artist_info:
-            self._set_info(self._artist_info[artist])
+            info = self._artist_info[artist]
+            print(f"🔵 Picked: {info}")
             return
         if artist in self._socket_meta and hasattr(event, "ind") and event.ind is not None:
             indices = event.ind
@@ -115,7 +108,158 @@ class RoutingDebugger:
                 idx = indices[0]
                 net_name = meta["net"]
                 pos = meta["positions"][idx]
-                self._set_info(f"socket | net={net_name} | x={pos[0]:.2f}, y={pos[1]:.2f}")
+                info = f"socket | net={net_name} | x={pos[0]:.2f}, y={pos[1]:.2f}"
+                print(f"🔵 Picked: {info}")
+
+    def _on_click(self, event) -> None:
+        if event.inaxes != self.ax:
+            return
+        if event.xdata is None or event.ydata is None:
+            return
+        print(f"🔵 Click at x={event.xdata:.2f}, y={event.ydata:.2f}")
+        
+        # Remove previous highlight and tooltip
+        if self.highlight_artist:
+            try:
+                self.highlight_artist.remove()
+            except:
+                pass
+            self.highlight_artist = None
+        
+        if self.tooltip:
+            try:
+                self.tooltip.remove()
+            except:
+                pass
+            self.tooltip = None
+        
+        # Find closest element to click
+        click_x, click_y = event.xdata, event.ydata
+        min_dist = float('inf')
+        closest_info = None
+        highlight_pos = None
+        highlight_type = None
+        
+        # Check sockets
+        for net_name, positions in self.board.sockets.socket_locations.items():
+            for pos in positions:
+                dist = ((pos[0] - click_x)**2 + (pos[1] - click_y)**2)**0.5
+                if dist < min(min_dist, 1.0):  # Within 1mm
+                    min_dist = dist
+                    closest_info = f"SOCKET\nNet: {net_name}\nPosition: ({pos[0]:.2f}, {pos[1]:.2f}) mm"
+                    highlight_pos = pos
+                    highlight_type = "socket"
+        
+        # Check vias
+        if hasattr(self.router, 'vias_indices'):
+            for net_name, vias in self.router.vias_indices.items():
+                for x, y in vias:
+                    point = self.router._indices_to_point(x, y)
+                    dist = ((point.x - click_x)**2 + (point.y - click_y)**2)**0.5
+                    if dist < min(min_dist, 0.5):  # Within 0.5mm
+                        min_dist = dist
+                        closest_info = f"VIA\nNet: {net_name}\nPosition: ({point.x:.2f}, {point.y:.2f}) mm"
+                        highlight_pos = (point.x, point.y)
+                        highlight_type = "via"
+        
+        # Check buses
+        if hasattr(self.router, 'buses_layer') and self.router.buses_layer:
+            for segment in self.router.buses_layer.segments:
+                # Distance to vertical line
+                if abs(click_x - segment.start.x) < 0.5:
+                    if min(segment.start.y, segment.end.y) <= click_y <= max(segment.start.y, segment.end.y):
+                        closest_info = (
+                            f"BUS\nNet: {segment.net}\nLayer: {segment.layer}\n"
+                            f"Start: ({segment.start.x:.2f}, {segment.start.y:.2f})\n"
+                            f"End: ({segment.end.x:.2f}, {segment.end.y:.2f})"
+                        )
+                        highlight_pos = (segment.start.x, click_y)
+                        highlight_type = "bus"
+                        min_dist = 0
+                        break
+        
+        # Check traces
+        if hasattr(self.router, 'paths_indices'):
+            for net_name, paths in self.router.paths_indices.items():
+                for path in paths:
+                    if len(path) < 2:
+                        continue
+                    points = [self.router._indices_to_point(x, y).as_tuple() for x, y, _ in path]
+                    for i in range(1, len(points)):
+                        x0, y0 = points[i-1]
+                        x1, y1 = points[i]
+                        # Check if click is near this segment
+                        seg_len = ((x1-x0)**2 + (y1-y0)**2)**0.5
+                        if seg_len < 0.001:
+                            continue
+                        # Distance from point to line segment
+                        t = max(0, min(1, ((click_x-x0)*(x1-x0) + (click_y-y0)*(y1-y0)) / (seg_len**2)))
+                        proj_x = x0 + t*(x1-x0)
+                        proj_y = y0 + t*(y1-y0)
+                        dist = ((click_x-proj_x)**2 + (click_y-proj_y)**2)**0.5
+                        if dist < min(min_dist, 0.5):
+                            min_dist = dist
+                            length = sum(((points[j][0]-points[j-1][0])**2 + (points[j][1]-points[j-1][1])**2)**0.5 
+                                       for j in range(1, len(points)))
+                            closest_info = f"TRACE\nNet: {net_name}\nPoints: {len(points)}\nLength: {length:.2f} mm"
+                            highlight_pos = (proj_x, proj_y)
+                            highlight_type = "trace"
+        
+        if closest_info:
+            print(f"🟢 Found: {closest_info}")
+            
+            # Create tooltip annotation at the highlight position
+            if highlight_pos:
+                self.tooltip = self.ax.annotate(
+                    closest_info,
+                    xy=highlight_pos,
+                    xytext=(20, 20),
+                    textcoords='offset points',
+                    fontsize=10,
+                    fontweight='bold',
+                    color='#1A202C',
+                    bbox=dict(
+                        boxstyle='round,pad=0.8',
+                        facecolor='#FFF9E6',
+                        edgecolor='#F59E0B',
+                        linewidth=3,
+                        alpha=0.98
+                    ),
+                    arrowprops=dict(
+                        arrowstyle='->',
+                        connectionstyle='arc3,rad=0.3',
+                        color='#F59E0B',
+                        linewidth=2
+                    ),
+                    zorder=100
+                )
+            
+            # Add highlight circle
+            if highlight_pos and highlight_type in ["socket", "via"]:
+                self.highlight_artist = Circle(
+                    highlight_pos, 
+                    radius=0.5, 
+                    edgecolor='#F59E0B', 
+                    facecolor='none',
+                    linewidth=3, 
+                    zorder=99
+                )
+                self.ax.add_patch(self.highlight_artist)
+            elif highlight_pos and highlight_type in ["bus", "trace"]:
+                self.highlight_artist = Circle(
+                    highlight_pos, 
+                    radius=0.3, 
+                    edgecolor='#F59E0B', 
+                    facecolor='#F59E0B',
+                    alpha=0.6,
+                    linewidth=2, 
+                    zorder=99
+                )
+                self.ax.add_patch(self.highlight_artist)
+            
+            self.fig.canvas.draw_idle()
+        else:
+            print(f"🟡 No element found near click")
 
     def step(
         self,
@@ -158,9 +302,6 @@ class RoutingDebugger:
         if net_name:
             title = f"{stage} | net={net_name}"
         self.ax.set_title(title)
-
-        if self.step_mode:
-            self._set_info("Step mode: press Space/Enter/n to advance, c=continue, p=pause, q=quit")
 
         self._draw_panel(stage, net_name)
 
@@ -443,7 +584,9 @@ class RoutingDebugger:
 
     def _set_info(self, text: str) -> None:
         self.info_text.set_text(text)
+        self.info_text.set_visible(True)
         self.fig.canvas.draw_idle()
+        self.plt.pause(0.001)
 
     def _apply_theme(self) -> None:
         self.plt.rcParams.update(
