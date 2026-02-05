@@ -20,24 +20,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Download prebuilt picotool binary (architecture-aware)
+# Download prebuilt picotool binary from pico-sdk-tools (architecture-aware)
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
         PICOTOOL_ARCH="aarch64"; \
     else \
         PICOTOOL_ARCH="x86_64"; \
     fi && \
     mkdir -p picotool/build && \
-    curl -L "https://github.com/raspberrypi/picotool/releases/download/2.1.1/picotool-2.1.1-linux-${PICOTOOL_ARCH}.tar.gz" | tar xz -C picotool/build --strip-components=1 && \
+    curl -L "https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-${PICOTOOL_ARCH}-lin.tar.gz" | tar xz -C picotool/build && \
     chmod +x picotool/build/picotool
 
-# Download prebuilt usvg binary (architecture-aware)
+# Download prebuilt usvg binary (x86_64) or install via cargo (arm64)
+# Note: resvg project only provides x86_64 Linux binaries
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        USVG_ARCH="aarch64-unknown-linux-gnu"; \
+        apt-get update && apt-get install -y --no-install-recommends cargo && \
+        cargo install usvg --version 0.34.1 && \
+        cp /root/.cargo/bin/usvg /usr/local/bin/ && \
+        apt-get purge -y cargo && apt-get autoremove -y && \
+        rm -rf /var/lib/apt/lists/* /root/.cargo; \
     else \
-        USVG_ARCH="x86_64-unknown-linux-gnu"; \
-    fi && \
-    curl -L "https://github.com/ArtRand/usvg/releases/download/v0.34.1/usvg-v0.34.1-${USVG_ARCH}.tar.gz" | tar xz -C /usr/local/bin && \
-    chmod +x /usr/local/bin/usvg
+        curl -L "https://github.com/linebender/resvg/releases/download/v0.46.0/usvg-linux-x86_64.tar.gz" | tar xz -C /usr/local/bin && \
+        chmod +x /usr/local/bin/usvg; \
+    fi
 
 # Install Python packages (pcb-tools-extension needs cairocffi, NOT opencv)
 RUN pip3 install --no-cache-dir \

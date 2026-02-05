@@ -55,21 +55,21 @@ jobs:
           type=semver,pattern={{major}}
           type=raw,value=latest,enable={{is_default_branch}}
 
-    # PRs: Only build amd64 for speed
-    - name: Build Docker image (PR - amd64 only)
+    # Build multi-arch for all events
+    - name: Build Docker image (PR - no push)
       if: github.event_name == 'pull_request'
       uses: docker/build-push-action@v5
       with:
         context: .
-        platforms: linux/amd64
+        platforms: linux/amd64,linux/arm64
         push: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # Main branch / releases: Build both architectures
-    - name: Build and push Docker image (main - multi-arch)
+    # Main branch / releases: Build and push
+    - name: Build and push Docker image (main)
       if: github.event_name != 'pull_request'
       id: build
       uses: docker/build-push-action@v5
