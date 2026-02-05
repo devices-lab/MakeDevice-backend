@@ -13,6 +13,7 @@ from objects import Point, Segment
 
 from router import Router
 import debug
+import debug_visualizer
 
 import thread_context
     
@@ -38,6 +39,16 @@ class BusRouter(Router):
         self.tracks_layer = tracks_layer
         self.buses_layer = buses_layer
         self.side = self._verify_side(side)
+
+        self.debugger = None
+        if debug_visualizer.visual_debug_enabled():
+            self.debugger = debug_visualizer.RoutingDebugger(
+                board=self.board,
+                router=self,
+                title=f"Routing Debugger ({self.side})",
+            )
+
+        self._routed_sockets = set()
         
         # Create bus segments 
         self.bus_segments = self._create_buses(tracks_layer, buses_layer)
@@ -146,7 +157,19 @@ class BusRouter(Router):
         
         print(f"🟢 Created {len(bus_segments)} bus segments on {self.side} side")
         print(f"🟢 Added bus zone for {self.side} side")
+        if self.debugger:
+            self.debugger.log_event(
+                f"created {len(bus_segments)} bus segments on {self.side}"
+            )
         return bus_segments
+
+    def _add_via(self, net_name: str, point: Tuple[int, int]) -> None:
+        super()._add_via(net_name, point)
+        if self.debugger:
+            via_point = self._indices_to_point(point[0], point[1])
+            self.debugger.log_event(
+                f"via added | net={net_name} | x={via_point.x:.2f}, y={via_point.y:.2f}"
+            )
 
     def _get_point_on_bus(self, socket_pos: Tuple[float, float], bus: Segment) -> Point:
         """
@@ -304,6 +327,18 @@ class BusRouter(Router):
         else:
             finder.diagonal_movement = DiagonalMovement.never
         
+        if self.debugger:
+            self.debugger.log_event(
+                f"routing socket | net={net_name} | socket=({socket_coordinate[0]:.2f}, {socket_coordinate[1]:.2f})"
+            )
+            self.debugger.step(
+                stage="pre-route",
+                grid=current_grid,
+                net_name=net_name,
+                socket=socket_coordinate,
+                bus_point=bus_connection_coordinates,
+            )
+
         # Find path
         start = pathfinding_grid.node(socket_index[0], socket_index[1])
         end = pathfinding_grid.node(target_column_index, bus_connection_index[1])
@@ -313,6 +348,18 @@ class BusRouter(Router):
             print(f"🔵 Pathfinding runs: {runs}")
             
             if path:
+                if self.debugger:
+                    self.debugger.log_event(
+                        f"path found | nodes={len(path)} | runs={runs}"
+                    )
+                    self.debugger.step(
+                        stage="path-found",
+                        grid=current_grid,
+                        net_name=net_name,
+                        socket=socket_coordinate,
+                        bus_point=bus_connection_coordinates,
+                        path=[(n.x, n.y, -1) for n in path],
+                    )
                 # Find where the path crosses the bus column
                 chopped_path = []
                 bus_crossed = False
@@ -380,9 +427,27 @@ class BusRouter(Router):
                 return path_tuples
             else:
                 print(f"🟡 No path found between socket at {socket_coordinate} and bus")
+                if self.debugger:
+                    self.debugger.log_event("path failed")
+                    self.debugger.step(
+                        stage="path-failed",
+                        grid=current_grid,
+                        net_name=net_name,
+                        socket=socket_coordinate,
+                        bus_point=bus_connection_coordinates,
+                    )
                 return []
         except Exception as e:
             print(f"🔴 Error in pathfinding: {e}")
+            if self.debugger:
+                self.debugger.log_event(f"path error: {e}")
+                self.debugger.step(
+                    stage="path-error",
+                    grid=current_grid,
+                    net_name=net_name,
+                    socket=socket_coordinate,
+                    bus_point=bus_connection_coordinates,
+                )
             return []
            
     def _group_sockets(self, sockets_data, zones_data):
@@ -466,6 +531,14 @@ class BusRouter(Router):
             
             # Add multi-socket horizontal groups
             for y, group in y_groups.items():
+                # filter sockets that are already in vertical groups
+                filtered_group = []
+                for socket_info in group:
+                    socket_key = (socket_info[0], tuple(socket_info[1]))
+                    if socket_key not in added_sockets:
+                        filtered_group.append(socket_info)
+                group = filtered_group
+                
                 if len(group) > 1: 
                     # Calculate the average x position for this group
                     avg_x = sum(s[1][0] for s in group) / len(group)
@@ -541,6 +614,20 @@ class BusRouter(Router):
             # Group sockets by zone edges and order them top-to-bottom or left-to-right
             grouped_sockets = self._group_sockets(sockets_data, zones_data)
             
+            if self.debugger:
+                all_sockets = []
+                for net_name, positions in sockets_data.items():
+                    for socket_pos in positions:
+                        all_sockets.append((net_name, tuple(socket_pos)))
+                
+                # Log socket grouping info
+                self.debugger.log_event(f"Total sockets to route: {len(all_sockets)}")
+                for zone_center, socket_groups in grouped_sockets.items():
+                    group_count = sum(len(g) for g in socket_groups)
+                    self.debugger.log_event(f"Zone at {zone_center}: {len(socket_groups)} groups, {group_count} sockets")
+                
+                self.debugger.set_routing_status(all_sockets, self._routed_sockets)
+            
             socket_count = 1
             
             for zone_center, socket_groups in grouped_sockets.items():
@@ -550,6 +637,9 @@ class BusRouter(Router):
                 # For each group of sockets
                 for group_idx, socket_group in enumerate(socket_groups):
                     i = 0
+                    
+                    if self.debugger:
+                        self.debugger.log_event(f"Starting group {group_idx}: {len(socket_group)} sockets")
                     
                     # Process all sockets in the group
                     print(f"Socket group length: {len(socket_group)}")
@@ -625,6 +715,26 @@ class BusRouter(Router):
                             
                             # Add to routed sockets count
                             self.board.connected_sockets_count += 1                
+
+                            self._routed_sockets.add((net_name, tuple(socket_pos)))
+
+                            if self.debugger:
+                                self.debugger.set_routing_status(
+                                    self.debugger._all_sockets,
+                                    self._routed_sockets,
+                                )
+
+                            if self.debugger:
+                                self.debugger.log_event(
+                                    f"path committed | socket=({socket_pos[0]:.2f}, {socket_pos[1]:.2f})"
+                                )
+                                self.debugger.step(
+                                    stage="path-committed",
+                                    grid=self.base_grid,
+                                    net_name=net_name,
+                                    socket=socket_pos,
+                                    bus_point=bus_point,
+                                )
                             
                             # Move to the next socket
                             i += 1
@@ -670,6 +780,22 @@ class BusRouter(Router):
                             remaining.reverse()
                             socket_group[i-1:] = remaining
                             print(f"🟢 Reversed routing order for the remaining sockets in group")
+
+                            if self.debugger:
+                                self.debugger.log_event(
+                                    f"backtrack | group={group_idx} | socket=({previous_pos[0]:.2f}, {previous_pos[1]:.2f})"
+                                )
+                                self._routed_sockets.discard((previous_net, tuple(previous_pos)))
+                                self.debugger.set_routing_status(
+                                    self.debugger._all_sockets,
+                                    self._routed_sockets,
+                                )
+                                self.debugger.step(
+                                    stage="backtrack",
+                                    grid=self.base_grid,
+                                    net_name=previous_net,
+                                    socket=previous_pos,
+                                )
                         
                             # Restart from the previous socket position
                             i = i - 1

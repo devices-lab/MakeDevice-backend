@@ -1,4 +1,5 @@
 from process import merge_layers
+import os
 
 from gerbersockets import Sockets, Zones
 from loader import Loader
@@ -42,6 +43,8 @@ def run(job_id: str, job_folder: Path) -> dict:
     # If a specific data file path is provided, use it
     project_file_path = thread_context.job_folder / "output/project.MakeDevice"
     loader = Loader(project_file_path)
+    if os.environ.get("MAKEDEVICE_DEBUG_VISUAL", "0") == "1":
+        loader.run_from_server = False
     
     print("🔵 Using", project_file_path.name)
     
