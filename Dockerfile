@@ -1,49 +1,48 @@
 # Use an official Python image
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies for objcopy, picotool, and pico-sdk
-# libopencv-dev and onward are for gerborlyze (SmartPanelizer)
-RUN apt-get update && apt-get install -y \
+# Architecture detection for downloading correct binaries
+ARG TARGETARCH
+
+# Install only required runtime dependencies
+# Removed: libopencv-dev, cmake, make, clang, cargo, gcc-arm-none-eabi, libnewlib-*, libstdc++-arm-none-eabi-*
+RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \
-    build-essential \
-    cmake \
     git \
-    libusb-1.0-0-dev \
-    pkg-config \
-    gcc-arm-none-eabi \
-    libnewlib-arm-none-eabi \
-    libstdc++-arm-none-eabi-newlib \ 
-    libopencv-dev \
-    libpugixml-dev \
+    libusb-1.0-0 \
+    libpugixml1v5 \
     libpangocairo-1.0-0 \
-    libpango1.0-dev \
-    libcairo2-dev \
-    clang \
-    make \
-    python3 \
-    git \
-    python3-wheel \
+    libcairo2 \
     curl \
-    python3-pip \
-    python3-venv \
-    cargo \
+    unzip \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gerborlyze (SmartPanelizer)
-RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
-RUN python3 -m pip install svg-flatten-wasi==3.1.6
-RUN cargo install usvg --version 0.34.1
+# Download prebuilt picotool binary (architecture-aware)
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        PICOTOOL_ARCH="aarch64"; \
+    else \
+        PICOTOOL_ARCH="x86_64"; \
+    fi && \
+    mkdir -p picotool/build && \
+    curl -L "https://github.com/raspberrypi/picotool/releases/download/2.1.1/picotool-2.1.1-linux-${PICOTOOL_ARCH}.tar.gz" | tar xz -C picotool/build --strip-components=1 && \
+    chmod +x picotool/build/picotool
 
-# Clone pico-sdk and picotool, then build picotool with PICO_SDK_PATH, then remove pico-sdk
-RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
-    git clone https://github.com/raspberrypi/picotool.git picotool && \
-    cd picotool && mkdir build && cd build && \
-    cmake .. -DPICO_SDK_PATH=/pico-sdk && \
-    make && \
-    cd /app && rm -rf /pico-sdk
+# Download prebuilt usvg binary (architecture-aware)
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        USVG_ARCH="aarch64-unknown-linux-gnu"; \
+    else \
+        USVG_ARCH="x86_64-unknown-linux-gnu"; \
+    fi && \
+    curl -L "https://github.com/ArtRand/usvg/releases/download/v0.34.1/usvg-v0.34.1-${USVG_ARCH}.tar.gz" | tar xz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/usvg
+
+# Install Python packages (pcb-tools-extension needs cairocffi, NOT opencv)
+RUN pip3 install --no-cache-dir \
+    git+https://git.jaseg.de/pcb-tools-extension.git \
+    svg-flatten-wasi==3.1.6
 
 # Copy just requirements.txt first to leverage Docker layer cache
 COPY requirements.txt .
