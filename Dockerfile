@@ -34,8 +34,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
 RUN python3 -m pip install svg-flatten-wasi==3.1.6
 # Cache cargo builds to avoid recompiling usvg every build
-RUN --mount=type=cache,target=/root/.cargo \
-    cargo install usvg --version 0.34.1
+# RUN --mount=type=cache,target=/root/.cargo \
+#     cargo install usvg --version 0.34.1
+# NOTE: Commented out cargo cached version since we got error "usvg executable not found" in python
+# Maybe was cached to the wrong dir?
+RUN cargo install usvg --version 0.34.1
 
 # Clone pico-sdk and picotool, then build picotool with PICO_SDK_PATH, then remove pico-sdk
 # ARM compiler not required for building picotool itself
