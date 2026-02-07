@@ -15,6 +15,8 @@ from router import Router
 import debug
 import debug_visualizer
 
+import sys
+
 import thread_context
     
 class BusRouter(Router):
@@ -691,12 +693,14 @@ class BusRouter(Router):
 
                                 timeout = 7
                                 if current_time - last_write_time > timeout:
-                                    raise Exception(f"Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
+                                    print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
+                                    sys.exit()  # Exit the thread 
 
                             # Also abandon the job if there's more than 150 images in the routing_imgs folder
                             routing_imgs_folder = thread_context.job_folder / "routing_imgs"
                             if routing_imgs_folder.exists() and len(list(routing_imgs_folder.glob("*.png"))) > 150:
-                                raise Exception(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
+                                print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
+                                sys.exit()  # Exit the thread
 
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
