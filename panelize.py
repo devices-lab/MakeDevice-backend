@@ -5,7 +5,7 @@ import thread_context
 # from process import merge_stacks
 from consolidate import collect_references, process_cpl_file, group_components, write_consolidated_bom, write_consolidated_cpl
 from process import compress_directory
-from gerber_writer import DataLayer, Path as GPath
+from gerber_writer import DataLayer, Path as GPath, Rectangle
 
 from gerbonara import GerberFile, ExcellonFile
 import warnings
@@ -130,7 +130,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             source_path = repeat_folder / layer_filename
             target_path = output_folder / layer_filename
             source = GerberFile.open(source_path) if type != "drill" else ExcellonFile.open(source_path)
-            source.offset(gerber_origin["x"], -gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round
+            source.offset(gerber_origin["x"], -gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round it
             source.save(target_path)
 
             print(f"🔵 Stepping and repeating {layer_filename}...")
@@ -140,7 +140,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             progress( 0.9 * (layer_index / layer_count))
             for i in range(1, int(count["x"])):
                 dx = i * step["x"]
-                source.offset(dx, 0) # NOTE: Works with floats despite saying int, don't round
+                source.offset(dx, 0) # NOTE: Works with floats despite saying int, don't round it
                 target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
                 target.merge(source)
                 target.save(target_path) # Save is super slow
@@ -150,7 +150,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             source = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
             for j in range(1, int(count["y"])):
                 dy = -j * step["y"]  # Invert Y axis
-                source.offset(0, dy) # NOTE: Works with floats despite saying int, don't round
+                source.offset(0, dy) # NOTE: Works with floats despite saying int, don't round it
                 target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
                 target.merge(source)
                 target.save(target_path) # Save is super slow
@@ -180,21 +180,70 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
 
     # Turn SVG files into gerber files
     progress(0.95)
-    subprocess.run(["wasi-svg-flatten", "copperTop.svg", "panel/copper_top.gbr"],
+    # NOTE: The gerber-outline format is more likely to make 'line' and 'spot_circle' objects
+    # instead of 'polygon' objects which fab houses treat like copper fills. 
+    # I don't think gerber-outline can make polygons at all actually.
+    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "copperTop.svg", "panel/copper_top.gbr"],
                cwd=thread_context.job_folder, env=env)
-    subprocess.run(["wasi-svg-flatten", "copperBot.svg", "panel/copper_bottom.gbr"],
+    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "copperBot.svg", "panel/copper_bottom.gbr"],
                 cwd=thread_context.job_folder, env=env)
-    subprocess.run(["wasi-svg-flatten", "soldermaskTop.svg", "panel/soldermask_top.gbr"],
+    # NOTE: Use of gerber-outline means we can't have rectangular pad soldermask openings, 
+    # they'll just become lines with rounded edges
+    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "soldermaskTop.svg", "panel/soldermask_top.gbr"],
                 cwd=thread_context.job_folder, env=env)
     progress(0.99)
-    subprocess.run(["wasi-svg-flatten", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
+    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
                 cwd=thread_context.job_folder, env=env)
+
     subprocess.run(["wasi-svg-flatten", "vcut.svg", "output/vcut_all.gbr"],
                 cwd=thread_context.job_folder, env=env)
 
+
+    # Use gerber-writer to add rectangular pad copper and soldermask
+    top = DataLayer('Copper,L1,Top,Signal')
+    bot = DataLayer('Copper,L2,Bottom,Signal')
+    mask_top = DataLayer('Soldermask,L1,Top,Signal')
+    mask_bot = DataLayer('Soldermask,L2,Bottom,Signal')
+
+    for pad in data["pads"]:
+        tl, tr, _, br = pad
+        sx = tr["x"] - tl["x"]
+        sy = br["y"] - tr["y"]
+        rect = Rectangle(sx, sy, "ConnectorPad")
+        center = tl["x"] + sx / 2, -(tl["y"] + sy / 2)
+        top.add_pad(rect, center)
+        bot.add_pad(rect, center)
+
+    for pad in data["padsSoldermask"]:
+        tl, tr, _, br = pad
+        sx = tr["x"] - tl["x"]
+        sy = br["y"] - tr["y"]
+        rect = Rectangle(sx, sy, "") # gerbonara gets rid of the function string anyway...
+        center = tl["x"] + sx / 2, -(tl["y"] + sy / 2)
+        mask_top.add_pad(rect, center)
+        mask_bot.add_pad(rect, center)
+
+    # Write the Gerber files
+    # NOTE: Pads are done seperately from SVG flattening because we want a spot_rect, not polygon
+    panel_pads_folder = thread_context.job_folder / "panel_pads"
+    os.makedirs(panel_pads_folder, exist_ok=True)
+
+    file_path = os.path.join(panel_pads_folder, "copper_top.gbr")
+    with open(file_path, 'w') as file:
+        file.write(top.dumps_gerber())
+    file_path = os.path.join(panel_pads_folder, "copper_bottom.gbr")
+    with open(file_path, 'w') as file:
+        file.write(bot.dumps_gerber())
+    file_path = os.path.join(panel_pads_folder, "soldermask_top.gbr")
+    with open(file_path, 'w') as file:
+        file.write(mask_top.dumps_gerber())
+    file_path = os.path.join(panel_pads_folder, "soldermask_bottom.gbr")
+    with open(file_path, 'w') as file:
+        file.write(mask_bot.dumps_gerber())
+
+
     # Use gerber-writer to add board outline
-    outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
-    path = GPath()
+    path_copper = GPath()
     dStr = data["boardOutlineD"] # SVG path 'd' attribute string
 
     # Parse the SVG path data to create the board outline (only supports M, L, A commands for now)
@@ -206,13 +255,13 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         if cmd == 'M':
             x = float(commands[i + 1])
             y = -float(commands[i + 2]) # Invert Y axis of d path
-            path.moveto((x, y))
+            path_copper.moveto((x, y))
             current_pos = (x, y)
             i += 3
         elif cmd == 'L':
             x = float(commands[i + 1])
             y = -float(commands[i + 2])
-            path.lineto((x, y))
+            path_copper.lineto((x, y))
             current_pos = (x, y)
             i += 3
         elif cmd == 'A':
@@ -261,14 +310,15 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
                 cx, cy = (cx2, cy2) if is_clockwise(cx1, cy1) else (cx1, cy1)
 
             # Takes end point, center point, and direction
-            path.arcto((x, y), (cx, cy), '-' if sweep_flag == 1 else '+')
+            path_copper.arcto((x, y), (cx, cy), '-' if sweep_flag == 1 else '+')
             current_pos = (x, y)
             i += 8
         else:
             raise ValueError(f"Unsupported SVG path command: {cmd}")
 
     # Add the constructed path to the layer with a trace width of 0.15 mm
-    outline_layer.add_traces_path(path, 0.15, 'Outline')
+    outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
+    outline_layer.add_traces_path(path_copper, 0.15, 'Outline')
     
     # Write the Gerber file
     file_path = os.path.join(output_folder, "outline_all.gbr")
@@ -344,6 +394,23 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     with open(file_path, 'w') as file:
         file.write('\n'.join(content))
 
+    # Merge layers from panel_pads folder into panel folder
+    for layer_filename in ["copper_top.gbr", "copper_bottom.gbr", "soldermask_top.gbr", "soldermask_bottom.gbr"]:
+        source_path = panel_pads_folder / layer_filename
+        target_path = panel_folder / layer_filename
+        if source_path.exists():
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+
+                print(f"🔵 Merging pad layer: {layer_filename}...")
+
+                # Merge the panel pads into the panel layer
+                source = GerberFile.open(source_path)
+                target = GerberFile.open(target_path)
+                target.merge(source)
+                target.save(target_path)
+        else:
+            print(f"🟠 No pad layer found for {layer_filename}, skipping pad merging for this layer")
 
     # Merge the generated panel layers into the (step and repeated) user gerber layers
     for layer_filename in [
