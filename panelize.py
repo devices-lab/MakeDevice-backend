@@ -6,7 +6,10 @@ import thread_context
 from consolidate import collect_references, process_cpl_file, group_components, write_consolidated_bom, write_consolidated_cpl
 from process import compress_directory
 from gerber_writer import DataLayer, Path as GPath, Rectangle
+from step_repeat import insert_sr_placeholders, replace_sr_placeholders
 
+# NOTE: gerbonara is slow, its .offset() corrupts many features, and removes all metadata and comments 
+# such as "Conductor" and "Soldermask,L1,Top,Signal".
 from gerbonara import GerberFile, ExcellonFile
 import warnings
 
@@ -33,7 +36,6 @@ def error(message: str):
     # return {
     #     "failed": True
     # }
-
 
 def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     print("🟢 = OK")
@@ -85,13 +87,25 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     if missing_assembly_data:
         print("🟠 " + missing_assembly_data + " - proceeding without assembly data")
 
+    # Whether to use the Gerber step and repeat (SR) command instead of gerbonara's .offest(),
+    # since gerbonara's .offset() corrupts features like Jacdac mounting hole soldermask. This
+    # also means the final panel will be offset by the gerber origin, since we can't use 
+    # .offset() to compensate for it.
+    #
+    # When set to True, the user's gerbers will not be touched by gerbonara's .offset() at all
+    # (but their drill files will be, and we'll still be using gerbonara to merge gerbers).
+    use_sr_command = True 
+
     # Repeat and merge BOM
     # Step, repeat and merge placement files
     if (not missing_assembly_data):
-        failed = consolidate_component_files(count, step, gerber_origin)
+        origin = {
+            "x": 0 if use_sr_command else gerber_origin["x"],
+            "y": 0 if use_sr_command else gerber_origin["y"]
+        }
+        failed = consolidate_component_files(count, step, origin)
         if failed.get("failed", False):
             return failed
-
 
 
     # Step, repeat and merge each Gerber and drill layer
@@ -123,39 +137,51 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         with open(repeat_folder / layer_filename, 'w') as file:
             file.write(layer["content"])
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        source_path = repeat_folder / layer_filename
+        target_path = output_folder / layer_filename
 
-            # Step, repeat and merge the layer in gerbers_folder
-            source_path = repeat_folder / layer_filename
-            target_path = output_folder / layer_filename
-            source = GerberFile.open(source_path) if type != "drill" else ExcellonFile.open(source_path)
-            source.offset(gerber_origin["x"], -gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round it
-            source.save(target_path)
+        if use_sr_command and type != "drill":
+            # Use Gerber SR command for step and repeat (much faster and more reliable than gerbonara, 
+            # but might not work with all fabs)
+            print(f"🔵 Stepped and repeated {layer_filename} using Gerber SR command")
+            insert_sr_placeholders(source_path, target_path)
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
 
-            print(f"🔵 Stepping and repeating {layer_filename}...")
+                # Step, repeat and merge the layer in gerbers_folder using gerbonara
+                source = GerberFile.open(source_path) if type != "drill" else ExcellonFile.open(source_path)
 
-            target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                if not use_sr_command: # SR preserves origin, so don't offset drills in this case
+                    source.offset(gerber_origin["x"], -gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round it
 
-            progress( 0.9 * (layer_index / layer_count))
-            for i in range(1, int(count["x"])):
-                dx = i * step["x"]
-                source.offset(dx, 0) # NOTE: Works with floats despite saying int, don't round it
+                source.save(target_path)
+
+                print(f"🔵 Stepping and repeating {layer_filename} using gerbonara...")
+
                 target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
-                target.merge(source)
-                target.save(target_path) # Save is super slow
-                source.offset(-dx, 0)  # Reset position
 
-            # Open target as source now to draw whole rows at once for massive speedup
-            source = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
-            for j in range(1, int(count["y"])):
-                dy = -j * step["y"]  # Invert Y axis
-                source.offset(0, dy) # NOTE: Works with floats despite saying int, don't round it
-                target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
-                target.merge(source)
-                target.save(target_path) # Save is super slow
-                source.offset(0, -dy)  # Reset position
+                progress( 0.9 * (layer_index / layer_count))
+                for i in range(1, int(count["x"])):
+                    dx = i * step["x"]
+                    source.offset(dx, 0) # NOTE: Works with floats despite saying int, don't round it
+                    target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                    target.merge(source)
+                    target.save(target_path) # Save is super slow
+                    source.offset(-dx, 0)  # Reset position
 
+                # Open target as source now to draw whole rows at once for massive speedup
+                source = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                for j in range(1, int(count["y"])):
+                    dy = -j * step["y"]  # Invert Y axis
+                    source.offset(0, dy) # NOTE: Works with floats despite saying int, don't round it
+                    target = GerberFile.open(target_path) if type != "drill" else ExcellonFile.open(target_path)
+                    target.merge(source)
+                    target.save(target_path) # Save is super slow
+                    source.offset(0, -dy)  # Reset position
+
+
+    progress(0.9)
     # Write start request data to files in the job folder
     with open(thread_context.job_folder / "copperTop.svg", 'w') as file:
         file.write(data["svgCopperTop"])
@@ -168,7 +194,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     with open(thread_context.job_folder / "vcut.svg", 'w') as file:
         file.write(data["vcut"])
 
-    # Make panel folder
+    # Make folder for panel infrastructure elements (rather than user board elements)
     panel_folder = thread_context.job_folder / "panel"
     os.makedirs(panel_folder, exist_ok=True)
 
@@ -195,7 +221,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
                 cwd=thread_context.job_folder, env=env)
 
-    subprocess.run(["wasi-svg-flatten", "vcut.svg", "output/vcut_all.gbr"],
+    subprocess.run(["wasi-svg-flatten", "vcut.svg", "panel/vcut_all.gbr"],
                 cwd=thread_context.job_folder, env=env)
 
 
@@ -321,7 +347,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     outline_layer.add_traces_path(path_copper, 0.15, 'Outline')
     
     # Write the Gerber file
-    file_path = os.path.join(output_folder, "outline_all.gbr")
+    file_path = os.path.join(panel_folder, "outline_all.gbr")
     with open(file_path, 'w') as file:
         file.write(outline_layer.dumps_gerber())
 
@@ -412,46 +438,74 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
         else:
             print(f"🟠 No pad layer found for {layer_filename}, skipping pad merging for this layer")
 
+    # Offset panel layers by gerber origin
+    if use_sr_command and (gerber_origin["x"] != 0 or gerber_origin["y"] != 0):
+        # If we're using the SR command instead of gerbonara for step and repeat, the board gerbers
+        # will not have had their gerber origin compensated for, since gerbonara .offset() not used.
+        # Instead of offsetting the boards, we'll offset the panel infrastructure, since it's less
+        # likely to get corrupted by gerbonara than the user boards. This does mean the final gerbers
+        # will have a weird origin, but at least they won't be corrupt.
+        for file in os.listdir(panel_folder):
+            if file.endswith(".gbr") or file.endswith(".drl"):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    source_path = panel_folder / file
+                    source = GerberFile.open(source_path) if file.endswith(".gbr") else ExcellonFile.open(source_path)
+                    source.offset(-gerber_origin["x"], gerber_origin["y"]) # NOTE: Works with floats despite saying int, don't round it
+                    source.save(source_path)
+                    print(f"🔵 Applied gerber origin offset to panel layer: {file}...")
+    
     # Merge the generated panel layers into the (step and repeated) user gerber layers
-    for layer_filename in [
-        "copper_top.gbr", "copper_bottom.gbr", "soldermask_top.gbr", "soldermask_bottom.gbr"
-    ]:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+    for file in os.listdir(panel_folder):
+        # Make sure same filename exists in output folder before merging
+        if ((output_folder / file).exists()):
+            if (file.endswith(".gbr") or file.endswith(".drl")):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
 
-            print(f"🔵 Merging panel layer: {layer_filename}...")
+                    print(f"🔵 Merging panel layer with output file: {file}...")
 
-            # Merge the panel layer in gerbers_folder
-            source_path = panel_folder / layer_filename
-            target_path = output_folder / layer_filename
-            source = GerberFile.open(source_path)
-            target = GerberFile.open(target_path)
-            target.merge(source)
-            target.save(target_path)
+                    # Merge the panel layer in gerbers_folder
+                    source_path = panel_folder / file
+                    target_path = output_folder / file
+                    source = GerberFile.open(source_path) if file.endswith(".gbr") else ExcellonFile.open(source_path)
+                    target = GerberFile.open(target_path) if file.endswith(".gbr") else ExcellonFile.open(target_path)
+                    target.merge(source)
+                    target.save(target_path)
+        else:
+            # If the file doesn't exist in the output folder, just copy it there (eg. vcut and outline)
+            print(f"🔵 Copying panel layer to output folder: {file}...")
+            source_path = panel_folder / file
+            target_path = output_folder / file
+            if source_path.exists():
+                os.rename(source_path, target_path)
 
-    # Put vcut on board outline layer (JLC requirement)
-    source_path = output_folder / "vcut_all.gbr"
-    target_path = output_folder / "outline_all.gbr"
-    source = GerberFile.open(source_path)
-    target = GerberFile.open(target_path)
-    target.merge(source)
-    target.save(target_path)
-    os.remove(source_path)  # Remove seperate vcut file after merging
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
 
-    # Merge PTH drill files
-    source_path = panel_folder / "PTH.drl"
-    target_path = output_folder / "PTH.drl"
-    source = ExcellonFile.open(source_path)
-    target = ExcellonFile.open(target_path)
-    target.merge(source)
-    target.save(target_path)
+        # Put vcut on board outline layer (JLC requirement)
+        source_path = output_folder / "vcut_all.gbr"
+        target_path = output_folder / "outline_all.gbr"
+        source = GerberFile.open(source_path)
+        target = GerberFile.open(target_path)
+        target.merge(source)
+        target.save(target_path)
+        os.remove(source_path)  # Remove seperate vcut file after merging
 
-    source_path = panel_folder / "NPTH.drl"
-    target_path = output_folder / "NPTH.drl"
-    source = ExcellonFile.open(source_path)
-    target = ExcellonFile.open(target_path)
-    target.merge(source)
-    target.save(target_path)
+        # Merge PTH drill files
+        source_path = panel_folder / "PTH.drl"
+        target_path = output_folder / "PTH.drl"
+        source = ExcellonFile.open(source_path)
+        target = ExcellonFile.open(target_path)
+        target.merge(source)
+        target.save(target_path)
+
+        source_path = panel_folder / "NPTH.drl"
+        target_path = output_folder / "NPTH.drl"
+        source = ExcellonFile.open(source_path)
+        target = ExcellonFile.open(target_path)
+        target.merge(source)
+        target.save(target_path)
 
     # Convert all .gbr to protel extensions (not required, but might help with layer identification)
     for file in os.listdir(output_folder):
@@ -482,6 +536,19 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
             os.rename(
                 output_folder / file,
                 output_folder / (base + ext)
+            )
+
+    if use_sr_command:
+        # Replace all step and repeat placeholders with actual SR commands
+        for file in os.listdir(output_folder):
+            path = output_folder / file
+            replace_sr_placeholders(
+                path, 
+                path, 
+                x_repeats=int(count["x"]), 
+                y_repeats=int(count["y"]), 
+                x_spacing=step["x"], 
+                y_spacing=-step["y"]
             )
     
     compress_directory(thread_context.job_folder / "output")
