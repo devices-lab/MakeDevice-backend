@@ -35,12 +35,25 @@ RUN ARCH=$(uname -m) && \
     chmod +x /usr/local/bin/picotool && \
     rm -rf picotool
 
-# Install prebuilt usvg
-# Avoids compiling Rust toolchain
-RUN curl -L -o /usr/local/bin/usvg \
-    https://github.com/bxnbxrch/usvg-with-binaries/releases/download/v1.0/usvg && \
-    echo "1729746dbaf087d2d91f28cf102b9746a8ab5b978bf1543a8632d6674132ec8d  /usr/local/bin/usvg" | sha256sum -c - && \
-    chmod +x /usr/local/bin/usvg
+# Install prebuilt usvg v0.34.1
+# Pull correct binary for architecture and verify checksum
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        USVG_URL="https://github.com/bxnbxrch/usvg-mirror/releases/download/v0.34.1/usvg-0.34.1-x86_64-unknown-linux-gnu.tar.gz"; \
+        USVG_SHA="fe76e83e0825570af5c12d544de176eb5b7c21ef77db4d31f3d1bd17f6ed4380"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        USVG_URL="https://github.com/bxnbxrch/usvg-mirror/releases/download/v0.34.1/usvg-0.34.1-aarch64-unknown-linux-gnu.tar.gz"; \
+        USVG_SHA="2e09996ccf835b0bb50bda3d953f8870d2a4ac6efa4eb46983f4fcf1c6be78e6"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L "$USVG_URL" -o /tmp/usvg.tar.gz && \
+    echo "$USVG_SHA  /tmp/usvg.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/usvg.tar.gz -C /tmp && \
+    mv /tmp/usvg*/usvg /usr/local/bin/usvg && \
+    chmod +x /usr/local/bin/usvg && \
+    rm -rf /tmp/usvg*
+
 
 # Install gerborlyze (SmartPanelizer)
 RUN pip3 install --no-cache-dir git+https://git.jaseg.de/pcb-tools-extension.git \
