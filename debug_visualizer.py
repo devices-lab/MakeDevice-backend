@@ -380,10 +380,12 @@ class RoutingDebugger:
         if not self.router.buses_layer:
             return
         for segment in self.router.buses_layer.segments:
+            color, alpha, _ = self._trace_style(segment.net)
             lc = LineCollection(
                 [[segment.start.as_tuple(), segment.end.as_tuple()]],
-                colors="#805AD5",
+                colors=[color],
                 linewidths=2.5,
+                alpha=alpha,
                 zorder=3,
                 picker=5,
             )
@@ -398,28 +400,29 @@ class RoutingDebugger:
         if not self.router.paths_indices:
             return
         for net_name, paths in self.router.paths_indices.items():
-            color = self._net_color(net_name)
+            color, alpha, layer_name = self._trace_style(net_name)
             for path in paths:
                 if len(path) < 2:
                     continue
                 points = [self.router._indices_to_point(x, y).as_tuple() for x, y, _ in path]
-                lc = LineCollection([points], colors=[color], linewidths=2, zorder=4, picker=5)
+                lc = LineCollection([points], colors=[color], linewidths=2, alpha=alpha, zorder=4, picker=5)
                 self.ax.add_collection(lc)
                 length = 0.0
                 for i in range(1, len(points)):
                     x0, y0 = points[i - 1]
                     x1, y1 = points[i]
                     length += ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
-                self._artist_info[lc] = f"trace | net={net_name} | points={len(points)} | length={length:.2f}mm"
+                layer_info = f" | layer={layer_name}" if layer_name else ""
+                self._artist_info[lc] = f"trace | net={net_name}{layer_info} | points={len(points)} | length={length:.2f}mm"
 
     def _draw_vias(self) -> None:
         if not self.router.vias_indices:
             return
         for net_name, vias in self.router.vias_indices.items():
-            color = self._net_color(net_name)
+            color, alpha, _ = self._trace_style(net_name)
             for x, y in vias:
                 point = self.router._indices_to_point(x, y)
-                circle = Circle(point.as_tuple(), radius=0.15, color=color, alpha=0.8, zorder=5, picker=True)
+                circle = Circle(point.as_tuple(), radius=0.15, color=color, alpha=alpha, zorder=5, picker=True)
                 self.ax.add_patch(circle)
                 self._artist_info[circle] = f"via | net={net_name} | x={point.x:.2f}, y={point.y:.2f}"
 
@@ -474,10 +477,20 @@ class RoutingDebugger:
         if len(path) < 2:
             return
         points = [self.router._indices_to_point(x, y).as_tuple() for x, y, _ in path]
-        color = self._net_color(net_name or "")
-        lc = LineCollection([points], colors=[color], linewidths=3.5, zorder=7, picker=5)
+        color, alpha, layer_name = self._trace_style(net_name or "")
+        lc = LineCollection([points], colors=[color], linewidths=3.5, alpha=alpha, zorder=7, picker=5)
         self.ax.add_collection(lc)
-        self._artist_info[lc] = f"candidate path | net={net_name or 'unknown'} | points={len(points)}"
+        layer_info = f" | layer={layer_name}" if layer_name else ""
+        self._artist_info[lc] = f"candidate path | net={net_name or 'unknown'}{layer_info} | points={len(points)}"
+
+    def _trace_style(self, net_name: str) -> Tuple[str, float, Optional[str]]:
+        layer = self.board.get_layer_for_net(net_name) if net_name else None
+        layer_name = layer.name if layer else None
+        if layer_name == "F_Cu.gtl":
+            return "#E53E3E", 0.5, layer_name  # front = red
+        if layer_name == "B_Cu.gbl":
+            return "#3182CE", 0.5, layer_name  # back = blue
+        return self._net_color(net_name), 0.5, layer_name
 
     def _draw_socket_highlight(self, socket: Tuple[float, float]) -> None:
         circle = Circle((socket[0], socket[1]), radius=0.25, edgecolor="#D69E2E", facecolor="#FAF089", linewidth=2, zorder=8, picker=True)

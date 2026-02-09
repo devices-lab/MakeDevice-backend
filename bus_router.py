@@ -705,12 +705,6 @@ class BusRouter(Router):
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                         
-                        # Capture each frame
-                        if debug.do_video:
-                            debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
-                                self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
-                                self.board.loader.resolution)
-                        
                         if path:
                             print(f"🟢 Found path for socket at {socket_pos} to bus\n")
                             
@@ -815,9 +809,3 @@ class BusRouter(Router):
             error_file = thread_context.job_folder / "error.txt"
             with open(error_file, 'w') as file:
                 file.write(str(e))
-
-        # Capture the last frame too
-        if debug.do_video:
-            debug.show_grid_routes_sockets(self.base_grid, self.paths_indices, 
-                self.board.sockets.get_socket_positions_for_nets(self.tracks_layer.nets), 
-                self.board.loader.resolution)

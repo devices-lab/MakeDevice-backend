@@ -1,6 +1,5 @@
 import os
 import sys
-import subprocess
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,12 +11,21 @@ from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.collections import LineCollection
+from matplotlib.patches import Circle as MplCircle
 
 matplotlib.use('Agg')  # Use a non-interactive backend for matplotlib (since server-side image generation. No UI)
 
-do_video = True
+# ── Layer colour / style helpers ────────────────────────────────────────────
+LAYER_COLORS = {
+    "F_Cu.gtl": "#E53E3E",   # red  – front copper
+    "B_Cu.gbl": "#3182CE",   # blue – back copper
+}
+LAYER_ALPHA = 0.5
+DEFAULT_COLOR = "#2D3748"
 
-import thread_context
+def _layer_color(layer_name: str) -> str:
+    return LAYER_COLORS.get(layer_name, DEFAULT_COLOR)
+
 
 def generate_test_grid(dimensions):
     width, height = dimensions
@@ -43,149 +51,153 @@ def show_grid(grid, points=None, title="Grid display"):
     plt.legend()
     plt.show()
 
-# Precompute static colormap once
-# white transparent for 0s, black for 1s
-TRANSPARENT_CMAP = ListedColormap([(1, 1, 1, 0), (0, 0, 0, 1)])
 
-def show_grid_routes_sockets(keepout_grid, routes, socket_locations, resolution):
+# ── Layer-separated SVG rendering ──────────────────────────────────────────
+def _render_layer_svg(board, layer_name: str, router_list=None):
     """
-    Displays the grid with keep out zones, route indices (shown on grid as lines), and socket locations.
+    Render a single layer of the board to an SVG Figure.
 
-   Args:
-        grid (numpy.array): The grid, where 1 represents keep out zones.
-        segments (dict): Dictionary with net names as keys and lists of line segments.
-        routes (dict): A dictionary where each key is a net name and the value is a list of lists containing paths 
-        with points as tuples.
-        resolution (float): The resolution of the grid, for scaling the socket and segment coordinates.
+    Draws:
+      • Segments (traces + buses) that belong to this layer
+      • Annular rings (vias) on this layer
+      • Sockets whose nets are assigned to this layer
+
+    Parameters:
+        board:        Board instance (has .layers, .sockets, .width, .height, etc.)
+        layer_name:   e.g. "F_Cu.gtl" or "B_Cu.gbl"
+        router_list:  Optional list of BusRouter instances whose paths_indices 
+                      should also be drawn (for in-progress routing before 
+                      segments have been finalised onto the board layers).
+
+    Returns:
+        matplotlib.figure.Figure ready to be saved.
     """
-    scale = 2
-    H, W = keepout_grid.shape
+    layer = board.get_layer(layer_name)
+    if not layer:
+        return None
 
-    # Create a figure WITHOUT using pyplot (non‑UI, no global state)
-    fig = Figure(figsize=((W * scale) / 100, (H * scale) / 100), dpi=100) # Ensure DPI is 100 for correct scale
+    color = _layer_color(layer_name)
+    alpha = LAYER_ALPHA
+
+    # Size the figure proportionally to the board so the SVG has
+    # the correct aspect ratio and no dead space.
+    scale_factor = 100  # pixels-per-mm  (at dpi=100 this gives 1 inch per mm)
+    fig_w = board.width * scale_factor / 100   # inches
+    fig_h = board.height * scale_factor / 100  # inches
+    # Clamp to a reasonable range
+    fig_w = max(4, min(fig_w, 16))
+    fig_h = max(4, min(fig_h, 16))
+
+    fig = Figure(figsize=(fig_w, fig_h), dpi=100)
+    FigureCanvas(fig)
     ax = fig.add_subplot(111)
-
-    # Transparent background
     fig.patch.set_facecolor('none')
-    ax.axis('off')
+    ax.axis("off")
 
-    # empty_grid is just the first and last pixel of the grid, so two pixels
-    # this is to ensure the image starts at its full size, so it doesn't change size when traces are drawn
-    empty_grid = np.zeros((H, W, 4), dtype=float)
-    # Draw the top left, and bottom right pixels of the image, to ensure its size won't change
-    ax.imshow(empty_grid, cmap=TRANSPARENT_CMAP, interpolation='nearest')
-
-    # Draw the actual keepouts (comment out for transparent image)
-    # ax.imshow(keepout_grid, cmap='binary', interpolation='nearest', extent=None)
-    
-    # Define colors for different nets, ensure there's a default color if net not listed
-    # set_colors = {
-    #     'JD_PWR': 'red',
-    #     'JD_GND': 'white',
-    #     'JD_DATA': 'yellow',
-    #     'GND': 'white', 
-    #     'SWCLK': 'blue',
-    #     'SWDIO~': 'green',
-    #     'SWDIO~^': 'lightgreen',
-    #     'RESET': 'orange',
-    #     'default': 'gray'
-    # }
-
-    # Same color logic
-    set_colors = {'default': 'black'}
-    color_for = lambda key: set_colors.get(key, set_colors['default'])
-
-    # Same coordinate transforms
-    center_x = W // 2
-    center_y = H // 2
-
-    # Batched socket plotting per net
-    for net_type, positions in socket_locations.items():
-        if not positions:
+    # ── 1. Draw finalised segments on this layer (traces + buses) ──
+    seg_lines = []
+    for seg in layer.segments:
+        try:
+            seg_lines.append([(seg.start.x, seg.start.y), (seg.end.x, seg.end.y)])
+        except Exception:
             continue
+    if seg_lines:
+        lc = LineCollection(seg_lines, colors=[color], linewidths=1, alpha=alpha)
+        ax.add_collection(lc)
 
-        positions = np.array(positions)
-        xs = positions[:, 0]
-        ys = positions[:, 1]
+    # ── 2. Draw in-progress route indices from routers (not yet on the layer) ──
+    if router_list:
+        for router in router_list:
+            # Only draw routes whose nets belong to *this* layer
+            for net_name, paths in router.paths_indices.items():
+                net_layer = board.get_layer_for_net(net_name)
+                # The trace belongs to the router's tracks_layer
+                trace_layer_name = router.tracks_layer.name
+                if trace_layer_name != layer_name:
+                    continue
+                for path in paths:
+                    if len(path) < 2:
+                        continue
+                    points = [router._indices_to_point(x, y).as_tuple() for x, y, _ in path]
+                    lc = LineCollection([points], colors=[color], linewidths=1, alpha=alpha)
+                    ax.add_collection(lc)
 
-        # Adjust coordinates for the plot: shifting origin to the center of the grid
-        plot_x = center_y + (ys / resolution).astype(int)
-        plot_y = center_x + (xs / resolution).astype(int)
+            # Draw buses that live on this layer
+            if router.buses_layer and router.buses_layer.name == layer_name:
+                for seg in router.buses_layer.segments:
+                    try:
+                        bl = [(seg.start.x, seg.start.y), (seg.end.x, seg.end.y)]
+                        blc = LineCollection([bl], colors=[color], linewidths=1.5, alpha=alpha)
+                        ax.add_collection(blc)
+                    except Exception:
+                        continue
 
-        # Invert the x axis to match the traditional Cartesian coordinate system
-        plot_x = H - plot_x
+            # Draw vias from router indices (before they are converted)
+            for net_name, vias in router.vias_indices.items():
+                for vx, vy in vias:
+                    pt = router._indices_to_point(vx, vy)
+                    ax.add_patch(MplCircle((pt.x, pt.y), radius=0.15, color=color, alpha=alpha, linewidth=0))
 
-        # One plot call per net (instead of many scatter calls)
-        ax.plot(
-            plot_y, plot_x,
-            'o',
-            markersize=2,
-            color=color_for(net_type),
-            alpha=1.0,
-            antialiased=False
-        )
+    # ── 3. Draw annular rings (vias) already committed to the layer ──
+    via_radius = getattr(board.loader, "via_diameter", 0.3) / 2
+    for ring in layer.annular_rings:
+        ax.add_patch(MplCircle((ring.x, ring.y), radius=via_radius, color=color, alpha=alpha, linewidth=0))
 
-    # Optimized route plotting (LineCollection per net)
-    for net_type, paths in routes.items():
-        segments = []
+    # ── 4. Draw sockets for this layer ──
+    if board.sockets:
+        try:
+            sockets = board.sockets.get_socket_positions_for_nets(layer.nets)
+            for _, positions in sockets.items():
+                if not positions:
+                    continue
+                xs = [p[0] for p in positions]
+                ys = [p[1] for p in positions]
+                ax.scatter(xs, ys, s=6, c="#111111", alpha=0.7, zorder=6)
+        except Exception:
+            pass
 
-        for path in paths:
-            if not path: # Ensure there is a valid path
-                continue
-            path = np.array(path) # Coordinates are directly usable, no need for center adjustment
-            segments.append(path[:, :2])  # x,y only
-
-        if segments:
-            lc = LineCollection(
-                segments,
-                colors=color_for(net_type), # Use the same color as the sockets
-                linewidths=1,
-                antialiased=False
-            )
-            ax.add_collection(lc)
-
+    # ── 5. Axes limits ──
+    padding = max(board.width, board.height) * 0.05
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlim(-board.width / 2 - padding, board.width / 2 + padding)
+    ax.set_ylim(-board.height / 2 - padding, board.height / 2 + padding)
     fig.tight_layout(pad=0)
 
-    frame(fig)
+    return fig
+
+
+def save_layer_svg(board, layer_name: str, output_path, router_list=None) -> None:
+    """
+    Save a layer-separated SVG to disk.
+
+    Parameters:
+        board:        Board instance.
+        layer_name:   e.g. "F_Cu.gtl" or "B_Cu.gbl"
+        output_path:  File path for SVG output.
+        router_list:  Optional list of BusRouter instances (for in-progress routes).
+    """
+    fig = _render_layer_svg(board, layer_name, router_list=router_list)
+    if fig is None:
+        return
+    os.makedirs(PathLib(output_path).parent, exist_ok=True)
+    fig.savefig(output_path, transparent=True, format='svg')
     fig.clear()
 
 
-def frame(fig):
+def save_front_back_svgs(board, output_folder, router_list=None) -> None:
     """
-    Saves the current plot as a frame for a video.
+    Convenience: save both front.svg and back.svg for a board.
+
+    Parameters:
+        board:         Board instance.
+        output_folder: Folder to write front.svg / back.svg into.
+        router_list:   Optional list of BusRouter instances (in-progress routes).
     """
-    routing_imgs_folder = thread_context.job_folder / "routing_imgs"
-    # Make the folder if it doesn't exist
-    os.makedirs(routing_imgs_folder, exist_ok=True)
+    output_folder = PathLib(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
+    save_layer_svg(board, "F_Cu.gtl", output_folder / "front.svg", router_list=router_list)
+    save_layer_svg(board, "B_Cu.gbl", output_folder / "back.svg", router_list=router_list)
 
-    try:
-        fig.savefig(routing_imgs_folder / f"{thread_context.frame_index}.png", transparent=True)
-    except Exception as e:
-        print(f"🔴 Error saving frame {thread_context.frame_index}: {e}")
-    thread_context.frame_index += 1
-
-    fig.clear() # Fix memory leak
-
-def video(name=""):
-    """
-    Generates a video from the frames saved in the debug folder, then removes the folder
-    """
-
-    # Target a 10 second video
-    rate = float(thread_context.frame_index) / 10.0
-
-    subprocess.run(
-        f"ffmpeg -y -framerate {rate} -i debug/frame_%d.png -c:v libx264 -pix_fmt yuv420p -crf 18 -preset veryfast debug_{name}.mp4",
-        shell=True,
-        check=True
-    )
-
-    # Remove the debug folder
-    for file in os.listdir("debug"):
-        os.remove(f"debug/{file}")
-    os.rmdir("debug")
-
-    print(f"🟢 Generated debug_{name}.mp4")
 
 def show_segments_sockets(segments, socket_locations):
     """

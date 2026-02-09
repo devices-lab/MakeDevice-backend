@@ -51,6 +51,7 @@ def run(job_id: str, job_folder: Path) -> dict:
     # TODO: Must somehow append the job_folder to every single file path used throughout the run
     
     board = Board(loader)
+    thread_context.board = board
 
     # Merge the GerberSockets layers from all individual modules
     gerbersockets_layer = merge_layers(
@@ -119,6 +120,14 @@ def run(job_id: str, job_folder: Path) -> dict:
             board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
         )
         right_router.route()
+
+        # Save final front.svg / back.svg
+        try:
+            from debug import save_front_back_svgs
+            routing_imgs_folder = Path(thread_context.job_folder) / "routing_imgs"
+            save_front_back_svgs(board, routing_imgs_folder, router_list=[left_router, right_router])
+        except Exception as e:
+            print(f"🔴 Error saving final SVGs: {e}")
     else:   
         print("🔴 Could not find both top and bottom layers for routing")
         return {"failed": True}
@@ -130,7 +139,9 @@ def run(job_id: str, job_folder: Path) -> dict:
         merge_stacks(board.modules, board.name)
         consolidate_component_files(board.modules, board.name)
 
-    all = sockets.get_socket_count()
+    # Count only sockets that were assigned to modules (ignore unassigned sockets)
+    module_nets = board.get_module_nets()
+    all = sum(len(module_nets[module]) for module in module_nets)
     connected = board.connected_sockets_count
 
     if (all - connected) == 0:

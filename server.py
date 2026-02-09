@@ -149,29 +149,32 @@ def routing_progress():
         except:
             error_message = "Unknown routing error occurred"
 
-    # Get routing image
+    # Get routing images (prefer SVG front/back)
     routing_imgs_folder = job_folder_base / job_id / "routing_imgs"
-    routing_image = None
-    if os.path.exists(routing_imgs_folder):
-        # All the routing images
-        routing_images = list(routing_imgs_folder.glob("*.png"))
-        if len(routing_images):
-            # Sort by filename, which is the number
-            routing_images.sort(key=lambda x: int(x.stem))
-            # Get the second highest numbered routing image (since the highest
-            # numbered may not have finished writing to disk yet), by removing the last one
-            # routing_images = routing_images[:-1]
-            routing_image = routing_images[-1] if len(routing_images) else None
+    routing_image_front_b64 = None
+    routing_image_back_b64 = None
 
-    # Get routing image in base64
-    routing_image_base64 = None
-    if routing_image:
-        try:
-            with open(routing_image, 'rb') as img_file:
-                routing_image_data = img_file.read()
-            routing_image_base64 = base64.b64encode(routing_image_data).decode('utf-8')
-        except Exception as e:
-            print(f"🔴 Error reading routing image {routing_image}: {e}")
+    if os.path.exists(routing_imgs_folder):
+        front_svg = routing_imgs_folder / "front.svg"
+        back_svg = routing_imgs_folder / "back.svg"
+
+        def _read_b64(path):
+            try:
+                with open(path, 'rb') as f:
+                    return base64.b64encode(f.read()).decode('utf-8')
+            except Exception as e:
+                print(f"🔴 Error reading routing image {path}: {e}")
+                return None
+
+        if front_svg.exists():
+            routing_image_front_b64 = _read_b64(front_svg)
+        if back_svg.exists():
+            routing_image_back_b64 = _read_b64(back_svg)
+
+        # if front/back not present, ignore 
+        if not routing_image_front_b64 or not routing_image_back_b64:
+            print("Front/back routing images not found, skipping those in response")
+
 
     if routing_failed:
         response: RoutingProgressResponse = {
@@ -189,7 +192,9 @@ def routing_progress():
             "result": {
                 "progress": progress,
                 "completed": finished_success,
-                "routingImage": str(routing_image_base64),
+                "routingImage": str(routing_image_base64)
+                "routingImageFront": routing_image_front_b64,
+                "routingImageBack": routing_image_back_b64,
                 # TODO: Implement bus width left and right
             }
         }
