@@ -2,3 +2,6 @@
 picotool/
 pico-sdk/
 storage/
+__pycache__/
+*.pyc
+venv/
