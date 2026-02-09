@@ -10,6 +10,7 @@ on:
     branches: [ main ]
   release:
     types: [ published ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -65,8 +66,8 @@ jobs:
         push: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        # cache-from: type=gha  # Temporarily disabled for fresh build
+        # cache-to: type=gha,mode=max
 
     # Main branch / releases: Build and push
     - name: Build and push Docker image (main)
@@ -79,8 +80,8 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        # cache-from: type=gha  # Temporarily disabled for fresh build
+        # cache-to: type=gha,mode=max
 
     - name: Generate artifact attestation
       if: github.event_name != 'pull_request'

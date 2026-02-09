@@ -182,19 +182,15 @@ def convert_firmware(target_bin):
 
     # Determine output filename based on type
     if "pico" in str(target_bin):
-        # Check if picotool is in the folder
-        if not os.path.exists("picotool"):
+        # Check if picotool is available in PATH
+        if shutil.which("picotool") is None:
             raise FileNotFoundError(
-                "❌ Error: ./picotool folder not found. Please git clone and build it first. https://github.com/raspberrypi/picotool"
-            )
-        if not os.path.exists("picotool/build/picotool"):
-            raise FileNotFoundError(
-                "❌ Error: ./picotool/build/picotool not found. Please build it first."
+                "❌ Error: picotool not found in PATH. Please install picotool."
             )
 
         output_file = str(target_bin).replace(".bin", ".uf2")
         # convert_command = f"uf2conv {target_bin} --family RP2040 -o {output_file}" #uf2 won't upload correctly for some reason
-        convert_command = f"picotool/build/picotool uf2 convert {str(target_bin)} {output_file} --family rp2040"
+        convert_command = f"picotool uf2 convert {str(target_bin)} {output_file} --family rp2040"
 
     elif "MICROBIT" in str(target_bin):
         output_file = str(target_bin).replace(".bin", ".hex")

@@ -192,7 +192,7 @@ def routing_progress():
             "result": {
                 "progress": progress,
                 "completed": finished_success,
-                "routingImage": routing_image_front_b64 or "",
+                "routingImage": routing_image_front_b64,
                 "routingImageFront": routing_image_front_b64,
                 "routingImageBack": routing_image_back_b64,
                 # TODO: Implement bus width left and right

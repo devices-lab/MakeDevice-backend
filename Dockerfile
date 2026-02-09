@@ -21,8 +21,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install prebuilt picotool
 # Avoids building pico-sdk + picotool from source
-RUN curl -L https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-x86_64-lin.tar.gz \
-    | tar -xz && \
+# Choose the appropriate binary based on architecture
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        PICOTOOL_URL="https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-x86_64-lin.tar.gz"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        PICOTOOL_URL="https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-aarch64-lin.tar.gz"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L $PICOTOOL_URL | tar -xz && \
     mv picotool/picotool /usr/local/bin/picotool && \
     chmod +x /usr/local/bin/picotool && \
     rm -rf picotool
