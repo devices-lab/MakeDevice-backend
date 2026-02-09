@@ -7,6 +7,7 @@ WORKDIR /app
 # Install runtime dependencies for picotool + SmartPanelizer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \
+    coreutils \
     libusb-1.0-0 \
     libpangocairo-1.0-0 \
     libpango-1.0-0 \
