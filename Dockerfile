@@ -4,77 +4,81 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies for picotool + SmartPanelizer
+# Install dependencies for objcopy, picotool, and pico-sdk
+# libopencv-dev and onward are for gerborlyze (SmartPanelizer)
+# NOTE: ARM cross-compilation toolchain removed (host-only build)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \
-    coreutils \
-    libusb-1.0-0 \
-    libpangocairo-1.0-0 \
-    libpango-1.0-0 \
-    libcairo2 \
-    curl \
-    python3 \
-    python3-pip \
-    python3-wheel \
-    python3-venv \
+    build-essential \
+    cmake \
     git \
+    libusb-1.0-0-dev \
+    pkg-config \
+    libopencv-dev \
+    libpugixml-dev \
+    libpangocairo-1.0-0 \
+    libpango1.0-dev \
+    libcairo2-dev \
+    clang \
+    make \
+    python3 \
+    git \
+    python3-wheel \
+    curl \
+    python3-pip \
+    python3-venv \
+    cargo \
     && rm -rf /var/lib/apt/lists/*
 
-# Install prebuilt picotool
-# Avoids building pico-sdk + picotool from source
-# Choose the appropriate binary based on architecture
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        PICOTOOL_URL="https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-x86_64-lin.tar.gz"; \
-    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        PICOTOOL_URL="https://github.com/raspberrypi/pico-sdk-tools/releases/download/v2.2.0-3/picotool-2.2.0-a4-aarch64-lin.tar.gz"; \
-    else \
-        echo "Unsupported architecture: $ARCH" && exit 1; \
-    fi && \
-    curl -L $PICOTOOL_URL | tar -xz && \
-    mv picotool/picotool /usr/local/bin/picotool && \
-    chmod +x /usr/local/bin/picotool && \
-    rm -rf picotool
-
-# Install prebuilt usvg v0.34.1
-# Pull correct binary for architecture and verify checksum
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        USVG_URL="https://github.com/bxnbxrch/usvg-mirror/releases/download/v0.34.1/usvg-0.34.1-x86_64-unknown-linux-gnu.tar.gz"; \
-        USVG_SHA="fe76e83e0825570af5c12d544de176eb5b7c21ef77db4d31f3d1bd17f6ed4380"; \
-    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        USVG_URL="https://github.com/bxnbxrch/usvg-mirror/releases/download/v0.34.1/usvg-0.34.1-aarch64-unknown-linux-gnu.tar.gz"; \
-        USVG_SHA="2e09996ccf835b0bb50bda3d953f8870d2a4ac6efa4eb46983f4fcf1c6be78e6"; \
-    else \
-        echo "Unsupported architecture: $ARCH" && exit 1; \
-    fi && \
-    curl -L "$USVG_URL" -o /tmp/usvg.tar.gz && \
-    echo "$USVG_SHA  /tmp/usvg.tar.gz" | sha256sum -c - && \
-    tar -xzf /tmp/usvg.tar.gz -C /tmp && \
-    mv /tmp/usvg*/usvg /usr/local/bin/usvg && \
-    chmod +x /usr/local/bin/usvg && \
-    rm -rf /tmp/usvg*
-
-
 # Install gerborlyze (SmartPanelizer)
-RUN pip3 install --no-cache-dir git+https://git.jaseg.de/pcb-tools-extension.git \
-    && pip3 install --no-cache-dir svg-flatten-wasi==3.1.6
+RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
+RUN python3 -m pip install svg-flatten-wasi==3.1.6
+# Cache cargo builds to avoid recompiling usvg every build
+# RUN --mount=type=cache,target=/root/.cargo \
+#     cargo install usvg --version 0.34.1
+# NOTE: Commented out cargo cached version since we got error "usvg executable not found" in python
+# Maybe was cached to the wrong dir?
+RUN cargo install usvg --version 0.34.1
 
-# Install Python packages
+# Clone pico-sdk and picotool, then build picotool with PICO_SDK_PATH, then remove pico-sdk
+# ARM compiler not required for building picotool itself
+RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git /pico-sdk && \
+    git clone --depth=1 https://github.com/raspberrypi/picotool.git picotool && \
+    cd picotool && mkdir build && cd build && \
+    cmake .. -DPICO_SDK_PATH=/pico-sdk && \
+    make && \
+    cd /app && rm -rf /pico-sdk
+
+# Copy just requirements.txt first to leverage Docker layer cache
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install dependencies — cached unless requirements.txt changes
+# Cache pip downloads for faster rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
-# Copy application code
+# Copy all your files into the container
+# Place this as low in the file as possible since calling this invalidates the docker layer cache
 COPY . .
 
-# Expose port and unbuffer Python output
+# Expose the port the server runs on
 EXPOSE 3333
+
+# Try to fix print()s not showing up immediately in the logs
 ENV PYTHONUNBUFFERED=1
 
-# Run production server
+# Flask: Run the app (dev)
+# Set environment variables
+# ENV FLASK_APP=app.py
+# ENV FLASK_RUN_HOST=0.0.0.0
+# -u for unbuffered output, so print statements appear in real-time
+# CMD ["python3", "-u", "server.py"] 
+
+# Gunicorn: Run the app (production)
+# gunicorn server:app --workers 1 --bind 0.0.0.0:8000 --timeout 300
+# Only one worker process to avoid concurrency issues (since we're writing files, can't be concurrent)
 CMD ["gunicorn", "server:app", "--workers", "4", "--bind", "0.0.0.0:3333", "--capture-output", "--log-level", "debug"]
 
-# To run the github built container image locally, do:
+# To run the gitub built container image locally, do:
 #docker pull ghcr.io/devices-lab/makedevice-backend:latest
 #docker run -p 3333:3333 ghcr.io/devices-lab/makedevice-backend:latest
 
