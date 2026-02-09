@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-wheel \
     python3-venv \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install prebuilt picotool
@@ -34,8 +35,8 @@ RUN curl -L -o /usr/local/bin/usvg \
     chmod +x /usr/local/bin/usvg
 
 # Install gerborlyze (SmartPanelizer)
-RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
-RUN python3 -m pip install svg-flatten-wasi==3.1.6
+RUN pip3 install --no-cache-dir git+https://git.jaseg.de/pcb-tools-extension.git \
+    && pip3 install --no-cache-dir svg-flatten-wasi==3.1.6
 
 # Install Python packages
 COPY requirements.txt .
