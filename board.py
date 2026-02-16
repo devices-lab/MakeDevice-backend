@@ -34,6 +34,7 @@ class Board:
         self.allow_overlap: bool = loader.allow_overlap
         self.algorithm: str = loader.algorithm
         self.module_margin: float = loader.module_margin
+        self.graphics_svg: str = loader.graphics_svg
         
         # Store the modules and layers
         self.modules: List[Module] = []

@@ -1,4 +1,6 @@
 import os
+import re
+import subprocess
 from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 
@@ -10,8 +12,59 @@ def generate(board: Board, output_dir="./generated"):
     output_dir = thread_context.job_folder / output_dir
 
     _generate_graphics(board, output_dir)
+    _generate_silkscreen_from_svg(board, output_dir)
     _generate_drill(board, output_dir)
     _generate_outline(board, output_dir)
+
+def _generate_silkscreen_from_svg(board: Board, output_dir) -> None:
+    """
+    Converts the composite graphics SVG into a top silkscreen Gerber file.
+    """
+    graphics_svg = _force_svg_dark(board.graphics_svg)
+    if not graphics_svg or not graphics_svg.strip():
+        return
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    svg_path = os.path.join(output_dir, f"{board.name}-silkscreen.svg")
+    output_path = os.path.join(output_dir, f"{board.name}-F_Silkscreen.gto")
+
+    with open(svg_path, 'w') as file:
+        file.write(graphics_svg)
+
+    subprocess.run(
+        [
+            "wasi-svg-flatten",
+            svg_path,
+            output_path,
+        ],
+        check=True,
+    )
+
+    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        print("🟠 Silkscreen Gerber is empty; check font availability for SVG <text> elements")
+
+
+# For some reason if you have a white svg ( which is the color of the silkscreen)
+# It doesn't render in the Gerber file. So we have to convert it to black
+# and then it renders as dark in the silkscreen layer.
+def _force_svg_dark(svg_text: str) -> str:
+    """Convert common white fills to black so silkscreen renders as dark."""
+    if not svg_text:
+        return svg_text
+
+    fill_pattern = re.compile(
+        r'(fill\s*=\s*)"(white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\))"',
+        re.IGNORECASE,
+    )
+    style_pattern = re.compile(
+        r'(fill\s*:\s*)(white|#fff|#ffffff|rgb\(\s*255\s*,\s*255\s*,\s*255\s*\))',
+        re.IGNORECASE,
+    )
+
+    svg_text = fill_pattern.sub(r'\1"black"', svg_text)
+    svg_text = style_pattern.sub(r'\1black', svg_text)
+    return svg_text
     
 def _generate_graphics(board: Board, output_dir) -> None:
     """

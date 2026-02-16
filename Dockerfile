@@ -60,6 +60,9 @@ EXPOSE 3333
 # Try to fix print()s not showing up immediately in the logs
 ENV PYTHONUNBUFFERED=1
 
+# Ensure user-level pip bin (svg-flatten-wasi) is on PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
 # Flask: Run the app (dev)
 # Set environment variables
 # ENV FLASK_APP=app.py

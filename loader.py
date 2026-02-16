@@ -129,3 +129,8 @@ class Loader:
     def modules(self) -> List[Dict[str, Any]]:
         """Get modules list"""
         return self.data.get('modules', [])
+
+    @property
+    def graphics_svg(self) -> str:
+        """Get composite graphics SVG used for silkscreen rendering"""
+        return self.data.get('graphicsSvg', '')
