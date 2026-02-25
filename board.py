@@ -89,11 +89,12 @@ class Board:
             # Get module properties
             name = module_data.get('name')
             version = module_data.get('version')
+            module_id = module_data.get('id')
             position = (module_data['position']['x'], module_data['position']['y'])
             rotation = module_data.get('rotation')
                     
             # Create Module object
-            module = Module(name=name, version=version, position=position, rotation=rotation)
+            module = Module(name=name, version=version, position=position, rotation=rotation, module_id=module_id)
             self.modules.append(module)
             
     def _add_layers_from_loader(self) -> None:
@@ -295,9 +296,12 @@ class Board:
         if not self.zones:
             print("🟠 No zones to validate")
             return
+
+        # Recompute warnings fresh for this validation pass
+        self.position_warnings = []
         
-        # 1. Check if any module zones overlap
-        print("🔵 Validating module zone overlaps")
+        # 1. Check if any module zones overlap or are too close
+        print("🔵 Validating module zone spacing")
         modules_with_zones = [module for module in self.modules if hasattr(module, 'zone') and module.zone]
         
         for i, module1 in enumerate(modules_with_zones):
@@ -306,12 +310,30 @@ class Board:
                 if i >= j:
                     continue
                 
-                if self._do_zones_overlap(module1.zone, module2.zone):
-                    warning = f"🔴 WARNING: Zone overlap detected between modules '{module1.name}' and '{module2.name}'"
-                    print(warning)
+                overlap_without_margin = self._do_zones_overlap(module1.zone, module2.zone, margin=0.0)
+                if overlap_without_margin:
+                    warning = (
+                        "MODULE_OVERLAPPING_OTHER_MODULE "
+                        f"moduleIds=[{module1.module_id},{module2.module_id}] "
+                        f"moduleIdShort=[{module1.module_id[:4] if module1.module_id else 'unkn'},{module2.module_id[:4] if module2.module_id else 'unkn'}] "
+                        f"moduleNames=[{module1.name},{module2.name}]"
+                    )
+                    print(f"🔴 {warning}")
+                    self.position_warnings.append(warning)
+                    continue
+
+                overlap_with_margin = self._do_zones_overlap(module1.zone, module2.zone)
+                if overlap_with_margin:
+                    warning = (
+                        "MODULE_TOO_CLOSE_TO_OTHER_MODULE "
+                        f"moduleIds=[{module1.module_id},{module2.module_id}] "
+                        f"moduleIdShort=[{module1.module_id[:4] if module1.module_id else 'unkn'},{module2.module_id[:4] if module2.module_id else 'unkn'}] "
+                        f"moduleNames=[{module1.name},{module2.name}]"
+                    )
+                    print(f"🔴 {warning}")
                     self.position_warnings.append(warning)
         
-        # 2. Check if any module zone extends beyond the board size
+        # 2. Check if any module zone extends beyond board or is too close to board edge
         print("🔵 Validating module zones within board boundaries")
         # Calculate the board boundaries
         xmin = self.origin_x - self.width / 2
@@ -323,45 +345,46 @@ class Board:
             # Extract corner points from module's zone
             bl, tl, tr, br = module.zone
             
-            # Check if any corner is outside the board boundaries
-            if (bl[0] < xmin or bl[1] < ymin or 
-                tl[0] < xmin or tl[1] > ymax or 
-                tr[0] > xmax or tr[1] > ymax or 
-                br[0] > xmax or br[1] < ymin):
-                
-                warning = f"🔴 Module '{module.name}' zone extends beyond board boundaries"
-                print(warning)
+            zone_x_min = min(bl[0], tl[0], tr[0], br[0])
+            zone_x_max = max(bl[0], tl[0], tr[0], br[0])
+            zone_y_min = min(bl[1], tl[1], tr[1], br[1])
+            zone_y_max = max(bl[1], tl[1], tr[1], br[1])
+
+            # Overhanging board edge
+            if (zone_x_min < xmin or zone_y_min < ymin or zone_x_max > xmax or zone_y_max > ymax):
+                warning = (
+                    "MODULE_OVERHANGING_BOARD_EDGE "
+                    f"moduleId={module.module_id} "
+                    f"moduleIdShort={module.module_id[:4] if module.module_id else 'unkn'} "
+                    f"moduleName={module.name}"
+                )
+                print(f"🔴 {warning}")
                 self.position_warnings.append(warning)
-        
-        # 3. Check if any module zones overlap with remaining zones in self.zones
-        print("🔵 Validating module zones against other zones")
-        all_zones = self.zones.get_data()
-        
-        for module in modules_with_zones:
-            module_zone = module.zone
-            
-            for zone in all_zones:
-                # Skip if this is the module's own zone
-                # Calculate zone center for comparison
-                bl_z, _, tr_z, _ = zone
-                center_x = (bl_z[0] + tr_z[0]) / 2
-                center_y = (bl_z[1] + tr_z[1]) / 2
-                
-                # Skip if this is the module's own zone
-                if module.position.x == center_x and module.position.y == center_y:
-                    continue
-                    
-                if self._do_zones_overlap(module_zone, zone):
-                    warning = f"🔴 Module '{module.name}' zone overlaps with a zone at position {(zone[0], zone[2])}"
-                    print(warning)
-                    self.position_warnings.append(warning)
+                continue
+
+            edge_clearance = min(
+                zone_x_min - xmin,
+                xmax - zone_x_max,
+                zone_y_min - ymin,
+                ymax - zone_y_max,
+            )
+
+            if self.module_margin > 0 and edge_clearance < self.module_margin:
+                warning = (
+                    "MODULE_TOO_CLOSE_TO_BOARD_EDGE "
+                    f"moduleId={module.module_id} "
+                    f"moduleIdShort={module.module_id[:4] if module.module_id else 'unkn'} "
+                    f"moduleName={module.name}"
+                )
+                print(f"🔴 {warning}")
+                self.position_warnings.append(warning)
         
         if not self.position_warnings:
             print("🟢 All zones and modules validated successfully!")
         else:
             print(f"🔴 Found {len(self.position_warnings)} validation issues")
                  
-    def _do_zones_overlap(self, zone1: List[Tuple[float, float]], zone2: List[Tuple[float, float]]) -> bool: 
+    def _do_zones_overlap(self, zone1: List[Tuple[float, float]], zone2: List[Tuple[float, float]], margin: Optional[float] = None) -> bool: 
         """
         Check if two zones overlap, considering a module margin.
         
@@ -377,7 +400,8 @@ class Board:
         bl2, _, tr2, _ = zone2
         
         # Add margin to the bounding boxes
-        margin = self.module_margin
+        if margin is None:
+            margin = self.module_margin
         
         # Create bounding boxes with margin [min_x, min_y, max_x, max_y]
         box1 = [bl1[0] - margin, bl1[1] - margin, tr1[0] + margin, tr1[1] + margin]
@@ -599,6 +623,13 @@ class Board:
         for module in self.modules:
             if module.position.x == position[0] and module.position.y == position[1]:
                 return module.name
+        return None
+
+    def get_module_from_position(self, position: Tuple[float, float], epsilon: float = 1e-6) -> Optional[Module]:
+        """Get the module object at a specific position."""
+        for module in self.modules:
+            if abs(module.position.x - position[0]) <= epsilon and abs(module.position.y - position[1]) <= epsilon:
+                return module
         return None
     
     def add_sockets(self, sockets: Sockets) -> None:

@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
@@ -601,6 +602,76 @@ class BusRouter(Router):
             print(f"Ordered zone center: {zone_center}, Groups: {groups}")
         
         return ordered_socket_groups
+
+    def _get_module_id(self, module) -> str:
+        return module.module_id if module and getattr(module, "module_id", None) else "unknown"
+
+    def _get_module_short_id(self, module_id: str) -> str:
+        return module_id[:4] if module_id != "unknown" else "unkn"
+
+    def _zone_bbox(self, zone: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]]) -> Tuple[float, float, float, float]:
+        bl, _, tr, _ = zone
+        return bl[0], bl[1], tr[0], tr[1]
+
+    def _zone_clearance(self, zone_a, zone_b) -> float:
+        ax_min, ay_min, ax_max, ay_max = self._zone_bbox(zone_a)
+        bx_min, by_min, bx_max, by_max = self._zone_bbox(zone_b)
+
+        margin = self.board.module_margin
+        ax_min -= margin
+        ay_min -= margin
+        ax_max += margin
+        ay_max += margin
+
+        bx_min -= margin
+        by_min -= margin
+        bx_max += margin
+        by_max += margin
+
+        dx = max(ax_min - bx_max, bx_min - ax_max, 0.0)
+        dy = max(ay_min - by_max, by_min - ay_max, 0.0)
+        return math.hypot(dx, dy)
+
+    def _find_too_close_module_pair(self, module) -> tuple[str, str, str, float]:
+        if module is None:
+            return "unknown", "unkn", "unknown", -1.0
+
+        best_other = None
+        best_clearance = float("inf")
+        best_center_distance = float("inf")
+
+        for other in self.board.modules:
+            if other is module:
+                continue
+
+            if getattr(module, "zone", None) and getattr(other, "zone", None):
+                clearance = self._zone_clearance(module.zone, other.zone)
+            else:
+                clearance = float("inf")
+
+            center_distance = math.dist((module.position.x, module.position.y), (other.position.x, other.position.y))
+
+            if clearance < best_clearance or (clearance == best_clearance and center_distance < best_center_distance):
+                best_other = other
+                best_clearance = clearance
+                best_center_distance = center_distance
+
+        if best_other is None:
+            return "unknown", "unkn", "unknown", -1.0
+
+        other_id = self._get_module_id(best_other)
+        return other_id, self._get_module_short_id(other_id), best_other.name if best_other.name else "unknown", best_clearance
+
+    def _build_pair_issue(self, module_id: str, module_name: str, too_close_id: str, too_close_name: str, clearance_mm: float) -> str:
+        module_short = self._get_module_short_id(module_id)
+        too_close_short = self._get_module_short_id(too_close_id)
+        issue_code = "MODULE_OVERLAPPING_OTHER_MODULE" if clearance_mm <= 0 else "MODULE_TOO_CLOSE_TO_OTHER_MODULE"
+        return (
+            f"{issue_code} "
+            f"moduleIds=[{module_id},{too_close_id}] "
+            f"moduleIdShort=[{module_short},{too_close_short}] "
+            f"moduleNames=[{module_name if module_name else 'unknown'},{too_close_name}]"
+        )
     
     def route(self) -> None:
         try:
@@ -634,11 +705,15 @@ class BusRouter(Router):
             
             for zone_center, socket_groups in grouped_sockets.items():
                 
-                module_name = self.board.get_module_name_from_position(zone_center)
+                module = self.board.get_module_from_position(zone_center)
+                module_name = module.name if module else self.board.get_module_name_from_position(zone_center)
+                module_id = module.module_id if module and module.module_id else "unknown"
                 
                 # For each group of sockets
                 for group_idx, socket_group in enumerate(socket_groups):
                     i = 0
+                    state_visit_counts = defaultdict(int)
+                    max_state_revisits = 4
                     
                     if self.debugger:
                         self.debugger.log_event(f"Starting group {group_idx}: {len(socket_group)} sockets")
@@ -646,6 +721,16 @@ class BusRouter(Router):
                     # Process all sockets in the group
                     print(f"Socket group length: {len(socket_group)}")
                     while i < len(socket_group):
+                        group_signature = tuple(
+                            (entry[0], float(entry[1][0]), float(entry[1][1])) for entry in socket_group
+                        )
+                        state_key = (i, group_signature)
+                        state_visit_counts[state_key] += 1
+
+                        if state_visit_counts[state_key] > max_state_revisits:
+                            too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
+                            raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
+
                         socket = socket_group[i]
                         net_name, socket_pos = socket
                         
@@ -694,13 +779,15 @@ class BusRouter(Router):
                                 timeout = 7
                                 if current_time - last_write_time > timeout:
                                     print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
-                                    sys.exit()  # Exit the thread 
+                                    too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
+                                    raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
 
                             # Also abandon the job if there's more than 150 images in the routing_imgs folder
                             routing_imgs_folder = thread_context.job_folder / "routing_imgs"
                             if routing_imgs_folder.exists() and len(list(routing_imgs_folder.glob("*.png"))) > 150:
                                 print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
-                                sys.exit()  # Exit the thread
+                                too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
+                                raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
 
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
@@ -742,8 +829,8 @@ class BusRouter(Router):
                             if i == 0:
                                 i += 1
                                 socket_count += 1
-                                # continue
-                                raise Exception(f" socket at {socket_pos} in group {group_idx} (first socket, cannot backtrack)")
+                                too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
+                                raise Exception(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
                             
                             # Otherwise, we can backtrack
                             print(f"🟠 Backtracking in group {group_idx} at socket {i}")

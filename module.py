@@ -16,9 +16,10 @@ class Position:
         return f"Position(x={self.x}, y={self.y})"
 
 class Module:
-    def __init__(self, name: str, version: str, position: Tuple[float, float], rotation: float):
+    def __init__(self, name: str, version: str, position: Tuple[float, float], rotation: float, module_id: Optional[str] = None):
         self.name = name
         self.version = version
+        self.module_id = module_id
         # HACK: Manually inverting the y-coordinate here
         self.position = Position(position[0], -position[1])
         self.rotation = rotation
