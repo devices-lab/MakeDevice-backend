@@ -49,6 +49,25 @@ def generate_id(length=8): # Was using import uuid, but this is simpler
     chars = string.ascii_letters + string.digits  # A-Z, a-z, 0-9
     return ''.join(random.choices(chars, k=length))
 
+
+def read_job_issues(job_id: str) -> list:
+    issues_file = job_folder_base / job_id / "issues.json"
+    issues: list[str] = []
+
+    if not issues_file.exists():
+        return issues
+
+    try:
+        with open(issues_file, 'r') as file:
+            data = json.load(file)
+        if isinstance(data, dict):
+            loaded = data.get("issues", [])
+            issues = loaded if isinstance(loaded, list) else []
+    except Exception as e:
+        print(f"🔴 Error reading issues file {issues_file}: {e}")
+
+    return issues
+
 # TODO: Implement these new endpoints properly
 @app.route('/routingStart', methods=['POST'])
 def routing_start():
@@ -177,15 +196,20 @@ def routing_progress():
 
 
     if routing_failed:
-        response: RoutingProgressResponse = {
-            "endpoint": "routingProgress",
-            "error": {
-                "message": error_message,
-                "failedModuleIds": [],  # TODO: Implement
-                "succeededModuleIds": [],  # TODO: Implement
+            issue_list = read_job_issues(job_id)
+            if error_message and error_message not in issue_list:
+                issue_list.append(error_message)
+
+            response: RoutingProgressResponse = {
+                "endpoint": "routingProgress",
+                "issues": issue_list,
+                "error": {
+                    "message": error_message,
+                    "failedModuleIds": [],  # TODO: Implement
+                    "succeededModuleIds": [],  # TODO: Implement
+                }
             }
-        }
-        return jsonify(response), 200
+            return jsonify(response), 200
     else:
         response: RoutingProgressResponse = {
             "endpoint": "routingProgress",
@@ -198,6 +222,10 @@ def routing_progress():
                 # TODO: Implement bus width left and right
             }
         }
+
+        if finished_success:
+            response["issues"] = read_job_issues(job_id)
+
         return jsonify(response), 200
 
 

@@ -61,6 +61,7 @@ class RoutingProgressResponse(TypedDict):
     endpoint: Literal["routingProgress"]
     error: NotRequired[RoutingProgressResponseError]
     result: NotRequired[RoutingProgressResponseResult]
+    issues: NotRequired[List[str]]
 
 
 class PCBArtifactResponseResult(TypedDict):
