@@ -1,0 +1,42 @@
+{
+  "name": "kittenbot_accelerometer",
+  "version": "0.5",
+  "displayName": "Accelerometer",
+  "description": "",
+  "catalogURL": "https://jacdac.github.io/jacdac-docs/devices/kittenbot/accelerometerv10/",
+  "jacdac": true,
+  "product_identifier": "3d771e1c",
+  "size": {
+    "width": 28,
+    "height": 28,
+    "depth": 0
+  },
+  "ec30": {
+    "width": 2,
+    "height": 2,
+    "connectors": {
+      "left": 1,
+      "right": 1
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "accelerometer"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2026-03-02",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

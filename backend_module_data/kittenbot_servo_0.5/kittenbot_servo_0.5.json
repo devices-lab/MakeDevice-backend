@@ -1,0 +1,42 @@
+{
+  "name": "kittenbot_servo",
+  "version": "0.5",
+  "displayName": "Servo",
+  "description": "",
+  "catalogURL": "https://jacdac.github.io/jacdac-docs/devices/kittenbot/servov10/",
+  "jacdac": true,
+  "product_identifier": "36be6512",
+  "size": {
+    "width": 28,
+    "height": 38,
+    "depth": 0
+  },
+  "ec30": {
+    "width": 2,
+    "height": 3,
+    "connectors": {
+      "left": 1,
+      "right": 0
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "servo"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2026-03-02",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "jvm_keycap_button_row",
+  "version": "0.5",
+  "displayName": "Keycap button row",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 127,
+    "height": 16.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "button"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2026-03-03",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

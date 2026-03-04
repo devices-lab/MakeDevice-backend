@@ -1,0 +1,27 @@
+{
+  "name": "jvm_jacdaptor",
+  "version": "0.5",
+  "displayName": "Jacdaptor",
+  "description": "Jacdac adaptor for micro:bit V2",
+  "jacdac": true,
+  "size": {
+    "width": 58,
+    "height": 22,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "brain",
+    "microbit"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "nRF52833",
+  "lastUpdateDate": "2026-03-03",
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}

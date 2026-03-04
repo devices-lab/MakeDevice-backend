@@ -1,0 +1,7 @@
+Ref,Val,Package,PosX,PosY,Rot,Side
+"","","3ea4ebb4-31fd-459a-bba5-33a37b22713e",-12.454700,0.820001,90.000000,top
+"3D1","~","3D_placeholder",0.000000,0.000000,0.000000,top
+"MH1","jacdac_hole_DATA_MH1","jacdac_hole_DATA_MH1",-10.000000,15.000000,0.000000,top
+"MH2","jacdac_hole_GND_MH2","jacdac_hole_GND_MH2",10.000000,15.000000,0.000000,top
+"MH3","jacdac_hole_PWR_MH3","jacdac_hole_PWR_MH3",-10.000000,-15.000000,0.000000,top
+"MH4","jacdac_hole_GND_MH4","jacdac_hole_GND_MH4",10.000000,-14.999999,0.000000,top

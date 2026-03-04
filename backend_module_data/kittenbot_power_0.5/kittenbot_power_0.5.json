@@ -1,0 +1,42 @@
+{
+  "name": "kittenbot_power",
+  "version": "0.5",
+  "displayName": "Power",
+  "description": "",
+  "catalogURL": "https://jacdac.github.io/jacdac-docs/devices/kittenbot/powerv10/",
+  "jacdac": true,
+  "product_identifier": "3c8baef1",
+  "size": {
+    "width": 28,
+    "height": 48,
+    "depth": 0
+  },
+  "ec30": {
+    "width": 2,
+    "height": 4,
+    "connectors": {
+      "left": 2,
+      "right": 0
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "power"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "PFS122-S08",
+  "lastUpdateDate": "2026-03-02",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

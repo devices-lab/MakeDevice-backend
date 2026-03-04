@@ -3,6 +3,7 @@
   "version": "0.1",
   "displayName": "RP2040 \"Pico\" module",
   "description": "Microcontroller module with I2C exposed",
+  "jacdac": false,
   "size": {
     "width": 24,
     "height": 32.5,
@@ -21,6 +22,7 @@
   "type": "virtual",
   "mcuPartNumber": "RP2040",
   "lastUpdateDate": "2025-12-27",
+  "publishSchematic": false,
   "designRules": {
     "canExtendToBoardEdge": true,
     "minimumClearance": null

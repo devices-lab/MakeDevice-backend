@@ -1,0 +1,43 @@
+{
+  "name": "kittenbot_rotary_button",
+  "version": "0.5",
+  "displayName": "Rotary button",
+  "description": "",
+  "catalogURL": "https://jacdac.github.io/jacdac-docs/devices/kittenbot/rotarybuttonv10/",
+  "jacdac": true,
+  "product_identifier": "3ab549ea",
+  "size": {
+    "width": 38,
+    "height": 28,
+    "depth": 3
+  },
+  "ec30": {
+    "width": 3,
+    "height": 2,
+    "connectors": {
+      "left": 1,
+      "right": 1
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "button",
+    "rotary_encoder"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "PFS122-S08",
+  "lastUpdateDate": "2026-03-02",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

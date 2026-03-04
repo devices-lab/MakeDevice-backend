@@ -253,12 +253,13 @@ def run(job_id: str, job_folder: Path) -> dict:
         _sync_position_warnings(board)
 
         # Save final front.svg / back.svg
-        try:
-            from debug import save_front_back_svgs
-            routing_imgs_folder = Path(thread_context.job_folder) / "routing_imgs"
-            save_front_back_svgs(board, routing_imgs_folder, router_list=[left_router, right_router])
-        except Exception as e:
-            print(f"🔴 Error saving final SVGs: {e}")
+        # Saving routing SVGs is disabled to save disk space.
+        # try:
+        #     from debug import save_front_back_svgs
+        #     routing_imgs_folder = Path(thread_context.job_folder) / "routing_imgs"
+        #     save_front_back_svgs(board, routing_imgs_folder, router_list=[left_router, right_router])
+        # except Exception as e:
+        #     print(f"🔴 Error saving final SVGs: {e}")
     else:   
         print("🔴 Could not find both top and bottom layers for routing")
         _record_failure(_issue_with_all_modules("ROUTING_LAYERS_MISSING_TOP_OR_BOTTOM", board))

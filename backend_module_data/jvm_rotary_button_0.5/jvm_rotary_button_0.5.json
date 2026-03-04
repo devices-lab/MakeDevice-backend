@@ -1,0 +1,28 @@
+{
+  "name": "jvm_rotary_button",
+  "version": "0.5",
+  "displayName": "Rotary button",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 26,
+    "height": 16.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "James Hahn",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "button",
+    "rotary_encoder"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2026-03-03",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

@@ -3,6 +3,7 @@
   "version": "0.1",
   "displayName": "I2C pull-up resistors",
   "description": "Pull-up resistors for I2C interface",
+  "jacdac": false,
   "size": {
     "width": 3.5,
     "height": 3.5,
@@ -18,6 +19,7 @@
   "type": "virtual",
   "mcuPartNumber": "",
   "lastUpdateDate": "2025-10-18",
+  "publishSchematic": true,
   "designRules": {
     "canExtendToBoardEdge": false,
     "minimumClearance": null

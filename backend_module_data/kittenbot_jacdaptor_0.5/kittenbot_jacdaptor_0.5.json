@@ -1,0 +1,42 @@
+{
+  "name": "kittenbot_jacdaptor",
+  "version": "0.5",
+  "displayName": "Jacdaptor",
+  "description": "Jacdac adaptor for micro:bit V2",
+  "catalogURL": "https://jacdac.github.io/jacdac-docs/devices/kittenbot/jacdaptorformicrobitv2v10/",
+  "jacdac": false,
+  "size": {
+    "width": 78,
+    "height": 34,
+    "depth": 2
+  },
+  "ec30": {
+    "width": 1,
+    "height": 7,
+    "connectors": {
+      "left": 0,
+      "right": 6
+    },
+    "offset": {
+      "x": 0,
+      "y": -6.2,
+      "rotation": 90
+    }
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "brain",
+    "microbit"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "nRF52833",
+  "lastUpdateDate": "2026-03-01",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": true,
+    "minimumClearance": null
+  }
+}

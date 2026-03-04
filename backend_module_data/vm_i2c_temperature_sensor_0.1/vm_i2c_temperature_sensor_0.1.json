@@ -3,6 +3,7 @@
   "version": "0.1",
   "displayName": "I2C temperature sensor",
   "description": "Temperature sensor with I2C interface",
+  "jacdac": false,
   "size": {
     "width": 3.5,
     "height": 6,
@@ -18,6 +19,7 @@
   "type": "virtual",
   "mcuPartNumber": "",
   "lastUpdateDate": "2025-10-23",
+  "publishSchematic": true,
   "designRules": {
     "canExtendToBoardEdge": false,
     "minimumClearance": null

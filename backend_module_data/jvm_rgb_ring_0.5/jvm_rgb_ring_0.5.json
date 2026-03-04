@@ -1,0 +1,77 @@
+{
+  "name": "jvm_rgb_ring",
+  "version": "0.5",
+  "displayName": "RGB ring",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 30,
+    "height": 30,
+    "depth": 0
+  },
+  "designer": {
+    "name": "James Hahn",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "led"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2026-03-03",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  },
+  "leds": [
+    {
+      "x": 0.0,
+      "y": -1.2,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": 0.85,
+      "y": -0.85,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": 1.2,
+      "y": 0.0,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": 0.85,
+      "y": 0.85,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": 0.0,
+      "y": 1.2,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": -0.85,
+      "y": 0.85,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": -1.2,
+      "y": 0.0,
+      "z": 0.2,
+      "i": 3
+    },
+    {
+      "x": -0.85,
+      "y": -0.85,
+      "z": 0.2,
+      "i": 3
+    }
+  ]
+}

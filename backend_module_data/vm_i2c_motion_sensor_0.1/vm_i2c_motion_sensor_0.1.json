@@ -3,6 +3,7 @@
   "version": "0.1",
   "displayName": "I2C motion sensor",
   "description": "6 DOF motion sensor with I2C interface",
+  "jacdac": false,
   "size": {
     "width": 6,
     "height": 6,
@@ -20,6 +21,7 @@
   "type": "virtual",
   "mcuPartNumber": "",
   "lastUpdateDate": "2025-10-18",
+  "publishSchematic": true,
   "designRules": {
     "canExtendToBoardEdge": false,
     "minimumClearance": null
