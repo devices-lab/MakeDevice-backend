@@ -415,8 +415,9 @@ class Board:
 
     def _add_corner_zones(self) -> None:
         """
-        Apply keep-out zones to each corner of the board with dimensions based on corner radius.
-        This prevents routing traces through the rounded corners of the board.
+        Apply keep-out zones to each rounded corner of the board.
+        Uses a 3-rectangle staircase approximation per corner to better match
+        the rounded cutout shape while wasting less routing area than a full square.
         
         Returns:
             None
@@ -434,44 +435,76 @@ class Board:
         xmax = self.origin_x + self.width / 2
         ymin = self.origin_y - self.height / 2
         ymax = self.origin_y + self.height / 2
-        
-        # Create square keep-out zones for each corner, with size equal to corner radius
-        # Bottom-left corner
-        bottom_left_zone = (
-            (xmin, ymin),                                  # bottom-left
-            (xmin, ymin + corner_radius),                  # top-left
-            (xmin + corner_radius, ymin + corner_radius),  # top-right
-            (xmin + corner_radius, ymin)                   # bottom-right
-        )
-        
-        # Bottom-right corner
-        bottom_right_zone = (
-            (xmax - corner_radius, ymin),                  # bottom-left
-            (xmax - corner_radius, ymin + corner_radius),  # top-left
-            (xmax, ymin + corner_radius),                  # top-right
-            (xmax, ymin)                                   # bottom-right
-        )
-        
-        # Top-left corner
-        top_left_zone = (
-            (xmin, ymax - corner_radius),                  # bottom-left
-            (xmin, ymax),                                  # top-left
-            (xmin + corner_radius, ymax),                  # top-right
-            (xmin + corner_radius, ymax - corner_radius)   # bottom-right
-        )
-        
-        # Top-right corner
-        top_right_zone = (
-            (xmax - corner_radius, ymax - corner_radius),  # bottom-left
-            (xmax - corner_radius, ymax),                  # top-left
-            (xmax, ymax),                                  # top-right
-            (xmax, ymax - corner_radius)                   # bottom-right
-        )
-        
-        # Add these zones to the board's zones
-        corner_zones = [bottom_left_zone, bottom_right_zone, top_left_zone, top_right_zone]
-        
-        print(f"🟢 Adding {len(corner_zones)} corner keep-out zones with size {corner_radius}mm")
+
+        # Keep coordinates on the routing grid so Zones.add_zone() accepts them
+        resolution = self.resolution
+        def snap(value: float) -> float:
+            if resolution <= 0:
+                return value
+            return round(value / resolution) * resolution
+
+        # Radius is also snapped for stable, grid-aligned band edges
+        corner_margin = resolution if resolution > 0 else 0.1
+        radius = snap(corner_radius + corner_margin)
+
+        def circle_cutout_width(y_local: float) -> float:
+            """Local x-width of rounded-corner cutout at local y in [0, radius]."""
+            dy = y_local - radius
+            inside = (radius * radius) - (dy * dy)
+            if inside <= 0:
+                return radius
+            return radius - (inside ** 0.5)
+
+        corner_zones = []
+        band_count = 3
+
+        for band_index in range(band_count):
+            y0 = (band_index / band_count) * radius
+            y1 = ((band_index + 1) / band_count) * radius
+            width = circle_cutout_width(y0)
+
+            # Snap each band edge / width to the routing grid
+            y0 = snap(y0)
+            y1 = snap(y1)
+            width = snap(width)
+
+            # Skip degenerate bands that can appear with tiny radius values
+            if y1 <= y0 or width <= 0:
+                continue
+
+            # Bottom-left corner
+            corner_zones.append((
+                (snap(xmin), snap(ymin + y0)),
+                (snap(xmin), snap(ymin + y1)),
+                (snap(xmin + width), snap(ymin + y1)),
+                (snap(xmin + width), snap(ymin + y0))
+            ))
+
+            # Bottom-right corner
+            corner_zones.append((
+                (snap(xmax - width), snap(ymin + y0)),
+                (snap(xmax - width), snap(ymin + y1)),
+                (snap(xmax), snap(ymin + y1)),
+                (snap(xmax), snap(ymin + y0))
+            ))
+
+            # Top-left corner
+            corner_zones.append((
+                (snap(xmin), snap(ymax - y1)),
+                (snap(xmin), snap(ymax - y0)),
+                (snap(xmin + width), snap(ymax - y0)),
+                (snap(xmin + width), snap(ymax - y1))
+            ))
+
+            # Top-right corner
+            corner_zones.append((
+                (snap(xmax - width), snap(ymax - y1)),
+                (snap(xmax - width), snap(ymax - y0)),
+                (snap(xmax), snap(ymax - y0)),
+                (snap(xmax), snap(ymax - y1))
+            ))
+
+        print(f"🟢 Adding {len(corner_zones)} corner keep-out zones (3-band rounded approximation), radius {radius}mm")
         
         # Add zones to the grid
         for zone in corner_zones:

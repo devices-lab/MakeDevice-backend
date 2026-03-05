@@ -17,6 +17,7 @@ import debug
 import debug_visualizer
 
 import sys
+import os
 
 import thread_context
     
@@ -672,6 +673,34 @@ class BusRouter(Router):
             f"moduleIdShort=[{module_short},{too_close_short}] "
             f"moduleNames=[{module_name if module_name else 'unknown'},{too_close_name}]"
         )
+
+    def _build_routing_issue(
+        self,
+        issue_code: str,
+        module_id: str,
+        module_name: str,
+        nearest_id: str,
+        nearest_name: str,
+        clearance_mm: float,
+        extra_fields: str = "",
+    ) -> str:
+        module_short = self._get_module_short_id(module_id)
+        nearest_short = self._get_module_short_id(nearest_id)
+
+        parts = [
+            issue_code,
+            f"moduleIds=[{module_id},{nearest_id}]",
+            f"moduleIdShort=[{module_short},{nearest_short}]",
+            f"moduleNames=[{module_name if module_name else 'unknown'},{nearest_name}]",
+        ]
+
+        if clearance_mm >= 0:
+            parts.append(f"nearestModuleClearanceMm={clearance_mm:.3f}")
+
+        if extra_fields:
+            parts.append(extra_fields.strip())
+
+        return " ".join(parts)
     
     def route(self) -> None:
         try:
@@ -728,8 +757,22 @@ class BusRouter(Router):
                         state_visit_counts[state_key] += 1
 
                         if state_visit_counts[state_key] > max_state_revisits:
-                            too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
-                            raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
+                            nearest_id, _, nearest_name, nearest_clearance = self._find_too_close_module_pair(module)
+                            raise RuntimeError(
+                                self._build_routing_issue(
+                                    "ROUTING_STUCK_STATE_REVISIT_LIMIT",
+                                    module_id,
+                                    module_name,
+                                    nearest_id,
+                                    nearest_name,
+                                    nearest_clearance,
+                                    (
+                                        f"stateRevisits={state_visit_counts[state_key]} "
+                                        f"maxStateRevisits={max_state_revisits} "
+                                        f"groupIndex={group_idx} socketIndex={i}"
+                                    ),
+                                )
+                            )
 
                         socket = socket_group[i]
                         net_name, socket_pos = socket
@@ -768,6 +811,17 @@ class BusRouter(Router):
                             with open(progress_file, 'w') as file:
                                 file.write(str(progress))
 
+                            # Also save front/back SVGs for live routing progress (server reads these)
+                            try:
+                                routing_imgs_folder = thread_context.job_folder / "routing_imgs"
+                                os.makedirs(routing_imgs_folder, exist_ok=True)
+                                # Save current board routing images. Use this router so in-progress
+                                # paths are visible. Wrapped in try/except to avoid aborting routing
+                                # if image generation fails.
+                                debug.save_front_back_svgs(self.board, routing_imgs_folder, router_list=[self])
+                            except Exception as e:
+                                print(f"🔴 Error saving routing images: {e}")
+
                             # Compare the keepalive time
                             keepalive_file = thread_context.job_folder / "keepalive_time"
                             if not keepalive_file.exists():
@@ -779,15 +833,37 @@ class BusRouter(Router):
                                 timeout = 7
                                 if current_time - last_write_time > timeout:
                                     print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to expired keepalive ({timeout} seconds)")
-                                    too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
-                                    raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
+                                    elapsed = current_time - last_write_time
+                                    nearest_id, _, nearest_name, nearest_clearance = self._find_too_close_module_pair(module)
+                                    raise RuntimeError(
+                                        self._build_routing_issue(
+                                            "ROUTING_JOB_ABANDONED_KEEPALIVE_EXPIRED",
+                                            module_id,
+                                            module_name,
+                                            nearest_id,
+                                            nearest_name,
+                                            nearest_clearance,
+                                            f"timeoutSeconds={timeout} elapsedSeconds={elapsed:.3f}",
+                                        )
+                                    )
 
                             # Also abandon the job if there's more than 150 images in the routing_imgs folder
                             routing_imgs_folder = thread_context.job_folder / "routing_imgs"
                             if routing_imgs_folder.exists() and len(list(routing_imgs_folder.glob("*.png"))) > 150:
                                 print(f"🔴 Abandoned job (ID: {thread_context.job_id}) due to too many routing attempts (>150)")
-                                too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
-                                raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
+                                png_count = len(list(routing_imgs_folder.glob("*.png")))
+                                nearest_id, _, nearest_name, nearest_clearance = self._find_too_close_module_pair(module)
+                                raise RuntimeError(
+                                    self._build_routing_issue(
+                                        "ROUTING_JOB_ABANDONED_MAX_ROUTING_IMAGES",
+                                        module_id,
+                                        module_name,
+                                        nearest_id,
+                                        nearest_name,
+                                        nearest_clearance,
+                                        f"routingImageCount={png_count} maxRoutingImages=150",
+                                    )
+                                )
 
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
@@ -829,8 +905,22 @@ class BusRouter(Router):
                             if i == 0:
                                 i += 1
                                 socket_count += 1
-                                too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
-                                raise Exception(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
+                                nearest_id, _, nearest_name, nearest_clearance = self._find_too_close_module_pair(module)
+                                raise Exception(
+                                    self._build_routing_issue(
+                                        "ROUTING_SOCKET_TO_BUS_PATH_NOT_FOUND",
+                                        module_id,
+                                        module_name,
+                                        nearest_id,
+                                        nearest_name,
+                                        nearest_clearance,
+                                        (
+                                            f"net={net_name} "
+                                            f"socketPos=[{socket_pos[0]:.3f},{socket_pos[1]:.3f}] "
+                                            f"groupIndex={group_idx} socketIndex={i}"
+                                        ),
+                                    )
+                                )
                             
                             # Otherwise, we can backtrack
                             print(f"🟠 Backtracking in group {group_idx} at socket {i}")

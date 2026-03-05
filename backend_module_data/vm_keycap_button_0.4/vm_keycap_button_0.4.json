@@ -1,0 +1,25 @@
+{
+  "name": "vm_keycap_button",
+  "version": "0.4",
+  "displayName": "Keycap button",
+  "description": "A single Cherry MX keycap button",
+  "size": {
+    "width": 26,
+    "height": 16.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "keycap_button"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2025-09-23",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

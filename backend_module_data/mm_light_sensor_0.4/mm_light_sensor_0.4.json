@@ -1,0 +1,37 @@
+{
+  "name": "mm_light_sensor",
+  "version": "0.4",
+  "displayName": "Light sensor",
+  "description": "A light intensity sensor for visible and infrared light",
+  "size": {
+    "width": 29,
+    "height": 26,
+    "depth": 0.5
+  },
+  "ec30": {
+    "width": 2,
+    "height": 2,
+    "connectors": {
+      "left": 1,
+      "right": 1
+    },
+    "offset": {
+      "x": 0,
+      "y": 0,
+      "rotation": 0
+    }
+  },
+  "designer": {
+    "company": "KittenBot"
+  },
+  "functionality": [
+    "light_sensor"
+  ],
+  "type": "mounted",
+  "mcuPartNumber": "STM32G030F6P6",
+  "lastUpdateDate": "2025-04-23",
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}
