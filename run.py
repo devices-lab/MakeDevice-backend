@@ -253,7 +253,7 @@ def run(job_id: str, job_folder: Path) -> dict:
         if right_route_error:
             _append_issue(right_route_error)
             return {"failed": True}
-
+ 
         _sync_position_warnings(board)
 
         # Save final front.svg / back.svg
