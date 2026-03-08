@@ -1,0 +1,26 @@
+{
+  "name": "jvm_accelerometer",
+  "version": "0.6",
+  "displayName": "Accelerometer",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 17.5,
+    "height": 16,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "accelerometer"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "publishSchematic": false,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

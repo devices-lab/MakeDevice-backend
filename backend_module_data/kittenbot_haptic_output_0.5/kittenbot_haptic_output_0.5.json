@@ -32,8 +32,6 @@
     "vibration_motor"
   ],
   "type": "mounted",
-  "mcuPartNumber": "PFS122-S08",
-  "lastUpdateDate": "2026-03-02",
   "publishSchematic": false,
   "designRules": {
     "canExtendToBoardEdge": false,

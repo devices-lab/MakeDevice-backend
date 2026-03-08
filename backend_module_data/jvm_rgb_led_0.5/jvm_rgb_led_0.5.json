@@ -18,7 +18,6 @@
   ],
   "type": "virtual",
   "mcuPartNumber": "STM32G030F6P6",
-  "lastUpdateDate": "2026-03-03",
   "publishSchematic": false,
   "designRules": {
     "canExtendToBoardEdge": false,

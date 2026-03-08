@@ -19,7 +19,6 @@
   ],
   "type": "virtual",
   "mcuPartNumber": "",
-  "lastUpdateDate": "2025-10-22",
   "publishSchematic": true,
   "designRules": {
     "canExtendToBoardEdge": false,

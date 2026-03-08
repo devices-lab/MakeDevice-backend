@@ -19,7 +19,6 @@
   ],
   "type": "virtual",
   "mcuPartNumber": "nRF52833",
-  "lastUpdateDate": "2026-03-03",
   "designRules": {
     "canExtendToBoardEdge": true,
     "minimumClearance": null

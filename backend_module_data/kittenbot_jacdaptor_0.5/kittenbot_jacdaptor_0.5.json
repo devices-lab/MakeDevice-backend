@@ -32,8 +32,6 @@
     "microbit"
   ],
   "type": "mounted",
-  "mcuPartNumber": "nRF52833",
-  "lastUpdateDate": "2026-03-01",
   "publishSchematic": false,
   "designRules": {
     "canExtendToBoardEdge": true,

@@ -21,7 +21,6 @@
   ],
   "type": "virtual",
   "mcuPartNumber": "RP2040",
-  "lastUpdateDate": "2025-12-27",
   "publishSchematic": false,
   "designRules": {
     "canExtendToBoardEdge": true,
