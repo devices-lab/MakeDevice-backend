@@ -456,8 +456,7 @@ class Board:
             return radius - (inside ** 0.5)
 
         corner_zones = []
-        trace_width = max(getattr(self.loader, "track_width", resolution), resolution)
-        band_count = max(3, int(round((radius / trace_width) * 0.5)))
+        band_count = 3
 
         for band_index in range(band_count):
             y0 = (band_index / band_count) * radius
@@ -505,10 +504,7 @@ class Board:
                 (snap(xmax), snap(ymax - y1))
             ))
 
-        print(
-            f"🟢 Adding {len(corner_zones)} corner keep-out zones "
-            f"({band_count}-band rounded approximation), radius {radius}mm"
-        )
+        print(f"🟢 Adding {len(corner_zones)} corner keep-out zones (3-band rounded approximation), radius {radius}mm")
         
         # Add zones to the grid
         for zone in corner_zones:

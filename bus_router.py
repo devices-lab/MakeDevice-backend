@@ -71,27 +71,6 @@ class BusRouter(Router):
             raise ValueError(f"🔴 Invalid side '{side}'. Must be 'left' or 'right'")
         
         return side
-
-    def _assert_no_module_overlaps_bus_zone(
-        self,
-        bus_zone: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]],
-    ) -> None:
-        """Fail routing when any module zone overlaps the bus keep-out zone."""
-        for module in self.board.modules:
-            if not getattr(module, "zone", None):
-                continue
-
-            if self.board._do_zones_overlap(module.zone, bus_zone, margin=0.0):
-                module_id = module.module_id if getattr(module, "module_id", None) else "unknown"
-                module_short = module_id[:4] if module_id != "unknown" else "unkn"
-                module_name = module.name if getattr(module, "name", None) else "unknown"
-                raise RuntimeError(
-                    "MODULE_OVERLAPPING_BUS_ZONE "
-                    f"moduleId={module_id} "
-                    f"moduleIdShort={module_short} "
-                    f"moduleName={module_name} "
-                    f"busSide={self.side}"
-                )
           
     def _create_buses(self, tracks_layer: Layer, buses_layer: Layer) -> Dict[str, Segment]:
         """
@@ -176,7 +155,6 @@ class BusRouter(Router):
         # Create rectangle in (bottom_left, top_left, top_right, bottom_right) format
         bus_zone = (zone_bottom_left, zone_top_left, zone_top_right, zone_bottom_right)
         self.board.zones.add_zone(bus_zone)
-        self._assert_no_module_overlaps_bus_zone(bus_zone)
         
         # Validate zones and modules once again
         self.board._validate_zones_and_modules()
@@ -429,32 +407,14 @@ class BusRouter(Router):
                     print(f"🔴 Path never crossed the bus column at {bus_connection_index[0]}")
                     return []
                 
-                # Ensure the chopped path reaches the exact bus connection index.
-                # Crossing the bus column can happen at the wrong y (e.g. near rounded corners),
-                # so route from the first crossing point to the clamped bus target with
-                # obstacle-aware pathfinding instead of forcing straight segments.
-                if (chopped_path[-1].x, chopped_path[-1].y) != bus_connection_index:
-                    connector_grid = Grid(matrix=current_grid.copy(), grid_id=1)
-                    connector_start = connector_grid.node(chopped_path[-1].x, chopped_path[-1].y)
-                    connector_end = connector_grid.node(bus_connection_index[0], bus_connection_index[1])
-You want left-side buses to continue around the bottom-left corner, and routing should be able to connect to either the left vertical leg or the bottom horizontal leg without trace crossing. I’m mapping where bus geometry and bus-target selection are defined so I can implement this cleanly in bus_router.py.
-
-
-                    if self.board.algorithm == "breadth_first":
-                        connector_finder = BreadthFirstFinder()
-                    else:
-                        connector_finder = AStarFinder(heuristic=self.custom_heuristic)
-
-                    if self.board.allow_diagonal_traces:
-                        connector_finder.diagonal_movement = DiagonalMovement.only_when_no_obstacle
-                    else:
-                        connector_finder.diagonal_movement = DiagonalMovement.never
-
-                    connector_path, _ = connector_finder.find_path(connector_start, connector_end, connector_grid)
-                    if not connector_path:
-                        return []
-
-                    chopped_path.extend(connector_path[1:])
+                # Add a node exactly at the bus position if needed
+                if chopped_path[-1].x != bus_connection_index[0] or chopped_path[-1].y != bus_connection_index[1]:
+                    # Create a new node at the exact bus position
+                    bus_node = pathfinding_grid.node(bus_connection_index[0], bus_connection_index[1])
+                    # Only add if it's adjacent to the last node
+                    last_node = chopped_path[-1]
+                    if abs(last_node.x - bus_connection_index[0]) <= 1 and abs(last_node.y - bus_connection_index[1]) <= 1:
+                        chopped_path.append(bus_node)
                 
                 # If successfully reached the bus, add a via at the connection point
                 if bus_crossed:
