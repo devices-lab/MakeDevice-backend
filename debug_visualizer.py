@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import matplotlib
 from matplotlib.collections import LineCollection
-from matplotlib.patches import Rectangle, Circle, Arc
+from matplotlib.patches import Rectangle, Circle
 
 from board import Board
 from objects import Point
@@ -321,74 +321,20 @@ class RoutingDebugger:
             self.plt.pause(0.05)
 
     def _draw_board_outline(self) -> None:
-        x_min = self.board.origin_x - self.board.width / 2
-        x_max = self.board.origin_x + self.board.width / 2
-        y_min = self.board.origin_y - self.board.height / 2
-        y_max = self.board.origin_y + self.board.height / 2
-
-        corner_radius = getattr(self.board.loader, "rounded_corner_radius", 0) or 0
-        corner_radius = min(corner_radius, self.board.width / 2, self.board.height / 2)
-
-        if corner_radius <= 0:
-            rect = Rectangle(
-                (x_min, y_min),
-                self.board.width,
-                self.board.height,
-                linewidth=2,
-                edgecolor="#2D3748",
-                facecolor="none",
-                linestyle="-",
-                zorder=2,
-            )
-            self.ax.add_patch(rect)
-            self._artist_info[rect] = "board outline"
-            return
-
-        line_kwargs = {
-            "linewidth": 2,
-            "color": "#2D3748",
-            "linestyle": "-",
-            "zorder": 2,
-        }
-
-        segments = [
-            # Bottom / top horizontal tangents
-            ((x_min + corner_radius, y_min), (x_max - corner_radius, y_min)),
-            ((x_min + corner_radius, y_max), (x_max - corner_radius, y_max)),
-            # Left / right vertical tangents
-            ((x_min, y_min + corner_radius), (x_min, y_max - corner_radius)),
-            ((x_max, y_min + corner_radius), (x_max, y_max - corner_radius)),
-        ]
-
-        for p0, p1 in segments:
-            line = self.ax.plot([p0[0], p1[0]], [p0[1], p1[1]], **line_kwargs)[0]
-            self._artist_info[line] = "board outline"
-
-        arcs = [
-            # Bottom-left
-            ((x_min + corner_radius, y_min + corner_radius), 180, 270),
-            # Bottom-right
-            ((x_max - corner_radius, y_min + corner_radius), 270, 360),
-            # Top-right
-            ((x_max - corner_radius, y_max - corner_radius), 0, 90),
-            # Top-left
-            ((x_min + corner_radius, y_max - corner_radius), 90, 180),
-        ]
-
-        for center, theta1, theta2 in arcs:
-            arc = Arc(
-                center,
-                width=2 * corner_radius,
-                height=2 * corner_radius,
-                angle=0,
-                theta1=theta1,
-                theta2=theta2,
-                linewidth=2,
-                edgecolor="#2D3748",
-                zorder=2,
-            )
-            self.ax.add_patch(arc)
-            self._artist_info[arc] = f"board corner radius | r={corner_radius:.2f}mm"
+        x0 = -self.board.width / 2
+        y0 = -self.board.height / 2
+        rect = Rectangle(
+            (x0, y0),
+            self.board.width,
+            self.board.height,
+            linewidth=2,
+            edgecolor="#2D3748",
+            facecolor="none",
+            linestyle="-",
+            zorder=2,
+        )
+        self.ax.add_patch(rect)
+        self._artist_info[rect] = "board outline"
 
     def _draw_zones(self) -> None:
         if not self.board.zones:
@@ -559,8 +505,8 @@ class RoutingDebugger:
     def _finalize_axes(self) -> None:
         padding = max(self.board.width, self.board.height) * 0.05
         self.ax.set_aspect("equal", adjustable="box")
-        self.ax.set_xlim(self.board.origin_x - self.board.width / 2 - padding, self.board.origin_x + self.board.width / 2 + padding)
-        self.ax.set_ylim(self.board.origin_y - self.board.height / 2 - padding, self.board.origin_y + self.board.height / 2 + padding)
+        self.ax.set_xlim(-self.board.width / 2 - padding, self.board.width / 2 + padding)
+        self.ax.set_ylim(-self.board.height / 2 - padding, self.board.height / 2 + padding)
         self.ax.grid(True, alpha=0.1, linestyle="-", linewidth=0.5, color="#CBD5E0")
         self.ax.set_facecolor("#FFFFFF")
 
