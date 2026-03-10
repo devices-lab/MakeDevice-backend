@@ -431,22 +431,30 @@ class BusRouter(Router):
                 
                 # Ensure the chopped path reaches the exact bus connection index.
                 # Crossing the bus column can happen at the wrong y (e.g. near rounded corners),
-                # so we explicitly walk on the bus column to the clamped bus y target.
-                if chopped_path[-1].x != bus_connection_index[0]:
-                    last_node = chopped_path[-1]
-                    x_step = 1 if bus_connection_index[0] > last_node.x else -1
-                    x_pos = last_node.x + x_step
-                    while x_pos != bus_connection_index[0] + x_step:
-                        chopped_path.append(pathfinding_grid.node(x_pos, last_node.y))
-                        x_pos += x_step
+                # so route from the first crossing point to the clamped bus target with
+                # obstacle-aware pathfinding instead of forcing straight segments.
+                if (chopped_path[-1].x, chopped_path[-1].y) != bus_connection_index:
+                    connector_grid = Grid(matrix=current_grid.copy(), grid_id=1)
+                    connector_start = connector_grid.node(chopped_path[-1].x, chopped_path[-1].y)
+                    connector_end = connector_grid.node(bus_connection_index[0], bus_connection_index[1])
+You want left-side buses to continue around the bottom-left corner, and routing should be able to connect to either the left vertical leg or the bottom horizontal leg without trace crossing. I’m mapping where bus geometry and bus-target selection are defined so I can implement this cleanly in bus_router.py.
 
-                if chopped_path[-1].y != bus_connection_index[1]:
-                    last_node = chopped_path[-1]
-                    y_step = 1 if bus_connection_index[1] > last_node.y else -1
-                    y_pos = last_node.y + y_step
-                    while y_pos != bus_connection_index[1] + y_step:
-                        chopped_path.append(pathfinding_grid.node(bus_connection_index[0], y_pos))
-                        y_pos += y_step
+
+                    if self.board.algorithm == "breadth_first":
+                        connector_finder = BreadthFirstFinder()
+                    else:
+                        connector_finder = AStarFinder(heuristic=self.custom_heuristic)
+
+                    if self.board.allow_diagonal_traces:
+                        connector_finder.diagonal_movement = DiagonalMovement.only_when_no_obstacle
+                    else:
+                        connector_finder.diagonal_movement = DiagonalMovement.never
+
+                    connector_path, _ = connector_finder.find_path(connector_start, connector_end, connector_grid)
+                    if not connector_path:
+                        return []
+
+                    chopped_path.extend(connector_path[1:])
                 
                 # If successfully reached the bus, add a via at the connection point
                 if bus_crossed:
