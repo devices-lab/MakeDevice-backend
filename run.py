@@ -22,6 +22,7 @@ ALLOWED_ISSUE_PREFIXES = (
     "MODULE_TOO_CLOSE_TO_BOARD_EDGE",
     "MODULE_TOO_CLOSE_TO_OTHER_MODULE",
     "MODULE_OVERLAPPING_OTHER_MODULE",
+    "MODULE_OVERLAPPING_BUS_ZONE",
     "MODULE_OVERHANGING_BOARD_EDGE",
     "ROUTING_STUCK_STATE_REVISIT_LIMIT",
     "ROUTING_JOB_ABANDONED_KEEPALIVE_EXPIRED",
@@ -236,22 +237,26 @@ def run(job_id: str, job_folder: Path) -> dict:
     bottom_layer = board.get_layer("B_Cu.gbl")
 
     if top_layer and bottom_layer is not None:
-        left_router = BusRouter(
-            board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
-        )
-        left_router.route()
-        left_route_error = _read_router_error()
-        if left_route_error:
-            _append_issue(left_route_error)
-            return {"failed": True}
+        try:
+            left_router = BusRouter(
+                board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
+            )
+            left_router.route()
+            left_route_error = _read_router_error()
+            if left_route_error:
+                _append_issue(left_route_error)
+                return {"failed": True}
 
-        right_router = BusRouter(
-            board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
-        )
-        right_router.route()
-        right_route_error = _read_router_error()
-        if right_route_error:
-            _append_issue(right_route_error)
+            right_router = BusRouter(
+                board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
+            )
+            right_router.route()
+            right_route_error = _read_router_error()
+            if right_route_error:
+                _append_issue(right_route_error)
+                return {"failed": True}
+        except Exception as e:
+            _record_failure(str(e))
             return {"failed": True}
  
         _sync_position_warnings(board)
