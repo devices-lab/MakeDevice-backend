@@ -22,6 +22,8 @@ LAYER_COLORS = {
 }
 LAYER_ALPHA = 0.5
 DEFAULT_COLOR = "#2D3748"
+TRACE_LINEWIDTH = 2.0
+BUS_LINEWIDTH = 2.5
 
 def _layer_color(layer_name: str) -> str:
     return LAYER_COLORS.get(layer_name, DEFAULT_COLOR)
@@ -102,7 +104,7 @@ def _render_layer_svg(board, layer_name: str, router_list=None):
         except Exception:
             continue
     if seg_lines:
-        lc = LineCollection(seg_lines, colors=[color], linewidths=1, alpha=alpha)
+        lc = LineCollection(seg_lines, colors=[color], linewidths=TRACE_LINEWIDTH, alpha=alpha)
         ax.add_collection(lc)
 
     # ── 2. Draw in-progress route indices from routers (not yet on the layer) ──
@@ -119,7 +121,7 @@ def _render_layer_svg(board, layer_name: str, router_list=None):
                     if len(path) < 2:
                         continue
                     points = [router._indices_to_point(x, y).as_tuple() for x, y, _ in path]
-                    lc = LineCollection([points], colors=[color], linewidths=1, alpha=alpha)
+                    lc = LineCollection([points], colors=[color], linewidths=TRACE_LINEWIDTH, alpha=alpha)
                     ax.add_collection(lc)
 
             # Draw buses that live on this layer
@@ -127,7 +129,7 @@ def _render_layer_svg(board, layer_name: str, router_list=None):
                 for seg in router.buses_layer.segments:
                     try:
                         bl = [(seg.start.x, seg.start.y), (seg.end.x, seg.end.y)]
-                        blc = LineCollection([bl], colors=[color], linewidths=1.5, alpha=alpha)
+                        blc = LineCollection([bl], colors=[color], linewidths=BUS_LINEWIDTH, alpha=alpha)
                         ax.add_collection(blc)
                     except Exception:
                         continue

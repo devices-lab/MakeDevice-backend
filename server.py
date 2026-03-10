@@ -168,31 +168,50 @@ def routing_progress():
         except:
             error_message = "Unknown routing error occurred"
 
-    # Get routing images (prefer SVG front/back)
+    # Get latest routing images for this job
     routing_imgs_folder = job_folder_base / job_id / "routing_imgs"
     routing_image_front_b64 = None
     routing_image_back_b64 = None
+    routing_image_b64 = None
 
+    def _read_b64(path: Path):
+        try:
+            with open(path, 'rb') as f:
+                return base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            print(f"🔴 Error reading routing image {path}: {e}")
+            return None
+
+    latest_image_path = None
     if os.path.exists(routing_imgs_folder):
         front_svg = routing_imgs_folder / "front.svg"
         back_svg = routing_imgs_folder / "back.svg"
-
-        def _read_b64(path):
-            try:
-                with open(path, 'rb') as f:
-                    return base64.b64encode(f.read()).decode('utf-8')
-            except Exception as e:
-                print(f"🔴 Error reading routing image {path}: {e}")
-                return None
 
         if front_svg.exists():
             routing_image_front_b64 = _read_b64(front_svg)
         if back_svg.exists():
             routing_image_back_b64 = _read_b64(back_svg)
 
-        # if front/back not present, ignore 
-        if not routing_image_front_b64 or not routing_image_back_b64:
-            print("Front/back routing images not found, skipping those in response")
+        # Choose the newest available image for the generic routingImage field
+        candidates = [p for p in (front_svg, back_svg) if p.exists()]
+        if candidates:
+            latest_image_path = max(candidates, key=lambda p: p.stat().st_mtime)
+            routing_image_b64 = _read_b64(latest_image_path)
+
+        if not routing_image_front_b64 and not routing_image_back_b64:
+            latest_svgs = sorted(
+                list(routing_imgs_folder.glob("*.svg")),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            if latest_svgs:
+                latest_image_path = latest_svgs[0]
+                routing_image_b64 = _read_b64(latest_image_path)
+
+    # Avoid stale UI state by always returning explicit image values
+    routing_image_b64 = routing_image_b64 or ""
+    routing_image_front_b64 = routing_image_front_b64 or ""
+    routing_image_back_b64 = routing_image_back_b64 or ""
 
 
     if routing_failed:
@@ -203,6 +222,13 @@ def routing_progress():
             response: RoutingProgressResponse = {
                 "endpoint": "routingProgress",
                 "issues": issue_list,
+                "result": {
+                    "progress": progress,
+                    "completed": finished_success,
+                    "routingImage": routing_image_b64,
+                    "routingImageFront": routing_image_front_b64,
+                    "routingImageBack": routing_image_back_b64,
+                },
                 "error": {
                     "message": error_message,
                     "failedModuleIds": [],  # TODO: Implement
@@ -216,7 +242,7 @@ def routing_progress():
             "result": {
                 "progress": progress,
                 "completed": finished_success,
-                "routingImage": routing_image_front_b64,
+                "routingImage": routing_image_b64,
                 "routingImageFront": routing_image_front_b64,
                 "routingImageBack": routing_image_back_b64,
                 # TODO: Implement bus width left and right

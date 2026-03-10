@@ -789,6 +789,13 @@ class BusRouter(Router):
                             with open(progress_file, 'w') as file:
                                 file.write(str(progress))
 
+                            # Save front/back SVGs for live routing progress
+                            try:
+                                routing_imgs_folder = thread_context.job_folder / "routing_imgs"
+                                debug.save_front_back_svgs(self.board, routing_imgs_folder, router_list=[self])
+                            except Exception as e:
+                                print(f"🔴 Error saving routing images: {e}")
+
                             # Compare the keepalive time
                             keepalive_file = thread_context.job_folder / "keepalive_time"
                             if not keepalive_file.exists():
