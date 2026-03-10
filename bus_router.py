@@ -70,6 +70,26 @@ class BusRouter(Router):
             raise ValueError(f"🔴 Invalid side '{side}'. Must be 'left' or 'right'")
         
         return side
+
+    def _assert_no_module_overlaps_bus_zone(
+        self,
+        bus_zone: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]],
+    ) -> None:
+        for module in self.board.modules:
+            if not getattr(module, "zone", None):
+                continue
+
+            if self.board._do_zones_overlap(module.zone, bus_zone, margin=0.0):
+                module_id = module.module_id if getattr(module, "module_id", None) else "unknown"
+                module_short = module_id[:4] if module_id != "unknown" else "unkn"
+                module_name = module.name if getattr(module, "name", None) else "unknown"
+                raise RuntimeError(
+                    "MODULE_OVERLAPPING_BUS_ZONE "
+                    f"moduleId={module_id} "
+                    f"moduleIdShort={module_short} "
+                    f"moduleName={module_name} "
+                    f"busSide={self.side}"
+                )
           
     def _create_buses(self, tracks_layer: Layer, buses_layer: Layer) -> Dict[str, Segment]:
         """
@@ -154,6 +174,7 @@ class BusRouter(Router):
         # Create rectangle in (bottom_left, top_left, top_right, bottom_right) format
         bus_zone = (zone_bottom_left, zone_top_left, zone_top_right, zone_bottom_right)
         self.board.zones.add_zone(bus_zone)
+        self._assert_no_module_overlaps_bus_zone(bus_zone)
         
         # Validate zones and modules once again
         self.board._validate_zones_and_modules()

@@ -434,7 +434,20 @@ class Board:
         xmax = self.origin_x + self.width / 2
         ymin = self.origin_y - self.height / 2
         ymax = self.origin_y + self.height / 2
-        
+
+        resolution = self.resolution
+
+        def snap(value: float) -> float:
+            if resolution <= 0:
+                return value
+            return round(value / resolution) * resolution
+
+        xmin = snap(xmin)
+        xmax = snap(xmax)
+        ymin = snap(ymin)
+        ymax = snap(ymax)
+        corner_radius = snap(corner_radius)
+
         # Create square keep-out zones for each corner, with size equal to corner radius
         # Bottom-left corner
         bottom_left_zone = (
@@ -443,7 +456,7 @@ class Board:
             (xmin + corner_radius, ymin + corner_radius),  # top-right
             (xmin + corner_radius, ymin)                   # bottom-right
         )
-        
+
         # Bottom-right corner
         bottom_right_zone = (
             (xmax - corner_radius, ymin),                  # bottom-left
@@ -451,7 +464,7 @@ class Board:
             (xmax, ymin + corner_radius),                  # top-right
             (xmax, ymin)                                   # bottom-right
         )
-        
+
         # Top-left corner
         top_left_zone = (
             (xmin, ymax - corner_radius),                  # bottom-left
@@ -459,7 +472,7 @@ class Board:
             (xmin + corner_radius, ymax),                  # top-right
             (xmin + corner_radius, ymax - corner_radius)   # bottom-right
         )
-        
+
         # Top-right corner
         top_right_zone = (
             (xmax - corner_radius, ymax - corner_radius),  # bottom-left
@@ -467,10 +480,10 @@ class Board:
             (xmax, ymax),                                  # top-right
             (xmax, ymax - corner_radius)                   # bottom-right
         )
-        
+
         # Add these zones to the board's zones
         corner_zones = [bottom_left_zone, bottom_right_zone, top_left_zone, top_right_zone]
-        
+
         print(f"🟢 Adding {len(corner_zones)} corner keep-out zones with size {corner_radius}mm")
         
         # Add zones to the grid
