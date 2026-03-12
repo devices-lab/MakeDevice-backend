@@ -170,6 +170,10 @@ def run(job_id: str, job_folder: Path) -> dict:
     
     board = Board(loader)
     thread_context.board = board
+    
+    # Track critical errors that prevent further processing
+    # We continue collecting all issues even after hitting critical errors
+    critical_errors = []
 
     # Merge the GerberSockets layers from all individual modules
     gerbersockets_layer = merge_layers(
@@ -178,121 +182,138 @@ def run(job_id: str, job_folder: Path) -> dict:
     
     if gerbersockets_layer is None:
         print("🔴 No GerberSockets layer found in any module")
-        _record_failure(_issue_with_all_modules("ROUTING_LAYER_MISSING_GERBERSOCKETS", board))
-        return {"failed": True}
-    
-    print("🟢 Merged", loader.gerbersockets_layer_name, "layers")
-
-    # Get the locations of the sockets
-    sockets = Sockets(loader, gerbersockets_layer)
-    if sockets.get_socket_count() == 0:
-        print("🔴 No sockets found")
-        _record_failure(_issue_with_all_modules("ROUTING_NO_SOCKETS_FOUND", board))
-        return {"failed": True}
+        error_msg = _issue_with_all_modules("ROUTING_LAYER_MISSING_GERBERSOCKETS", board)
+        _append_issue(error_msg)
+        critical_errors.append(error_msg)
     else:
-        board.add_sockets(sockets)
-        print(
-            "🟢 Found",
-            sockets.get_socket_count(),
-            "sockets and added them to the board",
-        )
+        print("🟢 Merged", loader.gerbersockets_layer_name, "layers")
 
-    # Get the keep out zones
-    zones = Zones(loader, gerbersockets_layer)
-    if zones.get_zone_count() == 0:
-        print("🔴 No keep-out zones found, and added them to the board")
-        _record_failure(_issue_with_all_modules("PLACEMENT_NO_KEEP_OUT_ZONES", board))
-        return {"failed": True}
-    else:
-        board.add_zones(zones)
-        _sync_position_warnings(board)
-        print(
-            "🟢 Found",
-            zones.get_zone_count(),
-            "keep-out zones and added them to the board",
-        )
+        # Get the locations of the sockets
+        sockets = Sockets(loader, gerbersockets_layer)
+        if sockets.get_socket_count() == 0:
+            print("🔴 No sockets found")
+            error_msg = _issue_with_all_modules("ROUTING_NO_SOCKETS_FOUND", board)
+            _append_issue(error_msg)
+            critical_errors.append(error_msg)
+        else:
+            board.add_sockets(sockets)
+            print(
+                "🟢 Found",
+                sockets.get_socket_count(),
+                "sockets and added them to the board",
+            )
+
+        # Get the keep out zones
+        zones = Zones(loader, gerbersockets_layer)
+        if zones.get_zone_count() == 0:
+            print("🔴 No keep-out zones found, and added them to the board")
+            error_msg = _issue_with_all_modules("PLACEMENT_NO_KEEP_OUT_ZONES", board)
+            _append_issue(error_msg)
+            critical_errors.append(error_msg)
+        else:
+            board.add_zones(zones)
+            _sync_position_warnings(board)
+            print(
+                "🟢 Found",
+                zones.get_zone_count(),
+                "keep-out zones and added them to the board",
+            )
 
     # Get the module names and the net names of their sockets
-    module_nets = board.get_module_nets()
-    for module in module_nets:
-        print(f"🔵 Module '{module.name}' has the following nets:")
-        str_nets = [str(net) for net in module_nets[module]]
-        if len(str_nets) == 0:
-            print("    No nets")
-        else:
-            print(f"    {', '.join(str_nets)}")
+    if not critical_errors:
+        module_nets = board.get_module_nets()
+        for module in module_nets:
+            print(f"🔵 Module '{module.name}' has the following nets:")
+            str_nets = [str(net) for net in module_nets[module]]
+            if len(str_nets) == 0:
+                print("    No nets")
+            else:
+                print(f"    {', '.join(str_nets)}")
 
-    # Generate JSON containing module/net mappings needed for MCU programming
-    programming_json = board.get_programming_json()
-    with open(thread_context.job_folder / "firmware.json", "w") as json_file:
-        json_file.write(programming_json)
-    print("🟢 Generated MCU programming firmware JSON file")
+        # Generate JSON containing module/net mappings needed for MCU programming
+        programming_json = board.get_programming_json()
+        with open(thread_context.job_folder / "firmware.json", "w") as json_file:
+            json_file.write(programming_json)
+        print("🟢 Generated MCU programming firmware JSON file")
 
-    # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
-    top_layer = board.get_layer("F_Cu.gtl")
-    bottom_layer = board.get_layer("B_Cu.gbl")
+        # TODO: for now it will be hardcoded, but would be good to identify the track/buses layers programatically
+        top_layer = board.get_layer("F_Cu.gtl")
+        bottom_layer = board.get_layer("B_Cu.gbl")
 
-    if top_layer and bottom_layer is not None:
-        try:
-            left_router = BusRouter(
-                board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
-            )
-            left_router.route()
-            left_route_error = _read_router_error()
-            if left_route_error:
-                _append_issue(left_route_error)
-                return {"failed": True}
+        if top_layer and bottom_layer is not None:
+            try:
+                left_router = BusRouter(
+                    board, tracks_layer=top_layer, buses_layer=bottom_layer, side="left"
+                )
+                left_router.route()
+                left_route_error = _read_router_error()
+                if left_route_error:
+                    _append_issue(left_route_error)
+                    critical_errors.append(left_route_error)
+                    print(f"🔴 Left router failed: {left_route_error}")
+                else:
+                    right_router = BusRouter(
+                        board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
+                    )
+                    right_router.route()
+                    right_route_error = _read_router_error()
+                    if right_route_error:
+                        _append_issue(right_route_error)
+                        critical_errors.append(right_route_error)
+                        print(f"🔴 Right router failed: {right_route_error}")
+            except Exception as e:
+                error_msg = str(e)
+                _append_issue(error_msg)
+                _append_issue(_issue_with_all_modules("ROUTING_EXCEPTION", board, f"error={error_msg}"))
+                critical_errors.append(error_msg)
+                print(f"🔴 Routing exception: {e}")
 
-            right_router = BusRouter(
-                board, tracks_layer=bottom_layer, buses_layer=top_layer, side="right"
-            )
-            right_router.route()
-            right_route_error = _read_router_error()
-            if right_route_error:
-                _append_issue(right_route_error)
-                return {"failed": True}
-        except Exception as e:
-            _record_failure(str(e))
-            return {"failed": True}
+            _sync_position_warnings(board)
 
-        _sync_position_warnings(board)
-
-        # Save final front.svg / back.svg
-        try:
-            from debug import save_front_back_svgs
-            routing_imgs_folder = Path(thread_context.job_folder) / "routing_imgs"
-            save_front_back_svgs(board, routing_imgs_folder, router_list=[left_router, right_router])
-        except Exception as e:
-            print(f"🔴 Error saving final SVGs: {e}")
-    else:   
-        print("🔴 Could not find both top and bottom layers for routing")
-        _record_failure(_issue_with_all_modules("ROUTING_LAYERS_MISSING_TOP_OR_BOTTOM", board))
-        return {"failed": True}
-
-    generate(board)
-    merge_stacks(board.modules, board.name)
-    consolidate_component_files(board.modules, board.name)
-
-    # Count only sockets that were assigned to modules (ignore unassigned sockets)
-    module_nets = board.get_module_nets()
-    all = sum(len(module_nets[module]) for module in module_nets)
-    connected = board.connected_sockets_count
-
-    if (all - connected) == 0:
-        print(f"🟢 All {connected} GerberSockets routed successfully")
+            # Save final front.svg / back.svg if routing succeeded
+            if not any("router" in err.lower() for err in critical_errors):
+                try:
+                    from debug import save_front_back_svgs
+                    routing_imgs_folder = Path(thread_context.job_folder) / "routing_imgs"
+                    save_front_back_svgs(board, routing_imgs_folder, router_list=[left_router, right_router])
+                except Exception as e:
+                    print(f"🔴 Error saving final SVGs: {e}")
+        else:   
+            print("🔴 Could not find both top and bottom layers for routing")
+            error_msg = _issue_with_all_modules("ROUTING_LAYERS_MISSING_TOP_OR_BOTTOM", board)
+            _append_issue(error_msg)
+            critical_errors.append(error_msg)
     else:
-        failed_count = all - connected
-        print(f"🔴 GerberSockets routing incomplete for {failed_count} socket. {connected}/{all} completed")
-        _record_failure(
-            _issue_with_all_modules(
+        print("🟡 Skipping module nets assignment and routing due to critical errors in board setup")
+
+    # Only proceed with generation if we don't have critical errors
+    if not critical_errors:
+        generate(board)
+        merge_stacks(board.modules, board.name)
+        consolidate_component_files(board.modules, board.name)
+
+        # Count only sockets that were assigned to modules (ignore unassigned sockets)
+        module_nets = board.get_module_nets()
+        all = sum(len(module_nets[module]) for module in module_nets)
+        connected = board.connected_sockets_count
+
+        if (all - connected) == 0:
+            print(f"🟢 All {connected} GerberSockets routed successfully")
+        else:
+            failed_count = all - connected
+            print(f"🔴 GerberSockets routing incomplete for {failed_count} socket. {connected}/{all} completed")
+            error_msg = _issue_with_all_modules(
                 "ROUTING_UNCONNECTED_SOCKETS",
                 board,
                 f"failedSockets={failed_count} connectedSockets={connected} totalSockets={all}",
             )
-        )
-        return {"failed": True}
+            _append_issue(error_msg)
+            critical_errors.append(error_msg)
+    else:
+        print("🟡 Skipping generation due to critical errors in routing")
 
     # Generate the firmware files for microbit/RP2040 module to flash all Jacdac-based SMT32 virtual modules
+    # This is non-critical, so we still try even if there are issues
     try:
         firmware.run()
         print("🟢 Generated firmware files")
@@ -302,12 +323,15 @@ def run(job_id: str, job_folder: Path) -> dict:
         _append_issue(_issue_with_all_modules("FIRMWARE_GENERATION_FAILED", board, f"error={str(e)}"))
         compress_directory(thread_context.job_folder / "output")
 
-    # Write to a text fail indicating zip ready
+    # Write to a text file indicating zip ready
     with open(thread_context.job_folder / "zip_ready.txt", 'w') as file:
         file.write("ready")
 
     print("🟢 Finished job ID: ", thread_context.job_id)
 
-    return {
-        "failed": False
-    }
+    # Return summary of all issues found
+    if critical_errors:
+        print(f"🔴 Finished with {len(critical_errors)} critical error(s)")
+        return {"failed": True}
+    else:
+        return {"failed": False}

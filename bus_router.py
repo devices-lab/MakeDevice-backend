@@ -217,19 +217,67 @@ class BusRouter(Router):
         
         return Point(x_position, clamped_y_position)
     
+    def _compute_winding_angle(self, socket_pos: Tuple[float, float], module_center: Tuple[float, float]) -> float:
+        """
+        Compute the winding angle of a socket around its module center in radians,
+        using standard math convention (CCW from +x axis).
+        """
+        dx = socket_pos[0] - module_center[0]
+        dy = socket_pos[1] - module_center[1]
+        return math.atan2(dy, dx)
+
+    def _compute_heuristic_scales(self, socket_pos: Tuple[float, float], module_center: Tuple[float, float]) -> Tuple[float, float]:
+        """
+        Compute (dx_scale, dy_scale) for the A* heuristic based on the socket's winding
+        angle around the module center.
+
+        The bus-facing direction is -x for a left-side bus, +x for a right-side bus.
+
+        - Sockets on the bus-facing face: slight dy penalty keeps the trace at its natural
+          y level and prevents crossings with other bus-face sockets.
+        - Sockets on orthogonal (top/bottom) faces: neutral weights; both x and y travel
+          are needed equally.
+        - Sockets on the far face: strong horizontal preference so the trace moves toward
+          the bus side quickly rather than wandering and colliding with existing traces.
+        """
+        angle = self._compute_winding_angle(socket_pos, module_center)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+
+        if self.side == 'left':
+            # Bus is in the -x direction; cos_a < 0 means socket faces the bus
+            if cos_a > 0.3:          # Far side from bus — push hard toward bus
+                return 0.7, 1.4
+            elif abs(sin_a) > 0.7:   # Orthogonal face (top / bottom)
+                return 1.0, 1.0
+            else:                    # Bus-facing face — stay at natural y
+                return 1.0, 1.2
+        else:  # right
+            # Bus is in the +x direction; cos_a > 0 means socket faces the bus
+            if cos_a < -0.3:         # Far side from bus
+                return 0.7, 1.4
+            elif abs(sin_a) > 0.7:   # Orthogonal face
+                return 1.0, 1.0
+            else:                    # Bus-facing face
+                return 1.0, 1.2
+
     def custom_heuristic(self, dx: int, dy: int) -> float:
         """
         Custom heuristic for A* pathfinding.
-        
+
+        Scale factors are set per-socket via _heuristic_dx_scale / _heuristic_dy_scale
+        before each call to _route_socket_to_bus, encoding the winding-order bias.
+
         Parameters:
             dx: The x-coordinate difference
             dy: The y-coordinate difference
-            
+
         Returns:
             float: The heuristic value
         """
-        # Use Manhattan distance
-        return dx + dy
+        dx_scale = getattr(self, '_heuristic_dx_scale', 1.0)
+        dy_scale = getattr(self, '_heuristic_dy_scale', 1.0)
+        return dx * dx_scale + dy * dy_scale
     
     def _mark_obstacles_above_buses(self, grid: np.ndarray, net_to_protect: str) -> np.ndarray:
         """
@@ -817,6 +865,14 @@ class BusRouter(Router):
                                 too_close_id, too_close_short, too_close_name, too_close_clearance = self._find_too_close_module_pair(module)
                                 raise RuntimeError(self._build_pair_issue(module_id, module_name, too_close_id, too_close_name, too_close_clearance))
 
+
+                        # Set winding-order heuristic bias for this socket
+                        if module and getattr(module, 'position', None):
+                            module_center = (module.position.x, module.position.y)
+                            self._heuristic_dx_scale, self._heuristic_dy_scale = \
+                                self._compute_heuristic_scales(socket_pos, module_center)
+                        else:
+                            self._heuristic_dx_scale, self._heuristic_dy_scale = 1.0, 1.0
 
                         path = self._route_socket_to_bus(self.base_grid, socket_pos, bus_point, net_name)
                         

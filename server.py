@@ -135,8 +135,9 @@ def routing_progress():
 
     # Check if there's an output.zip file
     zip_path = job_folder_base / job_id / "output.zip"
-    # FIX: Use a better method for checking if routing succeeded?
-    finished_success = os.path.exists(zip_path)
+    zip_ready = job_folder_base / job_id / "zip_ready.txt"
+    # A successful finished job must have both files
+    finished_success = os.path.exists(zip_path) and os.path.exists(zip_ready)
 
     # TODO: Store some progress image(s) too
     progress_file = job_folder_base / job_id / "progress.txt"
@@ -156,9 +157,12 @@ def routing_progress():
     with open(keepalive_file, 'w') as file:
         file.write("!") # Anything
 
+    # Gather issues and check for routing failure
+    issue_list = read_job_issues(job_id)
+
     # Check for routing failure
     error_file = job_folder_base / job_id / "error.txt"
-    routing_failed = os.path.exists(error_file)
+    routing_failed = os.path.exists(error_file) or len(issue_list) > 0
     error_message = ""
 
     if routing_failed:
@@ -166,7 +170,10 @@ def routing_progress():
             with open(error_file, 'r') as file:
                 error_message = file.read().strip()
         except:
-            error_message = "Unknown routing error occurred"
+            if issue_list:
+                error_message = issue_list[0]
+            else:
+                error_message = "Unknown routing error occurred"
 
     # Get latest routing images for this job
     routing_imgs_folder = job_folder_base / job_id / "routing_imgs"
@@ -212,10 +219,7 @@ def routing_progress():
     routing_image_b64 = routing_image_b64 or ""
     routing_image_front_b64 = routing_image_front_b64 or ""
     routing_image_back_b64 = routing_image_back_b64 or ""
-
-
     if routing_failed:
-            issue_list = read_job_issues(job_id)
             if error_message and error_message not in issue_list:
                 issue_list.append(error_message)
 
@@ -224,7 +228,7 @@ def routing_progress():
                 "issues": issue_list,
                 "result": {
                     "progress": progress,
-                    "completed": finished_success,
+                    "completed": False,
                     "routingImage": routing_image_b64,
                     "routingImageFront": routing_image_front_b64,
                     "routingImageBack": routing_image_back_b64,
@@ -250,7 +254,7 @@ def routing_progress():
         }
 
         if finished_success:
-            response["issues"] = read_job_issues(job_id)
+            response["issues"] = issue_list
 
         return jsonify(response), 200
 
