@@ -22,5 +22,6 @@
   "designRules": {
     "canExtendToBoardEdge": true,
     "minimumClearance": null
-  }
+  },
+  "publishSchematic": true
 }

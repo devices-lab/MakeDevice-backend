@@ -1,0 +1,27 @@
+{
+  "name": "jvm_environment_sensor",
+  "version": "0.7",
+  "displayName": "Environment sensor",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 15.5,
+    "height": 16,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "humidity",
+    "temperature"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "publishSchematic": true,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

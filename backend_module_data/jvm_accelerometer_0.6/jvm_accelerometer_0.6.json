@@ -18,7 +18,7 @@
   ],
   "type": "virtual",
   "mcuPartNumber": "STM32G030F6P6",
-  "publishSchematic": false,
+  "publishSchematic": true,
   "designRules": {
     "canExtendToBoardEdge": false,
     "minimumClearance": null

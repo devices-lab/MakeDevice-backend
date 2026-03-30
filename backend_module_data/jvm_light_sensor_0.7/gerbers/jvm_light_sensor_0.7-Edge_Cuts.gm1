@@ -1,0 +1,23 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,9.0.7*%
+%TF.CreationDate,2026-03-30T18:33:28+01:00*%
+%TF.ProjectId,jvm_light_sensor,6a766d5f-6c69-4676-9874-5f73656e736f,0.7*%
+%TF.SameCoordinates,PX501bd00PY487ab00*%
+%TF.FileFunction,Profile,NP*%
+%FSLAX45Y45*%
+G04 Gerber Fmt 4.5, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 9.0.7) date 2026-03-30 18:33:28*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%TA.AperFunction,Profile*%
+%ADD10C,0.050000*%
+%TD*%
+G04 APERTURE END LIST*
+D10*
+X-750000Y850000D02*
+X755000Y850000D01*
+X755000Y-850000D01*
+X-750000Y-850000D01*
+X-750000Y850000D01*
+M02*

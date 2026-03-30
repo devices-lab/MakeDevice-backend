@@ -1,0 +1,34 @@
+{
+  "name": "jvm_rgb_led",
+  "version": "0.7",
+  "displayName": "RGB LED",
+  "description": "",
+  "jacdac": true,
+  "size": {
+    "width": 15.5,
+    "height": 16,
+    "depth": 0
+  },
+  "designer": {
+    "name": "Aron Eggens",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "led"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "STM32G030F6P6",
+  "publishSchematic": true,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  },
+  "leds": [
+    {
+      "x": 0.55,
+      "y": -0.05,
+      "z": 0.19,
+      "i": 2
+    }
+  ]
+}
