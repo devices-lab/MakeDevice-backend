@@ -523,12 +523,16 @@ class Board:
                             self.sockets.remove_socket("SWDIO~", socket)
                             print(f"🟢 Removed SWDIO~ socket at {socket} from Jacdaptor VM")
 
+    # TODO: this is really bad, sockets and nets shouldn't be assigned based on the their position in the keepout zones
     def get_module_nets(self) -> Dict[Module, List[str]]:
         """For each module, get the net names of the sockets inside it's zone
 
         Returns:
             Dict[Module, List[str]]: A dictionary mapping modules to net names
         """
+        # For floating-point precision issue
+        EPSILON = 1e-9
+        
         module_nets = {module: [] for module in self.modules}
 
         if not self.sockets:
@@ -543,8 +547,8 @@ class Board:
                     zone = module.zone
                     if (zone is None):
                         continue
-                    if (zone[0][0] <= socket[0] <= zone[2][0] and
-                        zone[0][1] <= socket[1] <= zone[2][1]):
+                    if (zone[0][0] - EPSILON <= socket[0] <= zone[2][0] + EPSILON and
+                        zone[0][1] - EPSILON <= socket[1] <= zone[2][1] + EPSILON):
                         module_nets[module].append(net)
                         assignedTo = assignedTo + 1
                 if assignedTo == 0:
