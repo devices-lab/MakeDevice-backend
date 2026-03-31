@@ -5,13 +5,13 @@
       "Application": "Pcbnew",
       "Version": "9.0.7"
     },
-    "CreationDate": "2026-03-30T19:28:49+01:00"
+    "CreationDate": "2026-03-31T13:30:57+01:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "jvm_accelerometer",
       "GUID": "6a766d5f-6163-4636-956c-65726f6d6574",
-      "Revision": "0.6"
+      "Revision": "0.7"
     },
     "Size": {
       "X": 18.55,

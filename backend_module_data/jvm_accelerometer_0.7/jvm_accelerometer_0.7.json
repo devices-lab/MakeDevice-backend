@@ -1,6 +1,6 @@
 {
   "name": "jvm_accelerometer",
-  "version": "0.6",
+  "version": "0.7",
   "displayName": "Accelerometer",
   "description": "",
   "jacdac": true,
