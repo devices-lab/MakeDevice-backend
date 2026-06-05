@@ -13,12 +13,14 @@ import thread_context
 from upload import upload_jlc, upload_euro, upload_aisler
 
 from server_packets import (
-    PCBArtifactRequest, 
-    PCBArtifactResponse, 
-    RoutingProgressRequest, 
-    RoutingProgressResponse, 
-    RoutingStartRequest, 
-    RoutingStartResponse
+    PCBArtifactRequest,
+    PCBArtifactResponse,
+    RoutingProgressRequest,
+    RoutingProgressResponse,
+    RoutingStartRequest,
+    RoutingStartResponse,
+    ArtifactsFromRouteRequest,
+    ArtifactsFromRouteResponse,
 )
 
 from server_packets_panelize import (
@@ -29,6 +31,7 @@ from server_packets_panelize import (
 )
 
 from run import run
+from run_from_route import run_from_route
 from panelize import panelize
 
 # Add the parent directory to the Python path if needed
@@ -336,6 +339,48 @@ def pcb_artifact():
 
     # NOTE: Still use status code 200 for application-level errors, since we want the custom error message
     return jsonify(response), 200
+
+# Artifact-only endpoint: frontend has already routed and supplies the
+# segments + vias. The backend builds the same artifact zip as the legacy
+# router would produce. /routingProgress and /pcbArtifact serve this job.
+@app.route('/artifactsFromRoute', methods=['POST'])
+def artifacts_from_route():
+    data: ArtifactsFromRouteRequest = request.get_json(force=True)
+    validate_endpoint(data, "artifactsFromRoute")
+
+    job_id = generate_id()
+
+    job_folder = job_folder_base / Path(f"./{job_id}")
+    output_folder = job_folder / "output"
+    output_folder.mkdir(parents=True, exist_ok=True)
+    print(f"🔵 Created job folder: {job_folder}")
+    print(f"🔵 Created output folder: {output_folder}")
+
+    project_file_path = output_folder / "project.MakeDevice"
+    with open(project_file_path, 'w') as file:
+        file.write(data["project"])
+    print(f"🔵 Project data saved to: {project_file_path}")
+
+    keepalive_file = job_folder / "keepalive_time"
+    with open(keepalive_file, 'w') as file:
+        file.write("!")
+
+    route = data.get("route", {}) or {}
+    print(
+        f"🔵 Starting artifact-only job with job ID: {job_id} "
+        f"(segments={len(route.get('segments') or [])}, vias={len(route.get('vias') or [])})"
+    )
+
+    threading.Thread(target=run_from_route, args=(job_id, job_folder, route)).start()
+
+    response: ArtifactsFromRouteResponse = {
+        "endpoint": "artifactsFromRoute",
+        "result": {
+            "jobId": job_id
+        }
+    }
+    return jsonify(response), 200
+
 
 ########################
 # SmartPanelizer Endpoints

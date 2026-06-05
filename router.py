@@ -75,30 +75,30 @@ class Router:
         return Point(x, y)
 
     def _create_base_grid(self) -> np.ndarray:
-        """Create the base grid for the entire board."""        
+        """Create the base grid for the entire board."""
         # Initialize grid with free cells
         grid = np.full((self.grid_height, self.grid_width), self.FREE_CELL, dtype=int)
-        
+
         # Mark keep-out zones in the grid
         for zone in self.board.zones.get_data():
             bottom_left, top_left, top_right, bottom_right = zone
-            
+
             # Convert coordinates to grid indices
             bl_col, bl_row = self._coordinates_to_indices(bottom_left[0], bottom_left[1])
             tr_col, tr_row = self._coordinates_to_indices(top_right[0], top_right[1])
-            
+
             # Ensure bounds are within grid limits and handle coordinate flips
             bl_col = max(0, min(self.grid_width - 1, bl_col))
             tr_col = max(0, min(self.grid_width - 1, tr_col))
             bl_row = max(0, min(self.grid_height - 1, bl_row))
             tr_row = max(0, min(self.grid_height - 1, tr_row))
-            
+
             min_col, max_col = min(bl_col, tr_col), max(bl_col, tr_col)
             min_row, max_row = min(bl_row, tr_row), max(bl_row, tr_row)
-            
+
             # Mark cells in the rectangle as blocked
             grid[min_row:max_row+1, min_col:max_col+1] = self.BLOCKED_CELL
-        
+
         return grid
     
     def _add_via(self, net_name: str, point: Tuple[int, int]) -> None:

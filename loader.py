@@ -116,6 +116,20 @@ class Loader:
         return self.data.get('pcbOptions', {}).get('connectors', {})
 
     @property
+    def outline(self) -> List[Dict[str, Any]]:
+        """
+        Optional custom polygon outline. Returns the raw list of nodes from
+        the project JSON, or [] when the project ships with the default
+        rounded-rectangle. Each node has x/y in board-local mm (y-up, centred)
+        and may carry optional r (fillet radius, mm) and bulgeAfter (DXF
+        bulge for the edge to the next node).
+        """
+        raw = self.data.get('pcbOptions', {}).get('outline')
+        if not isinstance(raw, list) or len(raw) < 3:
+            return []
+        return raw
+
+    @property
     def connector_top(self) -> bool:
         """Get whether top connector is enabled"""
         return bool(self.data.get('pcbOptions', {}).get('connectors', {}).get('top', False))

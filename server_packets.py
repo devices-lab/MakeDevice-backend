@@ -24,6 +24,49 @@ class PCBArtifactRequest(TypedDict):
     uploadToFabHouse: NotRequired[bool]
 
 
+class RouteSegment(TypedDict):
+    layer: str          # e.g. "F_Cu.gtl" / "B_Cu.gbl"
+    net: str
+    startX: float
+    startY: float
+    endX: float
+    endY: float
+    width: float
+
+
+class RouteVia(TypedDict):
+    net: str
+    x: float
+    y: float
+
+
+class RoutePayload(TypedDict):
+    segments: List[RouteSegment]
+    vias: List[RouteVia]
+    totalBusesWidth: NotRequired[float]
+    connectedSocketsCount: NotRequired[int]
+
+
+class ArtifactsFromRouteRequest(TypedDict):
+    endpoint: Literal["artifactsFromRoute"]
+    project: str   # Same .MakeDevice JSON shape as routingStart.project
+    route: RoutePayload
+
+
+class ArtifactsFromRouteResponseResult(TypedDict):
+    jobId: str
+
+
+class ArtifactsFromRouteResponseError(TypedDict):
+    message: str
+
+
+class ArtifactsFromRouteResponse(TypedDict):
+    endpoint: Literal["artifactsFromRoute"]
+    error: NotRequired[ArtifactsFromRouteResponseError]
+    result: NotRequired[ArtifactsFromRouteResponseResult]
+
+
 # Outgoing Response Types
 
 
@@ -51,6 +94,8 @@ class RoutingProgressResponseError(TypedDict):
 class RoutingProgressResponseResult(TypedDict):
     progress: float
     routingImage: NotRequired[str]  # Base64 encoded image
+    routingImageFront: NotRequired[str]  # Base64 encoded front preview image
+    routingImageBack: NotRequired[str]  # Base64 encoded back preview image
     busWidthLeft: NotRequired[float]
     busWidthRight: NotRequired[float]
     completed: NotRequired[bool]

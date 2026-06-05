@@ -63,6 +63,7 @@ In the case this tools doesn't change your Python version (happens on an M-chip 
 1. Create a virtual environment with `python3 -m venv venv`
 2. Activate it with `source venv/bin/activate`
 3. Install dependencies `python3 -m pip install -r requirements.txt`
+ - This installs the `wasi-svg-flatten` CLI used when generating silkscreen and panel Gerber artifacts.
 
 ## Usage
 ### Running an offline test-case (currently broken)

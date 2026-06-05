@@ -14,12 +14,11 @@ from gerbonara import GerberFile, ExcellonFile
 import warnings
 
 import os
-import sys
 import math
-import subprocess
 from datetime import datetime
 
 from server_packets_panelize import PanelizeStartRequest
+from svg_flatten import run_wasi_svg_flatten
 
 from module import Module
 
@@ -198,31 +197,25 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     panel_folder = thread_context.job_folder / "panel"
     os.makedirs(panel_folder, exist_ok=True)
 
-    # Remove venv paths from PATH to access svg-flatten (svg-flatten is setup at system level, not in venv)
-    env = os.environ.copy()
-    venv_bin = sys.prefix + "/bin"
-    if "site-packages" in sys.prefix or "venv" in sys.prefix:
-        env["PATH"] = ":".join(p for p in env["PATH"].split(":") if p != venv_bin)
-
     # Turn SVG files into gerber files
     progress(0.95)
     # NOTE: The gerber-outline format is more likely to make 'line' and 'spot_circle' objects
     # instead of 'polygon' objects which fab houses treat like copper fills. 
     # I don't think gerber-outline can make polygons at all actually.
-    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "copperTop.svg", "panel/copper_top.gbr"],
-               cwd=thread_context.job_folder, env=env)
-    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "copperBot.svg", "panel/copper_bottom.gbr"],
-                cwd=thread_context.job_folder, env=env)
+    run_wasi_svg_flatten(["--format", "gerber-outline", "copperTop.svg", "panel/copper_top.gbr"],
+               cwd=thread_context.job_folder)
+    run_wasi_svg_flatten(["--format", "gerber-outline", "copperBot.svg", "panel/copper_bottom.gbr"],
+                cwd=thread_context.job_folder)
     # NOTE: Use of gerber-outline means we can't have rectangular pad soldermask openings, 
     # they'll just become lines with rounded edges
-    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "soldermaskTop.svg", "panel/soldermask_top.gbr"],
-                cwd=thread_context.job_folder, env=env)
+    run_wasi_svg_flatten(["--format", "gerber-outline", "soldermaskTop.svg", "panel/soldermask_top.gbr"],
+                cwd=thread_context.job_folder)
     progress(0.99)
-    subprocess.run(["wasi-svg-flatten", "--format", "gerber-outline", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
-                cwd=thread_context.job_folder, env=env)
+    run_wasi_svg_flatten(["--format", "gerber-outline", "soldermaskBottom.svg", "panel/soldermask_bottom.gbr"],
+                cwd=thread_context.job_folder)
 
-    subprocess.run(["wasi-svg-flatten", "vcut.svg", "panel/vcut_all.gbr"],
-                cwd=thread_context.job_folder, env=env)
+    run_wasi_svg_flatten(["vcut.svg", "panel/vcut_all.gbr"],
+                cwd=thread_context.job_folder)
 
 
     # Use gerber-writer to add rectangular pad copper and soldermask

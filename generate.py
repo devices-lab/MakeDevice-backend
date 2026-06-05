@@ -1,12 +1,38 @@
 import os
 import re
-import subprocess
 from gerber_writer import DataLayer, Path, Circle, set_generation_software
 from datetime import datetime
 
 from board import Board
+from outline_geometry import build_outline_path_segments, parse_outline
 
 import thread_context
+from svg_flatten import run_wasi_svg_flatten
+
+
+def _apply_segments_to_path(path: Path, segments) -> None:
+    """Replay the iterator from build_outline_path_segments onto a Path."""
+    for seg in segments:
+        kind = seg[0]
+        if kind == "move":
+            path.moveto(seg[1])
+        elif kind == "line":
+            path.lineto(seg[1])
+        elif kind == "arc":
+            _, end_pt, center_pt, direction = seg
+            path.arcto(end_pt, center_pt, direction)
+
+
+def _build_custom_outline_path(loader_outline: list, origin_x: float, origin_y: float) -> Path:
+    """
+    Build a closed gerber_writer.Path that traces a custom outline. The
+    project's outline is centred at (0,0); shift by the board origin so the
+    resulting coordinates match the rectangular fallback's frame.
+    """
+    nodes = parse_outline(loader_outline, offset_x=origin_x, offset_y=origin_y)
+    path = Path()
+    _apply_segments_to_path(path, build_outline_path_segments(nodes))
+    return path
 
 def generate(board: Board, output_dir="./generated"):
     output_dir = thread_context.job_folder / output_dir
@@ -32,14 +58,7 @@ def _generate_silkscreen_from_svg(board: Board, output_dir) -> None:
     with open(svg_path, 'w') as file:
         file.write(graphics_svg)
 
-    subprocess.run(
-        [
-            "wasi-svg-flatten",
-            svg_path,
-            output_path,
-        ],
-        check=True,
-    )
+    run_wasi_svg_flatten([svg_path, output_path])
 
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         print("🟠 Silkscreen Gerber is empty; check font availability for SVG <text> elements")
@@ -98,18 +117,27 @@ def _generate_graphics(board: Board, output_dir) -> None:
 
         # Add fills if selected for the current layer
         if layer.fill:
-            # First, create a path of the entire board outline, taking into consideration the bus_clearance
-            bottom_left = ((o_x - board.width / 2) + edge_clearance, o_y - board.height / 2 + edge_clearance)
-            top_left = ((o_x - board.width / 2) + edge_clearance, o_y + board.height / 2 - edge_clearance)
-            top_right = (o_x + board.width / 2 - edge_clearance, o_y + board.height / 2 - edge_clearance)
-            bottom_right = (o_x + board.width / 2 - edge_clearance, o_y - board.height / 2 + edge_clearance)
-
-            outline = Path()
-            outline.moveto(bottom_left)
-            outline.lineto(top_left)
-            outline.lineto(top_right)
-            outline.lineto(bottom_right)
-            outline.lineto(bottom_left)
+            # Region boundary: a custom outline if the user shaped one, else
+            # an inset rectangle that keeps copper away from the board edge.
+            # NOTE: for the custom-outline branch we trace the outline directly
+            # rather than offsetting it inward by `edge_clearance` (proper
+            # polygon offset would need shapely/pyclipper). For non-rectangular
+            # shapes the copper pour will therefore reach the cut line; the
+            # Edge_Cuts gerber still defines where the fab cuts.
+            custom_outline = board.loader.outline
+            if custom_outline:
+                outline = _build_custom_outline_path(custom_outline, o_x, o_y)
+            else:
+                bottom_left = ((o_x - board.width / 2) + edge_clearance, o_y - board.height / 2 + edge_clearance)
+                top_left = ((o_x - board.width / 2) + edge_clearance, o_y + board.height / 2 - edge_clearance)
+                top_right = (o_x + board.width / 2 - edge_clearance, o_y + board.height / 2 - edge_clearance)
+                bottom_right = (o_x + board.width / 2 - edge_clearance, o_y - board.height / 2 + edge_clearance)
+                outline = Path()
+                outline.moveto(bottom_left)
+                outline.lineto(top_left)
+                outline.lineto(top_right)
+                outline.lineto(bottom_right)
+                outline.lineto(bottom_left)
             gerber.add_region(outline, "GND,Copper,Fill", negative=False)
             
             # # Now for each zone, add a cutout (negative region)
@@ -197,42 +225,44 @@ def _generate_drill(board: Board, output_dir) -> None:
 
 def _generate_outline(board: Board, output_dir):
     """
-    Generates a Gerber file for the board outline with rounded corners.
-    
-    The arc centers are inset from the board corners by the rounding_radius,
-    so that the arcs replace the sharp corners and bulge outward.
-    
-    Parameters:
-        board (dict): Contains board info with keys 'name', 'size', and 'origin'.
-        output_dir (str): Directory to store the generated Gerber file.
-        rounding_radius (float): Radius (in mm) for the rounded corners.
+    Generate the Edge_Cuts gerber. Two modes:
+
+    1. Custom outline: when `pcbOptions.outline` is present on the project
+       (any closed polygon of >= 3 nodes, optionally with per-edge bulge arcs
+       and per-corner fillets), trace it directly. Connector breaks are not
+       applied — the user shapes the edge themselves.
+    2. Rectangular fallback: legacy behaviour — rectangle with uniform
+       rounded corners and optional top/bottom connector cutouts.
     """
-    # Ensure the output directory exists.
     os.makedirs(output_dir, exist_ok=True)
 
-    # Extract board origins
     origin_x = board.origin['x']
     origin_y = board.origin['y']
-    
-    # Get the rounding radius
+
+    outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
+
+    custom_outline = board.loader.outline
+    if custom_outline:
+        path = _build_custom_outline_path(custom_outline, origin_x, origin_y)
+        outline_layer.add_traces_path(path, 0.15, 'Outline')
+        file_path = os.path.join(output_dir, f"{board.name}-Edge_Cuts.gm1")
+        with open(file_path, 'w') as file:
+            file.write(outline_layer.dumps_gerber())
+        return
+
+    # ---- Rectangular fallback ----
     rounding_radius = board.loader.rounded_corner_radius
-    
-    # Get connector information
     bottom_connector = board.loader.connector_bottom
     top_connector = board.loader.connector_top
-    CONNECTOR_WIDTH = 16 # Width of the connector in mm - hardcoded for now
+    CONNECTOR_WIDTH = 16  # mm, hardcoded for now
 
-    # Calculate the board boundaries.
     xmin = origin_x - board.width / 2
     xmax = origin_x + board.width / 2
     ymin = origin_y - board.height / 2
     ymax = origin_y + board.height / 2
 
-    # Ensure the rounding radius does not exceed half the board dimensions
     rounding_radius = min(rounding_radius, board.width / 2, board.height / 2)
 
-    # Create the DataLayer and Path for the board outline
-    outline_layer = DataLayer("Outline,EdgeCuts", negative=False)
     path = Path()
 
     # Start on the bottom edge, offset from the left by rounding_radius

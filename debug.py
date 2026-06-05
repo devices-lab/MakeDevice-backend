@@ -159,10 +159,15 @@ def _render_layer_svg(board, layer_name: str, router_list=None):
             pass
 
     # ── 5. Axes limits ──
+    # Match the MakeDevice editor camera convention (world +Y at the bottom
+    # of the screen, set via `up=(0, 0, -1)` in Canvas.tsx). matplotlib's
+    # default cartesian view puts +Y at the top, which makes the routing
+    # dashboard appear upside-down relative to the editor — inverting the
+    # ylim flips the rendered SVG to match.
     padding = max(board.width, board.height) * 0.05
     ax.set_aspect("equal", adjustable="box")
     ax.set_xlim(-board.width / 2 - padding, board.width / 2 + padding)
-    ax.set_ylim(-board.height / 2 - padding, board.height / 2 + padding)
+    ax.set_ylim(board.height / 2 + padding, -board.height / 2 - padding)
     fig.tight_layout(pad=0)
 
     return fig
