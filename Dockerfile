@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install gerborlyze (SmartPanelizer)
-RUN pip3 install --user git+https://git.jaseg.de/pcb-tools-extension.git
+RUN pip3 install --user git+https://git.yasec.de/jaseg/pcb-tools-extension.git
 RUN python3 -m pip install svg-flatten-wasi==3.1.6
 RUN cargo install usvg --version 0.34.1
 
