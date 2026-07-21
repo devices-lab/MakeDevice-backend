@@ -1,0 +1,15 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,10.0.4-10.0.4~ubuntu22.04.1*%
+%TF.CreationDate,2026-07-21T15:20:52+01:00*%
+%TF.ProjectId,vm_i2c_environment_sensor_bme690,766d5f69-3263-45f6-956e-7669726f6e6d,0.1*%
+%TF.SameCoordinates,PX4c88490PY4524320*%
+%TF.FileFunction,Paste,Bot*%
+%TF.FilePolarity,Positive*%
+%FSLAX45Y45*%
+G04 Gerber Fmt 4.5, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 10.0.4-10.0.4~ubuntu22.04.1) date 2026-07-21 15:20:52*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+G04 APERTURE END LIST*
+M02*
