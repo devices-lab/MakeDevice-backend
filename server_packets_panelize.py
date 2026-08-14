@@ -39,7 +39,8 @@ class PanelizeStartRequest(TypedDict):
     vias: List[Vec2]
     biteHoles: List[Vec2]
     fabRailHoles: List[Vec2]
-    pads: List[List[Vec2]]
+    padsTop: List[List[Vec2]]
+    padsBot: List[List[Vec2]]
     padsSoldermask: List[List[Vec2]]
     svgCopperTop: str
     svgCopperBottom: str

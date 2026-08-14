@@ -17,6 +17,7 @@ import os
 import sys
 import math
 import subprocess
+import traceback
 from datetime import datetime
 
 from server_packets_panelize import PanelizeStartRequest
@@ -38,6 +39,23 @@ def error(message: str):
     # }
 
 def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
+    # Runs on its own thread (server.py's /panelizeStart), so an uncaught exception here
+    # doesn't propagate anywhere - it just kills the thread. Without this wrapper, a bug
+    # like the missing padsTop/padsBot split once left the job stuck at whatever progress()
+    # last wrote (99%), forever, since error_message was never set: the poller kept seeing
+    # a plain in-progress result and never learned the job was dead. Every exception now
+    # goes through error(), the same path explicit `return error(...)` calls already use,
+    # so thread_context.error_message is always set before the job stops.
+    try:
+        return _panelize_impl(job_id, job_folder, data)
+    except Exception as e:
+        if not thread_context.error_message:
+            traceback.print_exc()
+            error(f"Unexpected error during panelize: {e}")
+        raise
+
+
+def _panelize_impl(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     print("🟢 = OK")
     print("🟠 = WARNING")
     print("🔴 = ERROR")
@@ -231,13 +249,24 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     mask_top = DataLayer('Soldermask,L1,Top,Signal')
     mask_bot = DataLayer('Soldermask,L2,Bottom,Signal')
 
-    for pad in data["pads"]:
+    # padsTop and padsBot are independent: an edge-connector pad column is two separate
+    # nets, one per face, so a pad only gets copper on the face(s) that actually route to
+    # it. Adding every pad to both (as this used to) puts floating copper on the face with
+    # no net, and ties two unrelated nets' faces together wherever a via sits under a pad.
+    for pad in data["padsTop"]:
         tl, tr, _, br = pad
         sx = tr["x"] - tl["x"]
         sy = br["y"] - tr["y"]
         rect = Rectangle(sx, sy, "ConnectorPad")
         center = tl["x"] + sx / 2, -(tl["y"] + sy / 2)
         top.add_pad(rect, center)
+
+    for pad in data["padsBot"]:
+        tl, tr, _, br = pad
+        sx = tr["x"] - tl["x"]
+        sy = br["y"] - tr["y"]
+        rect = Rectangle(sx, sy, "ConnectorPad")
+        center = tl["x"] + sx / 2, -(tl["y"] + sy / 2)
         bot.add_pad(rect, center)
 
     for pad in data["padsSoldermask"]:
@@ -553,7 +582,7 @@ def panelize(job_id: str, job_folder: Path, data: PanelizeStartRequest) -> dict:
     
     compress_directory(thread_context.job_folder / "output")
 
-    # Write to a text fail indicating zip ready
+    # Write to a text file indicating zip ready
     with open(thread_context.job_folder / "zip_ready.txt", 'w') as file:
         file.write("ready")
 
