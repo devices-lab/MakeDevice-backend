@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,9.0.7*%
-%TF.CreationDate,2026-03-08T19:17:52+00:00*%
+%TF.CreationDate,2026-03-31T14:20:00+01:00*%
 %TF.ProjectId,kittenbot_power,6b697474-656e-4626-9f74-5f706f776572,0.5*%
 %TF.SameCoordinates,PX8d24d00PY36d6160*%
 %TF.FileFunction,Soldermask,Top*%
 %TF.FilePolarity,Negative*%
 %FSLAX45Y45*%
 G04 Gerber Fmt 4.5, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 9.0.7) date 2026-03-08 19:17:52*
+G04 Created by KiCad (PCBNEW 9.0.7) date 2026-03-31 14:20:00*
 %MOMM*%
 %LPD*%
 G01*

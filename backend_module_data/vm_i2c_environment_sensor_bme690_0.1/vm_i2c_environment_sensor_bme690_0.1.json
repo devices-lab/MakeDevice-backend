@@ -1,0 +1,26 @@
+{
+  "name": "vm_i2c_environment_sensor_bme690",
+  "version": "0.1",
+  "displayName": "I2C environment sensor",
+  "description": "Environment sensor with I2C interface",
+  "jacdac": false,
+  "size": {
+    "width": 8.5,
+    "height": 8.5,
+    "depth": 0
+  },
+  "designer": {
+    "name": "William Dove",
+    "company": "Devices Lab"
+  },
+  "functionality": [
+    "environment_sensor"
+  ],
+  "type": "virtual",
+  "mcuPartNumber": "",
+  "publishSchematic": true,
+  "designRules": {
+    "canExtendToBoardEdge": false,
+    "minimumClearance": null
+  }
+}

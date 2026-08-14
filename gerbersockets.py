@@ -131,8 +131,8 @@ class Sockets(Object):
                 ap = getattr(obj, "aperture", None)
                 d = getattr(ap, "diameter", None)
                 if d is not None:
-                    # Optional: quantize to avoid float-key fragmentation
-                    pos = (obj.x1, obj.y1)
+                    # Quantize resolution to the nearest 6 decimals to avoid floating point issues
+                    pos = (round(obj.x1, 6), round(obj.y1, 6))
                     circles[pos].append(float(d))
 
         for pos, dlist in circles.items():
