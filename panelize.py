@@ -82,6 +82,15 @@ def _panelize_impl(job_id: str, job_folder: Path, data: PanelizeStartRequest) ->
 
 
 
+    # hasAssemblyData/hasGerberSockets are authoritative from the frontend, which already
+    # validated the upload (see report.md §4 and CLAUDE.md) - trust them over re-deriving
+    # the same thing from fileTextLayers here. default=True on the fallback (older
+    # frontends that don't send the field yet) preserves the old "hard error if actually
+    # missing" behaviour rather than silently going lenient.
+    has_assembly_data = data.get("hasAssemblyData", True)
+    has_gerber_sockets = data.get("hasGerberSockets", True)
+    print(f"🔵 hasAssemblyData={has_assembly_data}, hasGerberSockets={has_gerber_sockets}")
+
     # Save BOM and placement files to ./assembly
     assembly_folder = thread_context.job_folder / "assembly"
     os.makedirs(assembly_folder, exist_ok=True)
@@ -90,20 +99,29 @@ def _panelize_impl(job_id: str, job_folder: Path, data: PanelizeStartRequest) ->
     bom_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "bom"), None)
     placement_layer = next((layer for layer in data["fileTextLayers"] if layer["layer"]["type"] == "placement"), None)
 
-    missing_assembly_data = False
+    if has_assembly_data and (bom_layer is None or placement_layer is None):
+        # The frontend said this board has assembly data, but didn't send it - a real
+        # contract violation, not an expectedly-absent-data case, so this one still fails
+        # the job rather than silently proceeding without it.
+        return error(
+            "hasAssemblyData was true, but " +
+            ("no BOM layer" if bom_layer is None else "no placement layer") +
+            " was found in fileTextLayers"
+        )
+
     if bom_layer is not None:
         with open(assembly_folder / "BOM.csv", 'w') as file:
             file.write(bom_layer["content"])
-    else:
-        missing_assembly_data = "No BOM layer found"
     if placement_layer is not None:
         with open(assembly_folder / "CPL.csv", 'w') as file:
             file.write(placement_layer["content"])
-    else:
-        missing_assembly_data = "No placement layer found"
 
+    # Only consolidate (merge across every board copy) when assembly data is actually
+    # expected. A board legitimately without BOM/CPL just gets no assembly output in the
+    # panel zip - the rest of generation proceeds as normal.
+    missing_assembly_data = not has_assembly_data
     if missing_assembly_data:
-        print("🟠 " + missing_assembly_data + " - proceeding without assembly data")
+        print("🟠 No assembly data expected for this board - proceeding without it")
 
     # Whether to use the Gerber step and repeat (SR) command instead of gerbonara's .offest(),
     # since gerbonara's .offset() corrupts features like Jacdac mounting hole soldermask. This
@@ -133,7 +151,12 @@ def _panelize_impl(job_id: str, job_folder: Path, data: PanelizeStartRequest) ->
 
         side = layer["layer"]["side"] if layer["layer"]["side"] is not None else "none"
         type = layer["layer"]["type"] if layer["layer"]["type"] is not None else "none"
-        if (type in ["drill-pth", "drill-npth"]):
+        # drill-unknown (PTH/NPTH not identifiable from the filename) still needs routing
+        # through the Excellon path below (.drl / ExcellonFile.open), not treated as a
+        # .gbr/GerberFile - otherwise it's parsed as if it were Gerber syntax. The
+        # frontend now hard-rejects this case before upload (see CLAUDE.md), but keep
+        # this correct here too rather than mis-parsing whatever slips through.
+        if (type in ["drill-pth", "drill-npth", "drill-unknown"]):
             type = "drill"
 
         # Write each gerber file to the gerbers folder

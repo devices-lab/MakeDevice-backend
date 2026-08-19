@@ -36,6 +36,14 @@ class PanelizeStartRequest(TypedDict):
     fabSpec: FabSpec
     boardOutlineD: str
     gerberOrigin: Vec2
+
+    # Authoritative flags from the frontend, which already validated the upload: whether
+    # this board is expected to have BOM+CPL / a GerberSockets layer at all, as opposed to
+    # never having had one. Mirrors frontend `networking/packetTypes.ts` - see panelize.py's
+    # use of these for what "expected but missing" vs "not expected" means here.
+    hasAssemblyData: bool
+    hasGerberSockets: bool
+
     vias: List[Vec2]
     biteHoles: List[Vec2]
     fabRailHoles: List[Vec2]

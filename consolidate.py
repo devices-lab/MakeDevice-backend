@@ -14,6 +14,15 @@ def error(message: str):
     #     "failed": True
     # }
 
+# Accepted column-name aliases, shared between collect_references() and
+# process_cpl_file() so both pick the same designator/position columns out of a CPL row
+# regardless of which EDA tool exported it - KiCad's default export differs from JLC's own
+# ("Designator"/"Mid X"/"Mid Y"/"Rotation" rather than "Ref"/"PosX"/"PosY"/"Rot").
+CPL_REF_COL_NAMES = ["Reference", "Ref", "Designator"]
+CPL_POS_X_COL_NAMES = ["PosX", "Mid X"]
+CPL_POS_Y_COL_NAMES = ["PosY", "Mid Y"]
+CPL_ROT_COL_NAMES = ["Rot", "Rotation"]
+
 def consolidate_component_files(modules: List[Module], board_name: str, modules_dir='./backend_module_data', output_dir='./output') -> None:
     """
     Consolidates BOM files from multiple modules into a single BOM file,
@@ -147,9 +156,9 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
         None
     """
     # Define accepted column names
-    cpl_ref_col_names = ["Reference", "Ref", "Designator"] # Only seen "Ref" so far
+    cpl_ref_col_names = CPL_REF_COL_NAMES
     bom_ref_col_names = cpl_ref_col_names
-    bom_value_col_names = ["Value", "Val", "Designation"] # Also seen "Comment"
+    bom_value_col_names = ["Value", "Val", "Designation", "Comment"] # JLC's own BOM export uses "Comment"
 
     try:
         # First, read the CPL file to get a list of actual components placed
@@ -228,7 +237,7 @@ def collect_references(bom_file_path: Path, cpl_file_path: Path, module: Module,
                     }
     
     except Exception as e:
-        error("Error collecting references from files: {e}")
+        error(f"Error collecting references from files: {e}")
 
 
 def group_components(all_components: Dict) -> Dict:
@@ -308,26 +317,29 @@ def process_cpl_file(cpl_file_path: Path, module: Module, ref_mapping: Dict, cpl
             
             # Process each component
             for row in reader:
-                # Get the original values
-                designator = row.get("Ref", "").strip()
+                # Get the original values. Alias-tolerant (see CPL_*_COL_NAMES): a plain
+                # row.get("Ref", "") always came back empty for a JLC-style export (its
+                # column is "Designator", not "Ref"), silently skipping every row and
+                # leaving cpl_entries empty for the whole board.
+                designator = row.get(try_col_names(row, CPL_REF_COL_NAMES), "").strip()
                 if not designator:
                     continue
-                
+
                 # Generate the component key for lookup
                 module_name_version = f"{module.name}_{module.version}"
                 component_key = f"{module_idx}:{module_name_version}:{designator}"
-                
+
                 # Skip if this component doesn't have a mapped reference
                 if component_key not in ref_mapping:
                     continue
-                
+
                 # Get the new reference designator
                 new_ref = ref_mapping[component_key]
-                
+
                 # Get placement data
-                mid_x = float(row.get("PosX", 0))
-                mid_y = float(row.get("PosY", 0))
-                rotation = float(row.get("Rot", 0))
+                mid_x = float(row.get(try_col_names(row, CPL_POS_X_COL_NAMES), 0) or 0)
+                mid_y = float(row.get(try_col_names(row, CPL_POS_Y_COL_NAMES), 0) or 0)
+                rotation = float(row.get(try_col_names(row, CPL_ROT_COL_NAMES), 0) or 0)
                 
                 # Apply module rotation and position offset
                 new_x, new_y, new_rotation = transform_coordinates(

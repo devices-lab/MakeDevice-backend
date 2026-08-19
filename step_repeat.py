@@ -115,13 +115,53 @@ def insert_sr_placeholders(input_file_path, output_file_path):
     with open(input_file_path, 'r') as infile:
         lines = infile.readlines()
 
-    # Find first non-header line
+    # Find first non-header line: not (part of) a parameter block (%...%, which includes
+    # the essential %MOMM*%/%FSLAX...*% and every aperture definition - and can itself
+    # span multiple lines, e.g. a macro aperture %AMOC8*\n5,1,8,...*% - all of which must
+    # precede any drawing), not a G04 comment, and not a bare mode-setting G-code with no
+    # coordinates of its own (e.g. G75*, G90*).
+    #
+    # Three real files broke the old "starts with % or G04" one-line check:
+    # - EAGLE's X2 export interleaves a bare G75* between its TF comments and
+    #   %MOMM*%/%FSLAX...*%, which isn't `%`- or `G04`-prefixed, so the old check
+    #   inserted the placeholder's own D01 draws ahead of %MOMM*%, and gerbonara hit a
+    #   coordinate before ever seeing a unit definition and rejected the file outright.
+    # - A multi-line macro aperture's continuation lines don't start with `%` at all
+    #   (only its opening line does; the block closes on a later line ending in `%`), so
+    #   the old check also stopped mid-macro-definition, splitting it in two.
+    # - EAGLE's bottom copper opens a region (G36*) for its ground pour right after its
+    #   aperture definitions, with no drawing in between. A first attempt at fixing the
+    #   G75* case above treated *any* bare `G<digits>*` as skippable header, including
+    #   G36 - which isn't a one-shot mode flag like G75/G90, it's a block opener that
+    #   must stay paired with a later G37*. Landing the placeholder between them makes
+    #   its own D01 draws part of the region's boundary instead of 16 independent
+    #   strokes: gerbonara re-serializes the whole region differently, and the
+    #   placeholder's detectable signature doesn't survive - replace_sr_placeholders()
+    #   then can't find the open half at all (silently: it only warns, it doesn't fail
+    #   the job), so that layer's user geometry never actually gets the SR command and
+    #   the panel ships with just one un-repeated copy of it. Only treat the *safe*
+    #   mode-only G-codes as header - interpolation mode (G01/G02/G03), quadrant mode
+    #   (G74/G75), and the deprecated unit/coordinate ones (G70/G71/G90/G91) - never
+    #   G36/G37 (region) or any other block-opener.
+    safe_bare_gcodes = {f'G{n}*' for n in (1, 2, 3, 70, 71, 74, 75, 90, 91)}
     insert_index = 0
+    in_param_block = False
     for i, line in enumerate(lines):
-        stripped = line.lstrip()
-        if not (stripped.startswith('%') or stripped.startswith('G04')):
-            insert_index = i
-            break
+        stripped = line.strip()
+        if in_param_block:
+            if stripped.endswith('%'):
+                in_param_block = False
+            continue
+        if not stripped:
+            continue
+        if stripped.startswith('%'):
+            if not stripped.endswith('%') or stripped == '%':
+                in_param_block = True
+            continue
+        if stripped.startswith('G04') or stripped in safe_bare_gcodes:
+            continue
+        insert_index = i
+        break
     else:
         insert_index = len(lines)
 
